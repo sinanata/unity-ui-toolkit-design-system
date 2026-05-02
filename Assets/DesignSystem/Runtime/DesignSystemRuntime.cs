@@ -96,15 +96,40 @@ namespace UIDocumentDesignSystem
 
         void StartSpinners(VisualElement root)
         {
+            // Rotate every element carrying `.is-spinning`, regardless of whether
+            // it's a `.ds-spinner` ring, a `.ds-icon` glyph (e.g. a refresh icon
+            // turning into a loading indicator on a button), or any other
+            // element a screen wants to spin. The class is purely behavioral —
+            // visual styling stays on whatever class the element already has.
             _spinTask = root.schedule.Execute(() =>
             {
                 _spinAngle = (_spinAngle + 6f) % 360f;
-                root.Query(className: SPINNER_CLASS).ForEach(el =>
+                root.Query(className: SPINNER_ACTIVE_CLASS).ForEach(el =>
                 {
-                    if (!el.ClassListContains(SPINNER_ACTIVE_CLASS)) return;
                     el.style.rotate = new StyleRotate(new Rotate(_spinAngle));
                 });
             }).Every(16);
+        }
+
+        /// <summary>
+        /// Toggle a spinning state on any element. Adds/removes the
+        /// `is-spinning` marker class which the runtime's tick rotates.
+        /// When stopping, snaps the rotation back to 0° so the next time
+        /// the element shows it's not frozen at a random angle.
+        /// </summary>
+        public static void SetSpinning(VisualElement el, bool spinning)
+        {
+            if (el == null) return;
+            if (spinning)
+            {
+                if (!el.ClassListContains(SPINNER_ACTIVE_CLASS))
+                    el.AddToClassList(SPINNER_ACTIVE_CLASS);
+            }
+            else
+            {
+                el.RemoveFromClassList(SPINNER_ACTIVE_CLASS);
+                el.style.rotate = new StyleRotate(new Rotate(0f));
+            }
         }
 
         /// <summary>

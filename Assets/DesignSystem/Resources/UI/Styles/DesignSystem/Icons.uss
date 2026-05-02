@@ -100,11 +100,29 @@
     -unity-background-image-tint-color: var(--color-text-primary);
 }
 
-/* Disabled */
+/* Disabled — base rule plus explicit `:disabled:hover` / `:disabled:active`
+   compounds. The per-variant `:hover` / `:active` rules below
+   (`.ds-btn--ghost:hover .ds-icon` etc.) are also (0,3,0); the bare
+   `.ds-btn:disabled .ds-icon` at the same (0,3,0) specificity LOSES on
+   source order because the per-variant rules are declared later in the
+   file. Without these compounds at (0,4,0), moving the cursor onto a
+   disabled button would flash its icon from the disabled grey back to the
+   variant's text-primary / text-on-accent tint. The same trap applies to
+   `:active` — Unity's input layer can still produce pointer-down on a
+   disabled element on some platforms before SetEnabled blocks it, leaving
+   a one-frame "pressed" tint mismatch. Lock both states to disabled. */
 .ds-btn:disabled .ds-icon,
+.ds-btn:disabled:hover .ds-icon,
+.ds-btn:disabled:active .ds-icon,
 .ds-tab:disabled .ds-icon,
+.ds-tab:disabled:hover .ds-icon,
+.ds-tab:disabled:active .ds-icon,
 .ds-nav-item:disabled .ds-icon,
-.ds-pagination__btn:disabled .ds-icon {
+.ds-nav-item:disabled:hover .ds-icon,
+.ds-nav-item:disabled:active .ds-icon,
+.ds-pagination__btn:disabled .ds-icon,
+.ds-pagination__btn:disabled:hover .ds-icon,
+.ds-pagination__btn:disabled:active .ds-icon {
     -unity-background-image-tint-color: var(--color-text-disabled);
 }
 

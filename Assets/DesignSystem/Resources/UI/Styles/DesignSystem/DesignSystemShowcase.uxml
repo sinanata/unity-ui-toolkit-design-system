@@ -186,6 +186,17 @@
                     </ui:Button>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-row" style="margin-top: 12px;">
+                    <ui:Label text="Loading" class="ds-body-2" style="width: 70px;"/>
+                    <ui:Button enabled="false" class="ds-btn ds-btn--ghost ds-btn--with-icon" style="margin-right: 6px; min-width: 140px;">
+                        <ui:VisualElement class="ds-icon ds-icon--refresh ds-btn__icon is-spinning"/>
+                        <ui:Label text="Refreshing..."/>
+                    </ui:Button>
+                    <ui:Button enabled="false" class="ds-btn ds-btn--primary ds-btn--with-icon" style="margin-right: 6px; min-width: 120px;">
+                        <ui:VisualElement class="ds-icon ds-icon--refresh ds-btn__icon is-spinning"/>
+                        <ui:Label text="Saving..."/>
+                    </ui:Button>
+                </ui:VisualElement>
+                <ui:VisualElement class="ds-row" style="margin-top: 12px;">
                     <ui:Label text="Back" class="ds-body-2" style="width: 70px;"/>
                     <ui:Button class="ds-btn back-btn" style="align-self: flex-start; margin-top: 0;">
                         <ui:VisualElement class="ds-icon ds-icon--chevron-left back-btn__icon"/>

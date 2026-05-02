@@ -300,3 +300,22 @@
 .back-btn:disabled .back-btn__label {
     color: var(--color-text-disabled);
 }
+
+/* Disabled background/border — `.back-btn` has no `:disabled` variant
+   declared above, so it normally falls back to the global `.ds-btn:disabled`
+   rule. That rule sits near the top of this file (line ~31) while
+   `.back-btn:hover` (line ~249) and `.back-btn:active` (line ~254) are
+   declared LATER at the same (0,2,0) specificity — source order would let
+   hover/active flash a primary-green background over the disabled grey
+   when the cursor moves onto a disabled back-btn. The compound
+   `:disabled:hover` / `:disabled:active` selectors below are (0,3,0), so
+   they win over per-state variants regardless of source order. `scale: 1 1`
+   resets the press shrink in case input fires a brief :active on disable. */
+.back-btn:disabled,
+.back-btn:disabled:hover,
+.back-btn:disabled:active {
+    background-color: var(--color-surface-elev);
+    border-color: var(--color-border);
+    color: var(--color-text-disabled);
+    scale: 1 1;
+}
