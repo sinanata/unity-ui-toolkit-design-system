@@ -135,7 +135,10 @@
     companyName: "{{{ COMPANY_NAME }}}",
     productName: "{{{ PRODUCT_NAME }}}",
     productVersion: "{{{ PRODUCT_VERSION }}}",
-    devicePixelRatio: 1,
+    // Render at the device's native pixel density. Hard-pinning this to 1
+    // makes the canvas look soft/upscaled on every Retina laptop and iPhone
+    // (DPR 2-3) — the classic "Unity WebGL low resolution" complaint.
+    devicePixelRatio: window.devicePixelRatio || 1,
     matchWebGLToCanvasSize: true,
   };
 
