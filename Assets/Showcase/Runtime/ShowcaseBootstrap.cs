@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -12,6 +13,38 @@ namespace UIDocumentDesignSystem.Showcase
         const string SHOWCASE_RES_PATH = "UI/Styles/DesignSystem/DesignSystemShowcase";
         const string THEME_RES_PATH    = "UnityDefaultRuntimeTheme";
         const int    MOBILE_BREAKPOINT = 768;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern float LoLDS_GetDevicePixelRatio();
+#endif
+
+        // Effective devicePixelRatio for panel scaling. WebGL has the most
+        // surface area for the bug — the index.html sets canvas.width =
+        // innerWidth * window.devicePixelRatio so Unity renders into a HiDPI
+        // buffer for crisp text, which means Screen.width reports the BUFFER
+        // pixel count, not CSS pixels. ConstantPixelSize without compensation
+        // shrinks every component to 1/DPR of its declared size on Retina.
+        //
+        // Standalone Mac with macRetinaSupport=1 has the same shape: Screen
+        // returns physical pixels, Screen.dpi returns physical PPI (~218 on a
+        // 5K iMac). We approximate DPR as Screen.dpi/96 (96 dpi being the
+        // Windows / CSS reference) and floor at 1 so non-HiDPI desktops
+        // render unchanged.
+        static float GetEffectiveDpr()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try
+            {
+                float dpr = LoLDS_GetDevicePixelRatio();
+                if (dpr > 0f) return dpr;
+            }
+            catch { /* fall through to Screen.dpi heuristic */ }
+#endif
+            float dpi = Screen.dpi;
+            if (dpi <= 0f) return 1f;
+            return Mathf.Max(1f, dpi / 96f);
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Initialize()
@@ -60,6 +93,12 @@ namespace UIDocumentDesignSystem.Showcase
                 ApplyMobileClass(root);
                 WirePromoLinks(root);
                 WireThemeToggle(root);
+
+                // Re-evaluate the mobile class whenever the panel root resizes
+                // (browser window resize, mobile rotation, devtools toggle).
+                // GeometryChangedEvent fires on every resolved layout pass so
+                // the class flips below 768 CSS-px and back without a reload.
+                root.RegisterCallback<GeometryChangedEvent>(_ => ApplyMobileClass(root));
             }).StartingIn(0);
 
             var overlayGO = new GameObject("ShowcaseDocOverlay");
@@ -84,17 +123,23 @@ namespace UIDocumentDesignSystem.Showcase
 
             // ConstantPixelSize so components render at their declared pixel
             // sizes regardless of viewport — what you see is what they ship
-            // as in your own project. ScaleWithScreenSize would stretch the
-            // whole UI to a reference resolution, which is right for a game
-            // HUD but misleading for a design-system reference: a designer
-            // hovering a `.ds-btn` wants to see a 36px button at 36px, not a
-            // proportionally scaled version of one.
+            // as in your own project. A designer hovering a `.ds-btn` wants
+            // to see a 36px button at 36px, not a proportionally scaled
+            // version of one (which is what ScaleWithScreenSize would give).
             //
             // The flex-wrap layout in the showcase UXML already reflows when
             // the viewport narrows, and `.mobile` (added by the bootstrap
-            // when Screen.width < 768) flips spacing/touch-target tokens.
-            // Together they cover every viewport without a global scale.
+            // when CSS-width < 768) flips spacing/touch-target tokens.
+            //
+            // Scale tracks devicePixelRatio because the WebGL template renders
+            // into a HiDPI buffer (canvas.width = innerWidth × DPR) for crisp
+            // text. Without this multiplier, 1 panel-px maps to 1 buffer-px
+            // → 1/DPR CSS pixels, so a 36-px button shrinks to 18 / 12 CSS-px
+            // on Retina (DPR 2) / iPhone (DPR 3). With ps.scale = DPR, panel
+            // pixels track CSS pixels exactly: 36 panel-px → 36 CSS-px on
+            // every device, while still rendered at native HiDPI sharpness.
             ps.scaleMode = PanelScaleMode.ConstantPixelSize;
+            ps.scale = GetEffectiveDpr();
             ps.sortingOrder = sortingOrder;
             ps.targetDisplay = 0;
             ps.clearColor = sortingOrder == 0;
@@ -105,7 +150,22 @@ namespace UIDocumentDesignSystem.Showcase
         static void ApplyMobileClass(VisualElement root)
         {
             if (root == null) return;
-            bool mobile = Screen.width < MOBILE_BREAKPOINT;
+
+            // Compare CSS pixels (not Screen.width, which is buffer pixels =
+            // CSS × DPR on WebGL with matchWebGLToCanvasSize=true). On iPhone
+            // 14 Pro Max with DPR 3, Screen.width=1290 buffer-px maps to 430
+            // CSS-px — the mobile layout would never trigger if we compared
+            // 1290 < 768. Using rootVisualElement.layout when it has resolved
+            // (post-GeometryChangedEvent) gives true panel-coordinate width;
+            // before then, fall back to Screen.width / panel.scale.
+            float panelWidth = root.layout.width;
+            if (panelWidth <= 0f || float.IsNaN(panelWidth))
+            {
+                float dpr = GetEffectiveDpr();
+                panelWidth = Screen.width / Mathf.Max(1f, dpr);
+            }
+
+            bool mobile = panelWidth < MOBILE_BREAKPOINT;
             if (mobile && !root.ClassListContains("mobile")) root.AddToClassList("mobile");
             if (!mobile && root.ClassListContains("mobile")) root.RemoveFromClassList("mobile");
         }

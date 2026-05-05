@@ -91,8 +91,12 @@
     }
     #ribbon a:hover { color: #22C55E; border-bottom-color: #22C55E; }
 
-    /* Mobile breakpoint — Unity's `Screen.width` reads the CSS size; we keep
-       the canvas full-bleed and let UI Toolkit's .mobile class do the rest. */
+    /* Mobile breakpoint — CSS pixels, drives the ribbon + loading-bar. The
+       UI Toolkit `.mobile` class is applied separately by ShowcaseBootstrap
+       in C#, comparing the panel root's resolved layout width (also CSS-px,
+       because the panel scale is set to devicePixelRatio). Both sides agree
+       on units now; when `Screen.width` is read directly inside Unity it is
+       BUFFER pixels = CSS × DPR, so don't compare it against 768 raw. */
     @media (max-width: 767px) {
       #ribbon { font-size: 10px; bottom: 4px; right: 6px; }
       #loading-bar { width: 180px; }

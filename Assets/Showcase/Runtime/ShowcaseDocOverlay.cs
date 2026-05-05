@@ -484,7 +484,20 @@ namespace UIDocumentDesignSystem.Showcase
 
         void PositionPanelNear(VisualElement target)
         {
-            if (Screen.width < MOBILE_BREAKPOINT)
+            // worldBound and the inline style coordinates we set live in panel
+            // coordinate space, which now equals CSS pixels on every device
+            // (ShowcaseBootstrap sets ps.scale = devicePixelRatio so the panel
+            // grid is decoupled from the HiDPI drawing buffer). Read panel
+            // dimensions from the overlay root's resolved layout — comparing
+            // against Screen.width here would mix CSS-px with buffer-px and
+            // dock the panel off-screen on every Retina display.
+            var overlayRoot = _overlayDoc != null ? _overlayDoc.rootVisualElement : null;
+            float panelW = overlayRoot != null ? overlayRoot.layout.width  : 0f;
+            float panelH = overlayRoot != null ? overlayRoot.layout.height : 0f;
+            if (panelW <= 0f || float.IsNaN(panelW)) panelW = Screen.width;
+            if (panelH <= 0f || float.IsNaN(panelH)) panelH = Screen.height;
+
+            if (panelW < MOBILE_BREAKPOINT)
             {
                 // Mobile: docked along the bottom, full-width minus margin.
                 _panel.style.left   = 12;
@@ -499,8 +512,8 @@ namespace UIDocumentDesignSystem.Showcase
             var b = target.worldBound;
             float left = b.xMax + 12;
             float top  = b.yMin;
-            if (left + PANEL_WIDTH > Screen.width)  left = Mathf.Max(12, b.xMin - PANEL_WIDTH - 12);
-            if (top  + PANEL_MAX_HEIGHT > Screen.height) top = Mathf.Max(12, Screen.height - PANEL_MAX_HEIGHT - 12);
+            if (left + PANEL_WIDTH > panelW)        left = Mathf.Max(12, b.xMin - PANEL_WIDTH - 12);
+            if (top  + PANEL_MAX_HEIGHT > panelH)   top  = Mathf.Max(12, panelH - PANEL_MAX_HEIGHT - 12);
 
             _panel.style.left   = left;
             _panel.style.top    = top;
