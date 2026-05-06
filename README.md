@@ -86,13 +86,36 @@ git clone https://github.com/sinanata/unity-ui-document-design-system ../design-
 cp -r ../design-system-src/Assets/DesignSystem Assets/DesignSystem
 ```
 
-**Option B — git submodule:**
+**Option B — git submodule (recommended for keeping the system updated):**
+
+The submodule must live **outside** `Assets/` and the drop-in folder gets linked into `Assets/DesignSystem`. Putting the submodule directly under `Assets/` would make Unity import this repo's host project (`Assets/Showcase/`, `Assets/Editor/`, `Assets/WebGLTemplates/`) into the consuming project — and a symlink alongside that would produce duplicate-GUID errors.
 
 ```bash
 cd your-unity-project
-git submodule add https://github.com/sinanata/unity-ui-document-design-system Assets/DesignSystem-src
-# Symlink or copy Assets/DesignSystem-src/Assets/DesignSystem → Assets/DesignSystem
+git submodule add https://github.com/sinanata/unity-ui-document-design-system Vendor/unity-ui-document-design-system
 ```
+
+Then create an OS-level link from `Assets/DesignSystem` to the vendored copy:
+
+```powershell
+# Windows — directory junction (no admin / Developer Mode required)
+cmd /c mklink /J Assets\DesignSystem Vendor\unity-ui-document-design-system\Assets\DesignSystem
+```
+
+```bash
+# macOS / Linux — symbolic link
+ln -s ../Vendor/unity-ui-document-design-system/Assets/DesignSystem Assets/DesignSystem
+```
+
+Add the link itself to your `.gitignore` so each contributor re-creates it after their first clone (the link path is per-OS and per-clone state — junctions can't roundtrip through git, and symlinks don't roundtrip cleanly across Windows / *nix):
+
+```gitignore
+# Per-clone link to the vendored design system
+Assets/DesignSystem
+Assets/DesignSystem.meta
+```
+
+> **Working example:** [unity-mesh-fracture](https://github.com/sinanata/unity-mesh-fracture) consumes the design system this way — see the "Cloning this demo project" section of its README for the end-to-end recipe.
 
 After Unity reimports, every screen with a UIDocument can opt into the system by attaching the master stylesheet:
 
