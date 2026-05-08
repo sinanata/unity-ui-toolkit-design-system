@@ -384,3 +384,40 @@
     width: 26px;
     height: 26px;
 }
+
+/* ── Drawers / Burger panels ──
+   On a 360-wide reference, a 280-px side drawer eats most of the viewport
+   and leaves ~80 px for the underlying content. Cap left/right drawers at
+   88% of the viewport so the user keeps a peek of the page behind, and
+   shrink the default top/bottom drawer height a bit so it doesn't crowd
+   the action button below. Author-supplied inline widths still win — these
+   are defaults for unsized drawers. */
+.mobile .ds-drawer--left,
+.mobile .ds-drawer--right {
+    width: 88%;
+    max-width: 320px;
+}
+.mobile .ds-drawer--top,
+.mobile .ds-drawer--bottom {
+    height: 60%;
+    max-height: 280px;
+}
+/* Push drawers on mobile keep their max-width animation but the open size
+   tracks 88% of the wrapper instead of 280 px so a long drawer still leaves
+   the user a visible sliver of the underlying content. */
+.mobile .ds-drawer--push.ds-drawer--left.ds-drawer--open,
+.mobile .ds-drawer--push.ds-drawer--right.ds-drawer--open,
+.mobile .ds-drawer-wrap.is-open .ds-drawer--push.ds-drawer--left,
+.mobile .ds-drawer-wrap.is-open .ds-drawer--push.ds-drawer--right {
+    max-width: 88%;
+}
+.mobile .ds-drawer__header {
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+}
+.mobile .ds-drawer__title {
+    font-size: 15px;
+}
+.mobile .ds-drawer__body {
+    padding: var(--space-3);
+}

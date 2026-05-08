@@ -129,6 +129,8 @@ namespace UIDocumentDesignSystem.Showcase
                 ApplyMobileClass(root);
                 WirePromoLinks(root);
                 WireThemeToggle(root);
+                WireDrawerDemos(root);
+                WireAutoHideScroll(root);
                 SetInitialFocus(root);
 
                 // Re-evaluate the mobile class whenever the panel root resizes
@@ -323,6 +325,42 @@ namespace UIDocumentDesignSystem.Showcase
                 if (label == null) continue;
                 label.text = light ? kv.Value.Light : kv.Value.Dark;
             }
+        }
+
+        // Hook the burger / close buttons in the three drawer demo sections to
+        // their `.ds-drawer-wrap` parents. The runtime helper toggles `is-open`
+        // on the wrapper; the USS rules drive the rest. Each demo wires three
+        // closers — the close button, plus (for the overlay variants) the
+        // backdrop, which dismisses the drawer when the dim layer is clicked.
+        static void WireDrawerDemos(VisualElement root)
+        {
+            if (root == null) return;
+
+            UIDocumentDesignSystem.DesignSystemRuntime.WireDrawer(
+                root.Q<Button>("drawer-top-burger"),
+                root.Q("drawer-top-wrap"),
+                root.Q<Button>("drawer-top-close"));
+
+            UIDocumentDesignSystem.DesignSystemRuntime.WireDrawer(
+                root.Q<Button>("drawer-right-burger"),
+                root.Q("drawer-right-wrap"),
+                root.Q<Button>("drawer-right-close"),
+                root.Q("drawer-right-backdrop"));
+
+            UIDocumentDesignSystem.DesignSystemRuntime.WireDrawer(
+                root.Q<Button>("drawer-push-burger"),
+                root.Q("drawer-push-wrap"),
+                root.Q<Button>("drawer-push-close"));
+        }
+
+        // Touch-friendly auto-hide for the auto-hiding scrollbar demo. Desktop
+        // users get the pure-USS `:hover` rule for free; this helper covers
+        // mobile, where there's no hover signal.
+        static void WireAutoHideScroll(VisualElement root)
+        {
+            if (root == null) return;
+            var sv = root.Q<ScrollView>("auto-hide-scroll");
+            UIDocumentDesignSystem.DesignSystemRuntime.WireScrollAutoHide(sv);
         }
     }
 }

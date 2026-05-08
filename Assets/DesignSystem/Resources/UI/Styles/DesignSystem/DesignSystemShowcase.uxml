@@ -1049,6 +1049,129 @@
                     </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 380px;">
+                <ui:Label text="DRAWER — TOP OVERLAY" class="ds-section__title"/>
+                <ui:Label text="Slides down from the top edge over the content beneath. Useful for menus and command palettes. Click the menu icon to open." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:VisualElement name="drawer-top-wrap" class="ds-drawer-wrap" style="height: 220px; background-color: rgb(11, 15, 23); border-radius: 12px; border-width: 1px; border-color: rgb(38, 48, 65);">
+                    <ui:VisualElement style="flex-direction: row; align-items: center; padding-left: 12px; padding-right: 12px; padding-top: 10px; padding-bottom: 10px; border-bottom-width: 1px; border-bottom-color: rgb(38, 48, 65);">
+                        <ui:Button name="drawer-top-burger" class="ds-btn ds-btn--icon">
+                            <ui:VisualElement class="ds-icon ds-icon--menu"/>
+                        </ui:Button>
+                        <ui:Label text="Document" class="ds-h3" style="margin-left: 12px; flex-grow: 1;"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-grow: 1; align-items: center; justify-content: center;">
+                        <ui:Label text="Workspace" class="ds-body-2" style="color: rgb(103, 112, 133); white-space: normal; -unity-text-align: middle-center;"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="drawer-top" class="ds-drawer ds-drawer--top" style="height: 130px;">
+                        <ui:VisualElement class="ds-drawer__header">
+                            <ui:Label text="Menu" class="ds-drawer__title"/>
+                            <ui:Button name="drawer-top-close" class="ds-drawer__close">
+                                <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--close"/>
+                            </ui:Button>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-drawer__body" style="flex-direction: row; padding: 12px;">
+                            <ui:Button text="New" class="ds-btn ds-btn--ghost" style="margin-right: 8px; flex-grow: 1;"/>
+                            <ui:Button text="Open" class="ds-btn ds-btn--ghost" style="margin-right: 8px; flex-grow: 1;"/>
+                            <ui:Button text="Save" class="ds-btn ds-btn--primary" style="flex-grow: 1;"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 380px;">
+                <ui:Label text="DRAWER — RIGHT OVERLAY" class="ds-section__title"/>
+                <ui:Label text="Slides in from the right over a dimmed backdrop. Click the dim layer or the close button to dismiss." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:VisualElement name="drawer-right-wrap" class="ds-drawer-wrap" style="height: 280px; background-color: rgb(11, 15, 23); border-radius: 12px; border-width: 1px; border-color: rgb(38, 48, 65);">
+                    <ui:VisualElement style="flex-direction: row; align-items: center; padding-left: 12px; padding-right: 12px; padding-top: 10px; padding-bottom: 10px; border-bottom-width: 1px; border-bottom-color: rgb(38, 48, 65);">
+                        <ui:Button name="drawer-right-burger" class="ds-btn ds-btn--icon">
+                            <ui:VisualElement class="ds-icon ds-icon--menu"/>
+                        </ui:Button>
+                        <ui:Label text="Library" class="ds-h3" style="margin-left: 12px; flex-grow: 1;"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-grow: 1; align-items: center; justify-content: center; padding: 16px;">
+                        <ui:VisualElement class="ds-icon ds-icon--lg ds-icon--list" style="-unity-background-image-tint-color: rgb(103, 112, 133); margin-bottom: 8px;"/>
+                        <ui:Label text="Open the menu to apply filters" class="ds-body-2" style="color: rgb(103, 112, 133); white-space: normal; -unity-text-align: middle-center;"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="drawer-right-backdrop" class="ds-drawer__backdrop"/>
+                    <ui:VisualElement name="drawer-right" class="ds-drawer ds-drawer--right" style="width: 240px;">
+                        <ui:VisualElement class="ds-drawer__header">
+                            <ui:Label text="Filters" class="ds-drawer__title"/>
+                            <ui:Button name="drawer-right-close" class="ds-drawer__close">
+                                <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--close"/>
+                            </ui:Button>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-drawer__body">
+                            <ui:VisualElement style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <ui:Label text="Show favorites" class="ds-body-2"/>
+                                <ui:Toggle value="true" class="ds-toggle">
+                                    <ui:VisualElement class="ds-toggle__knob"/>
+                                </ui:Toggle>
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <ui:Label text="Show archived" class="ds-body-2"/>
+                                <ui:Toggle value="false" class="ds-toggle">
+                                    <ui:VisualElement class="ds-toggle__knob"/>
+                                </ui:Toggle>
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; align-items: center; justify-content: space-between;">
+                                <ui:Label text="Show drafts" class="ds-body-2"/>
+                                <ui:Toggle value="true" class="ds-toggle">
+                                    <ui:VisualElement class="ds-toggle__knob"/>
+                                </ui:Toggle>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 540px;">
+                <ui:Label text="DRAWER — RIGHT PUSH (SHRINKING SIBLINGS)" class="ds-section__title"/>
+                <ui:Label text="The drawer is part of the flex flow, so opening it shrinks the main column to make room — content stays interactive on both sides." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:VisualElement name="drawer-push-wrap" class="ds-drawer-wrap" style="height: 280px; background-color: rgb(11, 15, 23); border-radius: 12px; border-width: 1px; border-color: rgb(38, 48, 65); flex-direction: row;">
+                    <ui:VisualElement style="flex-grow: 1; flex-direction: column;">
+                        <ui:VisualElement style="flex-direction: row; align-items: center; padding-left: 12px; padding-right: 12px; padding-top: 10px; padding-bottom: 10px; border-bottom-width: 1px; border-bottom-color: rgb(38, 48, 65);">
+                            <ui:Button name="drawer-push-burger" class="ds-btn ds-btn--icon">
+                                <ui:VisualElement class="ds-icon ds-icon--menu"/>
+                            </ui:Button>
+                            <ui:Label text="Editor" class="ds-h3" style="margin-left: 12px; flex-grow: 1;"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-grow: 1; align-items: center; justify-content: center; padding: 16px;">
+                            <ui:VisualElement class="ds-icon ds-icon--lg ds-icon--edit" style="-unity-background-image-tint-color: rgb(103, 112, 133); margin-bottom: 8px;"/>
+                            <ui:Label text="Open the menu to reveal the inspector" class="ds-body-2" style="color: rgb(103, 112, 133); white-space: normal; -unity-text-align: middle-center;"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="drawer-push" class="ds-drawer ds-drawer--right ds-drawer--push" style="width: 240px;">
+                        <ui:VisualElement class="ds-drawer__header">
+                            <ui:Label text="Inspector" class="ds-drawer__title"/>
+                            <ui:Button name="drawer-push-close" class="ds-drawer__close">
+                                <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--close"/>
+                            </ui:Button>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-drawer__body">
+                            <ui:Label text="Name" class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 4px;"/>
+                            <ui:TextField value="Untitled" class="ds-input" style="margin-bottom: 12px;"/>
+                            <ui:Label text="Opacity" class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 4px;"/>
+                            <ui:Slider value="60" low-value="0" high-value="100" class="ds-slider" style="margin-bottom: 12px;"/>
+                            <ui:VisualElement style="flex-direction: row; align-items: center; justify-content: space-between;">
+                                <ui:Label text="Visible" class="ds-body-2"/>
+                                <ui:Toggle value="true" class="ds-toggle">
+                                    <ui:VisualElement class="ds-toggle__knob"/>
+                                </ui:Toggle>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 380px;">
+                <ui:Label text="AUTO-HIDING SCROLLBAR" class="ds-section__title"/>
+                <ui:Label text="Hover the box to reveal the scrollbar; it fades out when the cursor leaves. On touch the helper flashes the bar for 700 ms after each scroll." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:ScrollView name="auto-hide-scroll" mode="Vertical" class="ds-scrollbar-demo ds-scroll--auto-hide" style="height: 200px;">
+                    <ui:Label text="The bar appears when you hover this list." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="It uses pure USS opacity transitions on the scroll-view's vertical and horizontal scroller children — no per-frame work." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="The same modifier works on horizontal scrollers." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="On touch devices :hover never fires, so DesignSystemRuntime.WireScrollAutoHide adds an is-scrolling marker class for about 700 ms after each WheelEvent or PointerDownEvent that the rule also responds to." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="It composes with the existing slim 8 px scrollbar styling — no extra rules needed beyond the .ds-scroll--auto-hide modifier." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="Bottom of the demo list." class="ds-body-2" style="white-space: normal;"/>
+                </ui:ScrollView>
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:ScrollView>
 </ui:UXML>

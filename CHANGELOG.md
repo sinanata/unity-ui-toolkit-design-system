@@ -4,6 +4,39 @@ All notable changes to this project will be documented here.
 
 This project loosely follows [Semantic Versioning](https://semver.org/) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [1.3.0] — 2026-05-08
+
+Burger panels and drawers ship as a first-class component, in response to [issue #1](https://github.com/sinanata/unity-ui-document-design-system/issues/1). One `.ds-drawer` class with composable direction (`top` / `right` / `bottom` / `left`) and mode (`overlay` / `push`) modifiers covers both transition styles called out in the issue: top-to-down growing-overlay, and left-to-right growing-overlay-with-shrinking-siblings. Auto-hiding scrollbar lands as a one-class `:hover` modifier with a touch-friendly runtime helper. Showcase has four new live demos at the bottom of the page — same URL, refresh to see.
+
+### Added
+
+- **Drawer rules** appended to `Controls.uss` (rather than living in their own file). Unity's USS asset importer caches the parent stylesheet's `@import` resolution; new-file additions can fail to load until a `-ClearCache` rebuild, and a contributor reading the showcase output saw the drawer demos render unstyled because of exactly that. Bundling the rules into an existing imported file sidesteps the cache cliff entirely. The matrix is `direction × mode`:
+    - **Direction** modifiers: `.ds-drawer--top`, `.ds-drawer--right`, `.ds-drawer--bottom`, `.ds-drawer--left`. Each pins the drawer to its named edge and chooses the off-edge resting state (`translate: 0 -100%`, `100% 0`, `0 100%`, `-100% 0` respectively).
+    - **Mode** modifiers: default is **overlay** (`position: absolute`, slides via `translate`, the cheap path — no layout reflow) and `.ds-drawer--push` (in the flex flow, animates `max-width` for left/right or `max-height` for top/bottom from `0` to the authored size, so flex-grow siblings shrink to make room — the "shrinking siblings" pattern in image #2 of issue #1).
+    - **State** is toggled by either an `is-open` class on a `.ds-drawer-wrap` ancestor (recommended; one class flip animates drawer + backdrop together) or by `ds-drawer--open` on the drawer itself (freestanding usage). Both selectors are wired in the USS so authors can pick whichever fits their tree.
+    - **Chrome** is optional and follows the existing BEM convention: `.ds-drawer__header` / `__title` / `__close` / `__body`. The body slot is a flex column by default; wrap it in a `<ScrollView>` for long content.
+    - **Transition timing** uses the existing `--transition-medium` (200 ms) token + `ease-in-out`; theme swap and drawer slide animate at the same cadence.
+- **`.ds-drawer__backdrop`** — sibling to the drawer inside the wrapper. Dim layer (`var(--color-overlay)`) that fades in/out with the drawer. The runtime helper toggles `pickingMode` in lockstep with the open class because UI Toolkit's `opacity: 0` does NOT disable pointer picking — an invisible-but-rendered backdrop would otherwise shadow the burger button beneath it.
+- **`.ds-burger`** — three-bar hamburger that morphs into an `x` when its `.is-open` class is set. Pure-USS animation: top bar gains `translate: 0 6px; rotate: 45deg`, middle bar fades, bottom bar gains `translate: 0 -6px; rotate: -45deg`. Optional — drop the `.ds-icon--menu` glyph into a `.ds-btn--icon` for a static burger icon when you don't want the morph.
+- **`.ds-scroll--auto-hide`** modifier (`Controls.uss`) — fades the scrollbars from `opacity: 0` to `opacity: 1` on `:hover` of the wrapping `<ScrollView>`. Scoped to `.ds-scroll--auto-hide .unity-scroll-view__vertical-scroller / __horizontal-scroller` so it composes with the existing slim 8-px scrollbar styling — no extra rules needed beyond the modifier. Also responds to an `is-scrolling` marker class for touch devices, where `:hover` doesn't fire.
+- **`DesignSystemRuntime.WireDrawer(opener, wrapperOrDrawer, params closers)`** — single-call wiring. Toggles `is-open` on the wrapper when `opener` is clicked; removes it when any closer is clicked. Auto-detects when `opener` carries `.ds-burger` and mirrors the open class so the bars-to-x animation fires. For non-button closers (typically the backdrop) it both registers a `PointerDownEvent` and tracks them in a list so it can flip their `pickingMode = PickingMode.Position` while open / `Ignore` while closed — the "invisible backdrop blocks the burger" bug is precluded automatically.
+- **`DesignSystemRuntime.WireScrollAutoHide(scrollView)`** — touch-friendly auto-hide. Adds an `is-scrolling` class to the `ScrollView` for ~700 ms after each `WheelEvent` / `PointerDownEvent`, which the auto-hide rule responds to. Desktop users get the pure-USS `:hover` rule for free; this helper covers mobile, where there's no hover signal.
+- **Showcase**: four new sections at the bottom of `DesignSystemShowcase.uxml`, generic UI patterns rather than game-specific copy:
+    - `DRAWER — TOP OVERLAY` — "Document" frame; burger opens a top-edge "Menu" drawer with New / Open / Save buttons.
+    - `DRAWER — RIGHT OVERLAY` — "Library" frame; burger opens a right-side "Filters" drawer over a dim backdrop, with three toggle filters. Click the backdrop to dismiss.
+    - `DRAWER — RIGHT PUSH` — "Editor" frame; burger opens a right-side "Inspector" drawer that pushes the central column to make room. Body holds a text input, a slider, and a toggle (so the demo also exercises `.ds-input`, `.ds-slider`, `.ds-toggle` inside a drawer body).
+    - `AUTO-HIDING SCROLLBAR` — vertical `ScrollView` with `.ds-scroll--auto-hide`. Mouse: hover to reveal the scrollbar; leave to hide. Touch: scroll/wheel/tap flashes the bar for 700 ms.
+
+### Changed
+
+- **`DesignSystem.uss`** now imports `Drawers.uss`.
+- **`Mobile.uss`** adds drawer-specific overrides: side drawers cap at `88%` of viewport width (so the user keeps a peek of the page behind), top/bottom drawers cap at `60%` height with a `280 px` max, and `.mobile .ds-drawer__header` / `__body` use tighter padding to match the existing mobile-rail spacing pattern.
+
+### Notes
+
+- **Picking + invisible elements.** Unity's UI Toolkit doesn't disable picking on `opacity: 0` elements (and `visibility: hidden` only ships from Unity 6.0 on, with some quirks across panel scales). Code-side `pickingMode` toggling is the simplest robust path; the runtime helper does it for you. If you wire your own drawer without the helper, set `closer.pickingMode = PickingMode.Ignore` while the drawer is closed.
+- **Push-mode `width` vs `max-width`.** The drawer animates `max-width` (or `max-height`) instead of `width` (`height`) directly — the inner chrome stays at its authored size while the clip animates down to zero, which avoids a one-frame "0-px layout flash" of the inner header / body and keeps the icon + title from re-shuffling per frame during the transition.
+
 ## [1.2.0] — 2026-05-05
 
 HiDPI sizing fix for the live web showcase (Retina Macs, iPhones, iPads were rendering every component at 1/DPR of its declared size), mobile-narrow heading wrap, themed + crisp dropdown popup, and keyboard + gamepad navigation through the Unity Input System. Same showcase URL — `https://sinanata.github.io/unity-ui-document-design-system/` — refresh to see the new build.

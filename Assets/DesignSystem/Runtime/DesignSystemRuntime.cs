@@ -155,6 +155,111 @@ namespace UIDocumentDesignSystem
             });
         }
 
+        /// <summary>
+        /// Wire a drawer's open / close state. Adds an `is-open` class to
+        /// <paramref name="wrapperOrDrawer"/> when <paramref name="opener"/>
+        /// is clicked, and removes it when any of <paramref name="closers"/>
+        /// (typically the close button + an optional `.ds-drawer__backdrop`)
+        /// is clicked. Idempotent — calling twice with the same elements
+        /// re-registers the handlers (cheap; UI Toolkit deduplicates by
+        /// delegate identity).
+        ///
+        /// Pass the `.ds-drawer-wrap` ancestor as <paramref name="wrapperOrDrawer"/>
+        /// so backdrop + drawer respond to the same class (recommended). Or
+        /// pass the drawer itself for freestanding usage — the USS rules
+        /// support both targets.
+        ///
+        /// Pure-CSS authors don't need this helper at all: any code that
+        /// flips `is-open` (or `ds-drawer--open` on a self-driven drawer)
+        /// triggers the same animation.
+        /// </summary>
+        public static void WireDrawer(Button opener, VisualElement wrapperOrDrawer, params VisualElement[] closers)
+        {
+            if (opener == null || wrapperOrDrawer == null) return;
+
+            // Closed-state pointer hygiene. `opacity: 0` does NOT disable
+            // picking in UI Toolkit — an invisible backdrop still captures
+            // clicks and shadows the burger button beneath it. Track which
+            // closers are non-button overlays (typically the backdrop) and
+            // toggle their `pickingMode` in lockstep with `is-open` so they
+            // only receive clicks while actually visible.
+            var nonButtonClosers = new System.Collections.Generic.List<VisualElement>();
+
+            void SyncOpenState()
+            {
+                bool open = wrapperOrDrawer.ClassListContains("is-open");
+                if (opener.ClassListContains("ds-burger"))
+                {
+                    if (open) opener.AddToClassList("is-open");
+                    else      opener.RemoveFromClassList("is-open");
+                }
+                foreach (var c in nonButtonClosers)
+                    c.pickingMode = open ? PickingMode.Position : PickingMode.Ignore;
+            }
+
+            opener.clicked += () =>
+            {
+                if (wrapperOrDrawer.ClassListContains("is-open"))
+                    wrapperOrDrawer.RemoveFromClassList("is-open");
+                else
+                    wrapperOrDrawer.AddToClassList("is-open");
+                SyncOpenState();
+            };
+
+            if (closers == null) { SyncOpenState(); return; }
+            foreach (var closer in closers)
+            {
+                if (closer == null) continue;
+                if (closer is Button btn)
+                {
+                    btn.clicked += () =>
+                    {
+                        wrapperOrDrawer.RemoveFromClassList("is-open");
+                        SyncOpenState();
+                    };
+                }
+                else
+                {
+                    nonButtonClosers.Add(closer);
+                    closer.RegisterCallback<PointerDownEvent>(_ =>
+                    {
+                        wrapperOrDrawer.RemoveFromClassList("is-open");
+                        SyncOpenState();
+                    });
+                }
+            }
+
+            // Initial sync: in case the drawer ships with `is-open` already
+            // applied (some screens want a starts-open variant), the backdrop
+            // is interactive on first paint instead of one click later.
+            SyncOpenState();
+        }
+
+        /// <summary>
+        /// Touch-friendly auto-hide: flash the scrollbars on for ~700 ms
+        /// whenever the user scrolls, even on devices that don't fire
+        /// `:hover`. Pure-USS auto-hide via the `:hover` rule still works
+        /// for mouse users; this helper adds the `is-scrolling` marker
+        /// the auto-hide rule also responds to.
+        /// </summary>
+        public static void WireScrollAutoHide(VisualElement scrollView)
+        {
+            if (scrollView == null) return;
+
+            IVisualElementScheduledItem clearTask = null;
+            void Flash()
+            {
+                if (!scrollView.ClassListContains("is-scrolling"))
+                    scrollView.AddToClassList("is-scrolling");
+                clearTask?.Pause();
+                clearTask = scrollView.schedule.Execute(() =>
+                    scrollView.RemoveFromClassList("is-scrolling")).StartingIn(700);
+            }
+
+            scrollView.RegisterCallback<WheelEvent>(_ => Flash(), TrickleDown.TrickleDown);
+            scrollView.RegisterCallback<PointerDownEvent>(_ => Flash(), TrickleDown.TrickleDown);
+        }
+
         public static void EnsureSkeletonShimmers(VisualElement root)
         {
             if (root == null) return;

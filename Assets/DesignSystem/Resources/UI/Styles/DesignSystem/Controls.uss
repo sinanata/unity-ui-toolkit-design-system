@@ -386,3 +386,251 @@
 .ds-root .unity-scroll-view__horizontal-scroller .unity-base-slider__dragger:hover {
     background-color: var(--color-text-secondary);
 }
+
+/* ---------- Auto-hiding scrollbar variant ----------
+   Add `.ds-scroll--auto-hide` to a `<ScrollView>` and the scrollbars fade
+   in only when the pointer hovers the viewport (and stays visible while a
+   thumb is being dragged via :active). Implementation is pure USS —
+   transitions on opacity from 0 to 1 — so it's free at runtime and works
+   identically in both themes.
+
+   Touch devices: there's no `:hover` on touch, so for mobile usage call
+   `DesignSystemRuntime.WireScrollAutoHide(scrollView)` from C#; the helper
+   adds an `is-scrolling` class for ~700 ms after each WheelEvent /
+   PointerDownEvent, which the rule below also responds to. Desktop users
+   don't need that helper. */
+.ds-scroll--auto-hide .unity-scroll-view__vertical-scroller,
+.ds-scroll--auto-hide .unity-scroll-view__horizontal-scroller {
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: var(--transition-medium);
+    transition-timing-function: ease-in-out;
+}
+
+.ds-scroll--auto-hide:hover .unity-scroll-view__vertical-scroller,
+.ds-scroll--auto-hide:hover .unity-scroll-view__horizontal-scroller,
+.ds-scroll--auto-hide.is-scrolling .unity-scroll-view__vertical-scroller,
+.ds-scroll--auto-hide.is-scrolling .unity-scroll-view__horizontal-scroller {
+    opacity: 1;
+}
+
+/* ============================================================================
+   DRAWERS / SLIDE-OUT PANELS
+   The drawer matrix is direction × mode:
+       Direction modifiers : .ds-drawer--top  .ds-drawer--right
+                             .ds-drawer--bottom  .ds-drawer--left
+       Mode modifiers      : (default = overlay) | .ds-drawer--push
+
+   OVERLAY mode (default):
+     Drawer floats above siblings via position:absolute and slides in via
+     `translate`. Cheap (no layout reflow). Pair with `.ds-drawer__backdrop`
+     to dim the rest of the page.
+
+   PUSH mode (`.ds-drawer--push`):
+     Drawer is in the flex flow; its width (left/right) or height (top/bottom)
+     animates from 0 to the authored size via `max-width` / `max-height`. Flex
+     siblings shrink to make room. The wrapper must be a flex container in
+     the matching direction.
+
+   State: toggle `is-open` on a `.ds-drawer-wrap` ancestor (recommended;
+     drawer + backdrop respond to one class flip) OR `ds-drawer--open` on
+     the drawer itself (freestanding usage). Both selectors are wired below.
+
+   Anatomy (all optional):
+       .ds-drawer-wrap                      → positioning + clip context
+         .ds-drawer__backdrop               → dim layer (overlay drawers)
+         .ds-drawer .ds-drawer--<dir>       → the drawer surface
+           .ds-drawer__header
+             .ds-drawer__title
+             .ds-drawer__close              → close Button
+           .ds-drawer__body                 → content slot
+
+   Compound selectors (e.g. `.ds-drawer.ds-drawer--top`) are used throughout
+   so per-component transition-property declarations win against the
+   universal `.ds-root *` rule that ShowcaseTheme.uss ships for theme swap
+   (specificity 0,2,0 vs 0,1,0). These rules live in Controls.uss instead
+   of a separate Drawers.uss file because Unity's USS asset importer caches
+   the parent stylesheet's @import resolution; new-file additions can fail
+   to load until a -ClearCache rebuild.
+   ============================================================================ */
+
+.ds-drawer-wrap {
+    position: relative;
+    overflow: hidden;
+}
+
+.ds-drawer {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-width: 1px;
+    flex-direction: column;
+    overflow: hidden;
+    transition-timing-function: ease-in-out;
+    transition-duration: 200ms;
+}
+
+/* ---------- Overlay mode (default) ---------- */
+.ds-drawer.ds-drawer--top,
+.ds-drawer.ds-drawer--right,
+.ds-drawer.ds-drawer--bottom,
+.ds-drawer.ds-drawer--left {
+    position: absolute;
+    transition-property: translate;
+}
+
+.ds-drawer.ds-drawer--top {
+    top: 0; left: 0; right: 0;
+    height: 200px;
+    translate: 0 -100%;
+    border-top-width: 0;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.ds-drawer.ds-drawer--right {
+    top: 0; right: 0; bottom: 0;
+    width: 280px;
+    translate: 100% 0;
+    border-right-width: 0;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.ds-drawer.ds-drawer--bottom {
+    bottom: 0; left: 0; right: 0;
+    height: 200px;
+    translate: 0 100%;
+    border-bottom-width: 0;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.ds-drawer.ds-drawer--left {
+    top: 0; left: 0; bottom: 0;
+    width: 280px;
+    translate: -100% 0;
+    border-left-width: 0;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Open state — toggle `is-open` on the wrapper or `ds-drawer--open` on
+   the drawer itself. Both selectors apply. */
+.ds-drawer.ds-drawer--open,
+.ds-drawer-wrap.is-open .ds-drawer {
+    translate: 0 0;
+}
+
+/* ---------- Push mode ----------
+   Animates `max-width` / `max-height` while the intrinsic `width` /
+   `height` stays at the authored open size. Inner chrome keeps its shape
+   while the clip animates down to zero — no 0-px-wide layout flash of
+   the inner header / body during the transition. */
+.ds-drawer.ds-drawer--push {
+    position: relative;
+    translate: 0 0;
+    overflow: hidden;
+}
+
+.ds-drawer.ds-drawer--push.ds-drawer--left,
+.ds-drawer.ds-drawer--push.ds-drawer--right {
+    width: 280px;
+    max-width: 0;
+    flex-shrink: 0;
+    transition-property: max-width;
+}
+
+.ds-drawer.ds-drawer--push.ds-drawer--top,
+.ds-drawer.ds-drawer--push.ds-drawer--bottom {
+    height: 200px;
+    max-height: 0;
+    flex-shrink: 0;
+    transition-property: max-height;
+}
+
+.ds-drawer.ds-drawer--push.ds-drawer--left.ds-drawer--open,
+.ds-drawer.ds-drawer--push.ds-drawer--right.ds-drawer--open,
+.ds-drawer-wrap.is-open .ds-drawer.ds-drawer--push.ds-drawer--left,
+.ds-drawer-wrap.is-open .ds-drawer.ds-drawer--push.ds-drawer--right {
+    max-width: 280px;
+}
+
+.ds-drawer.ds-drawer--push.ds-drawer--top.ds-drawer--open,
+.ds-drawer.ds-drawer--push.ds-drawer--bottom.ds-drawer--open,
+.ds-drawer-wrap.is-open .ds-drawer.ds-drawer--push.ds-drawer--top,
+.ds-drawer-wrap.is-open .ds-drawer.ds-drawer--push.ds-drawer--bottom {
+    max-height: 200px;
+}
+
+/* ---------- Drawer chrome ---------- */
+.ds-drawer__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 16px;
+    padding-right: 8px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--color-border);
+    flex-shrink: 0;
+}
+
+.ds-drawer__title {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: var(--color-text-primary);
+    flex-grow: 1;
+}
+
+.ds-drawer__close {
+    width: 28px;
+    height: 28px;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    border-radius: 6px;
+    transition-property: background-color;
+    transition-duration: 120ms;
+}
+
+.ds-drawer__close:hover {
+    background-color: var(--color-surface-hover);
+}
+
+.ds-drawer__close .ds-icon {
+    -unity-background-image-tint-color: var(--color-text-secondary);
+}
+
+.ds-drawer__close:hover .ds-icon {
+    -unity-background-image-tint-color: var(--color-text-primary);
+}
+
+.ds-drawer__body {
+    padding: 16px;
+    flex-grow: 1;
+}
+
+/* ---------- Backdrop ----------
+   Sibling of the drawer inside `.ds-drawer-wrap`. Dim layer that fades in
+   when the drawer opens. The runtime helper toggles `pickingMode` in
+   lockstep with the open class because UI Toolkit's `opacity: 0` does NOT
+   disable pointer picking — an invisible-but-rendered backdrop would
+   shadow the burger button beneath it. */
+.ds-drawer__backdrop {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--color-overlay);
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 200ms;
+    transition-timing-function: ease-in-out;
+}
+
+.ds-drawer__backdrop.ds-drawer--open,
+.ds-drawer-wrap.is-open .ds-drawer__backdrop {
+    opacity: 1;
+}
