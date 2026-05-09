@@ -20,10 +20,12 @@ Hover (desktop) or tap (mobile) any component to surface its **selector chain** 
 Build the demo locally any time:
 
 ```powershell
+git clone --recurse-submodules https://github.com/sinanata/unity-ui-document-design-system
+# or, after a plain clone: git submodule update --init --recursive
 .\Tools\Build\Build-Showcase.ps1 -Serve
 ```
 
-Serves at `http://localhost:3000`. See [`Tools/Build/README.md`](Tools/Build/README.md) for the orchestrator — no cloud builds, no Unity license secret, entirely local.
+Serves at `http://localhost:3000`. The build flow lives in a shared [cross-platform orchestrator](https://github.com/sinanata/unity-cross-platform-local-build-orchestrator) vendored as a submodule at `Tools/.orchestrator/`. See [`Tools/Build/README.md`](Tools/Build/README.md) for daily usage — no cloud builds, no Unity license secret, entirely local.
 
 The showcase covers 23 sections: colors, typography, buttons, icons, inputs, tabs & filters, animal card, animal detail, navigation, badges & labels, toggles & checks, sliders, progress, modals / panels, toasts, empty states, bottom sheet, confirm dialog, quantity stepper, pagination, loading states, notification badge, avatar, scrollbars.
 
@@ -231,10 +233,14 @@ Assets/
 └── WebGLTemplates/ShowcaseTemplate/    ← custom WebGL template (mobile-friendly)
 
 Tools/Build/
-├── Build-Showcase.ps1                  ← Windows orchestrator (-Serve / -Deploy)
-├── Deploy-GhPages.ps1                  ← single-commit force-push via git worktree
+├── Build-Showcase.ps1                  ← shim: forwards to orchestrator submodule with our title + method + URL
 ├── config.example.json                 ← copy to config.local.json (gitignored)
 └── README.md                           ← orchestrator docs
+
+Tools/.orchestrator/                    ← submodule: unity-cross-platform-local-build-orchestrator
+└── Tools/Build/
+    ├── Build-WebGL.ps1                 ← parameter-driven WebGL flow (lockfile cleanup, Burst retry, ...)
+    └── Deploy-GhPages.ps1              ← single-commit force-push via git worktree
 ```
 
 Import order is load-bearing — Inputs.uss specialises selectors that Icons.uss generalises; Mobile.uss intentionally loads last so its specificity always wins. Don't reorder unless you read the comments first.

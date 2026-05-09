@@ -1,14 +1,14 @@
-# Unity-generated artefacts
-Library/
-Temp/
-Obj/
-Logs/
-UserSettings/
-MemoryCaptures/
-Builds/
+# Unity-generated artefacts (anchored so Tools/Build/ isn't swept up)
+/Library/
+/Temp/
+/Obj/
+/Logs/
+/UserSettings/
+/MemoryCaptures/
+/Builds/
 
 # Local WebGL build output (showcase orchestrator writes here)
-build/
+/build/
 Tools/Build/output/
 Tools/Build/config.local.json
 
