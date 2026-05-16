@@ -17,6 +17,8 @@ Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap 
 
 Hover (desktop) or tap (mobile) any component to surface its **selector chain** — every parent class on the way down to the leaf, plus the leaf's class list ready to copy. Click the classes line to copy to clipboard. Toggle day / night in the COLORS section header and the whole tree retheme over 240 ms via the var() cascade. Slim themed scrollbar throughout, mobile flip below 768 px.
 
+**External theme provider.** The COLORS section also ships a dropdown of 12 [Codigrate](https://codigrate.com) IDE themes (Sequoia, Sakura, Tokyo, Paris, …) plus a `Randomize colors` button. Picking a codigrate theme fetches the palette at runtime (bundled fallback on WebGL since codigrate.com sends no CORS headers), maps its `tokens.interface` block to the DS palette, and stamps the result onto every component via inline styles — the DS USS stays the single source of truth for spacing, radii, transitions, and layout; only the colours flow from the external source. The day / night toggle is suppressed while a third-party palette is active (codigrate carries its own `appearance` field) and re-enabled when you select `Design System default`. `Randomize` generates an HSV-driven palette in the toggle's current mood for try-until-you-like-it exploration. See [CHANGELOG `[1.4.0]`](CHANGELOG.md#140--2026-05-16) for the full coverage matrix.
+
 Build the demo locally any time:
 
 ```powershell
@@ -222,12 +224,18 @@ Assets/
 ├── Showcase/                           ← showcase host project (only if cloning the repo)
 │   ├── Showcase.unity                  ← minimal scene; bootstrap creates UIDocuments at runtime
 │   ├── Resources/
-│   │   ├── ShowcaseTheme.uss           ← .theme-light override + universal opacity transition
+│   │   ├── ShowcaseTheme.uss           ← .theme-light override + universal opacity transition + drawer-frame helpers
+│   │   ├── ShowcaseDropdownPopup.uss   ← popup chrome at panel.visualTree scope (sibling of root)
+│   │   ├── ShowcaseFocusRing.uss       ← :focus rules for keyboard / gamepad navigation
 │   │   ├── UnityDefaultRuntimeTheme.tss
-│   │   └── sinanata.jpg                ← avatar texture (Showcase only)
+│   │   ├── sinanata.jpg                ← avatar texture (Showcase only)
+│   │   └── CodigrateThemes/            ← 13 bundled JSONs (list + 12 palettes), WebGL fallback
 │   └── Runtime/
-│       ├── ShowcaseBootstrap.cs        ← spawns docs, wires toggle, promo links
-│       └── ShowcaseDocOverlay.cs       ← selector-chain hover overlay
+│       ├── ShowcaseBootstrap.cs        ← spawns docs, wires toggle, theme dropdown, promo links
+│       ├── ShowcaseDocOverlay.cs       ← selector-chain hover overlay
+│       ├── CodigrateThemeProvider.cs   ← UnityWebRequest fetch + bundled fallback
+│       ├── CodigrateThemeApplier.cs    ← maps codigrate colours onto every .ds-* class via inline styles
+│       └── WebGLDevicePixelRatio.jslib ← exposes window.devicePixelRatio for HiDPI panel scale
 │
 ├── Editor/BuildCli.cs                  ← Unity batchmode entry for WebGL builds
 └── WebGLTemplates/ShowcaseTemplate/    ← custom WebGL template (mobile-friendly)
