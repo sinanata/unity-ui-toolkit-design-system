@@ -925,22 +925,41 @@ namespace UIDocumentDesignSystem.Showcase
         // Codigrate exposes 12 colours; DS has ~25. We synthesise the missing
         // ones (hover/press tints, "soft" alpha variants, surface elevations)
         // from the codigrate inputs so brand variants stay consistent.
+        //
+        // Surface layering — codigrate's IDE semantics line up with DS three
+        // levels deep (confirmed with codigrate's author 2026-05-17). Holding
+        // the relationship the same in both light and dark themes:
+        //     editorBackground  →  DS `--color-bg`           (deepest pit, page bg)
+        //     windowBackground  →  DS `--color-surface`      (body / cards / sections)
+        //     surface           →  DS `--color-surface-elev` (raised chrome — sidebar, drawer, modal)
+        // The luminance ordering is consistent across every palette we ship:
+        // dark themes have editor < window < surface; light themes have the
+        // reverse, which matches DS's expectation that surfaceElev is the
+        // MOST-tinted layer in a light theme and the LIGHTEST layer in a
+        // dark theme. Earlier wiring had `surface → DS Surface` (using the
+        // raised chrome colour for cards), which made every section + card
+        // sit at the elevation tier instead of on the body, and the visible
+        // page background went to `windowBackground` — wrong by one layer.
         public static ColorMap FromCodigrate(CodigrateThemeProvider.ThemePalette palette)
         {
             var t = palette.Interface;
             bool isLight = string.Equals(palette.Appearance, "light", StringComparison.OrdinalIgnoreCase);
 
+            // Border / hover tints derive from the BODY surface (the layer
+            // most cards and bordered chrome sit on), not the raised chrome,
+            // so the visible 1px border on a `.ds-card` reads as a tint of
+            // its own fill rather than of the bg.
             Color toward = t.PrimaryForeground;
-            Color borderC      = Mix(t.Surface, toward, isLight ? 0.16f : 0.20f);
-            Color borderStrong = Mix(t.Surface, toward, isLight ? 0.32f : 0.36f);
-            Color surfaceHover = Mix(t.Surface, toward, 0.08f);
+            Color borderC      = Mix(t.WindowBackground, toward, isLight ? 0.16f : 0.20f);
+            Color borderStrong = Mix(t.WindowBackground, toward, isLight ? 0.32f : 0.36f);
+            Color surfaceHover = Mix(t.WindowBackground, toward, 0.08f);
             Color textDisabled = Mix(t.SecondaryForeground, t.WindowBackground, 0.45f);
 
             return new ColorMap
             {
-                Bg             = t.WindowBackground,
-                Surface        = t.Surface,
-                SurfaceElev    = isLight ? Mix(t.Surface, Color.black, 0.04f) : t.EditorBackground,
+                Bg             = t.EditorBackground,
+                Surface        = t.WindowBackground,
+                SurfaceElev    = t.Surface,
                 SurfaceHover   = surfaceHover,
                 Border         = borderC,
                 BorderStrong   = borderStrong,

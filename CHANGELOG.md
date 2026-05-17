@@ -4,6 +4,17 @@ All notable changes to this project will be documented here.
 
 This project loosely follows [Semantic Versioning](https://semver.org/) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [1.4.1] — 2026-05-17
+
+### Fixed
+
+- **Codigrate `surface` was mapped onto DS `--color-surface` instead of `--color-surface-elev`** — flagged by Codigrate's author after reviewing the live showcase. In Codigrate's IDE terminology, `surface` is the *raised* chrome (sidebar, dock, toolbar) and `windowBackground` is the *body* the editor sits in — confirmed by the luminance ordering, which is consistent in every shipped palette (dark themes: `editorBackground < windowBackground < surface`; light themes: the reverse). Earlier wiring treated `surface` as the cards/sections fill — promoting the raised chrome colour to the body tier and demoting the body colour (`windowBackground`) all the way down to the page `bg`. Section cards therefore wore the colour meant for drawers and modals, and the visible page background was one layer too high in the elevation stack. **Fix**, in `CodigrateThemeApplier.FromCodigrate`:
+    - `editorBackground` → `--color-bg` (deepest pit / page bg) — was `windowBackground`.
+    - `windowBackground` → `--color-surface` (body / cards / sections) — was `surface`.
+    - `surface` → `--color-surface-elev` (raised chrome — drawers, modals, sidebar) — was a synthesised `Mix(surface, black, 0.04)` on light themes and `editorBackground` on dark, both wrong by one layer.
+    - The derived `border / borderStrong / surfaceHover` tints now mix from `windowBackground` (the body) toward `primaryForeground`, so a `.ds-card`'s 1-px border reads as a tint of its own fill, not of the page bg.
+- No other applier handlers needed to change — they all consume `m.Bg / m.Surface / m.SurfaceElev` symbolically, so re-pointing the three fields at the correct upstream tokens cascades correctly through every section, card, modal, drawer, toast, tab, nav, input, dropdown, slider, stepper, pagination, spinner, skeleton, avatar, badge, tag, chip, and showcase chrome class the applier touches.
+
 ## [1.4.0] — 2026-05-16
 
 External theme-provider integration: the live showcase can now load any of [Codigrate](https://codigrate.com)'s 12 IDE themes (Sequoia, Sakura, Roraima, Autumn, Aurora Borealis, Everest, Tokyo, Tallinn, Istanbul, Miami, Rio de Janeiro, Paris) at runtime and re-skin the whole tree to match, plus a `Randomize colors` button that generates plausible HSV-driven palettes for try-until-you-like-it exploration. The day / night toggle is suppressed while a third-party palette is active — codigrate carries its own `"appearance": "light" | "dark"` field — and re-enabled when you select `Design System default` from the dropdown again. Same showcase URL — `https://sinanata.github.io/unity-ui-document-design-system/` — refresh to see.
