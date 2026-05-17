@@ -734,13 +734,20 @@ namespace UIDocumentDesignSystem.Showcase
 
         // ─── INPUT / DROPDOWN HELPERS ───────────────────────────────────────
 
+        // Input fills use `m.Bg` (codigrate `editorBackground` / DS
+        // `--color-bg`), matching the DS USS default + codigrate author's
+        // ask. Inputs read as recessed wells INSIDE their parent
+        // `.ds-section` / `.ds-card` (which sit at `m.Surface` = codigrate
+        // `windowBackground`). Visually mirrors the IDE pattern these
+        // palettes are designed for — the editable area is the deepest
+        // layer in dark themes, lightest in light themes.
         static void ApplyInputContainer(VisualElement root, string wrapperClass, ColorMap m)
         {
             foreach (var wrapper in QueryByClass(root, wrapperClass))
             {
                 foreach (var inner in QueryInnerInputFields(wrapper))
                 {
-                    Stamp(inner, TouchedProperty.Background, m.SurfaceElev);
+                    Stamp(inner, TouchedProperty.Background, m.Bg);
                     Stamp(inner, TouchedProperty.BorderColor, m.Border);
                     Stamp(inner, TouchedProperty.Color, m.TextPrimary);
                 }
@@ -751,8 +758,9 @@ namespace UIDocumentDesignSystem.Showcase
         {
             foreach (var wrapper in QueryByClass(root, "ds-search"))
             {
-                // Outer .ds-search owns the visible chrome.
-                Stamp(wrapper, TouchedProperty.Background, m.SurfaceElev);
+                // Outer .ds-search owns the visible chrome; same `m.Bg`
+                // tier as `.ds-input` for visual consistency.
+                Stamp(wrapper, TouchedProperty.Background, m.Bg);
                 Stamp(wrapper, TouchedProperty.BorderColor, m.Border);
 
                 // Inner field has transparent bg; we only repaint its text.
@@ -771,7 +779,7 @@ namespace UIDocumentDesignSystem.Showcase
                 // Visible field box: .unity-popup-field__input (and aliases).
                 foreach (var inner in QueryInnerPopupBoxes(wrapper))
                 {
-                    Stamp(inner, TouchedProperty.Background, m.SurfaceElev);
+                    Stamp(inner, TouchedProperty.Background, m.Bg);
                     Stamp(inner, TouchedProperty.BorderColor, m.Border);
                     Stamp(inner, TouchedProperty.Color, m.TextPrimary);
                 }

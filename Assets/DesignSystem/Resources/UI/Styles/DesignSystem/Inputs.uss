@@ -19,12 +19,21 @@
     margin: 0;
 }
 
-/* TextField visual box — match every class variant Unity 6 emits. */
+/* TextField visual box — match every class variant Unity 6 emits.
+   Background uses `--color-bg` (the deepest surface tier) so inputs read as
+   recessed wells INSIDE their parent `.ds-card` / `.ds-section` (which sit
+   at `--color-surface`). Originally we ran inputs at `--color-surface-elev`
+   (raised chrome), which made them look like buttons stacked on the card
+   instead of editable wells in it. Switching to `--color-bg` also aligns
+   with how IDE-style theme providers (Codigrate, etc.) define their input
+   colour: they ship an explicit "editor background" token that maps to
+   our deepest layer. Focus / active / disabled lift back UP to
+   `--color-surface` so the state change still reads. */
 .ds-input .unity-text-input,
 .ds-input .unity-text-field__input,
 .ds-input .unity-base-text-field__input,
 .ds-input .unity-base-field__input {
-    background-color: var(--color-surface-elev);
+    background-color: var(--color-bg);
     color: var(--color-text-primary);
     border-width: var(--border-thin);
     border-color: var(--color-border);
@@ -90,11 +99,15 @@
     color: var(--color-text-disabled);
 }
 
-/* ---------- Search input variant (with leading icon slot) ---------- */
+/* ---------- Search input variant (with leading icon slot) ----------
+   The visible chrome on `.ds-search` is the outer wrapper (the inner
+   TextField is transparent — see below), so the outer wrapper carries
+   the same `--color-bg` fill as `.ds-input` for visual consistency
+   across input types. */
 .ds-search {
     flex-direction: row;
     align-items: center;
-    background-color: var(--color-surface-elev);
+    background-color: var(--color-bg);
     border-width: var(--border-thin);
     border-color: var(--color-border);
     border-radius: var(--radius-md);
@@ -206,7 +219,7 @@
 .ds-dropdown .unity-popup-field__input,
 .ds-dropdown .unity-base-popup-field__input,
 .ds-dropdown .unity-base-field__input {
-    background-color: var(--color-surface-elev);
+    background-color: var(--color-bg);
     border-width: var(--border-thin);
     border-color: var(--color-border);
     border-radius: var(--radius-md);
@@ -292,7 +305,7 @@
 .ds-textarea .unity-text-field__input,
 .ds-textarea .unity-base-text-field__input,
 .ds-textarea .unity-base-field__input {
-    background-color: var(--color-surface-elev);
+    background-color: var(--color-bg);
     color: var(--color-text-primary);
     border-width: var(--border-thin);
     border-color: var(--color-border);
