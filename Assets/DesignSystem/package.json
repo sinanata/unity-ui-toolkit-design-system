@@ -1,0 +1,23 @@
+{
+  "name": "com.sinanata.designsystem",
+  "version": "1.0.0",
+  "displayName": "Design System",
+  "description": "A drop-in design system for Unity 6 UI Toolkit (UIDocument/PanelRenderer + UXML + USS). Tokens, components, icons, mobile responsiveness, and a runtime helper — all themed dark, all keyboard-and-touch-ready, all editable from one stylesheet.",
+  "unity": "6000.0",
+  "unityRelease": "0f1",
+  "documentationUrl": "https://github.com/sinanata/unity-ui-document-design-system",
+  "changelogUrl": "https://github.com/sinanata/unity-ui-document-design-system/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/sinanata/unity-ui-document-design-system/blob/main/LICENSE",
+  "keyword": [
+    "ui",
+    "toolkit",
+    "unity",
+    "design",
+    "system",
+    "tokens",
+    "components",
+    "icons",
+    "mobile",
+    "responsive"
+  ]
+}

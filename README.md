@@ -121,6 +121,26 @@ Assets/DesignSystem.meta
 
 > **Working example:** [unity-mesh-fracture](https://github.com/sinanata/unity-mesh-fracture) consumes the design system this way — see the "Cloning this demo project" section of its README for the end-to-end recipe.
 
+**Option C — via git URL:**
+
+Unity's Package Manager supports Git URLs directly. Add the design system as a package using one of these two methods:
+
+- **Add to `Packages/manifest.json`:**
+  ```json
+  {
+    "dependencies": {
+      "com.sinanata.designsystem": "https://github.com/sinanata/unity-ui-document-design-system.git?path=/Assets/DesignSystem"
+    }
+  }
+  ```
+
+- **Or use the Package Manager window:** go to **Window → Package Manager → ＋ → "Add package from git URL..."** and paste:
+  ```
+  https://github.com/sinanata/unity-ui-document-design-system.git?path=/Assets/DesignSystem
+  ```
+
+This installs the design system as an immutable package under `Packages/com.sinanata.designsystem/` — ideal for projects that prefer package-manager workflows and don't need to edit the system source.
+
 After Unity reimports, every screen with a UIDocument can opt into the system by attaching the master stylesheet:
 
 ```xml
