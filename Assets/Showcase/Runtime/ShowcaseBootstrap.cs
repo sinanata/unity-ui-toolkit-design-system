@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
-using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
+using DesignSystem.Runtime.UIDocumentRuntime;
 
-namespace UIDocumentDesignSystem.Showcase
+namespace Showcase.Runtime
 {
     // Spawns the showcase + doc-overlay UIDocuments at runtime so the .unity
     // scene stays empty (one camera). Means the scene file has no MonoBehaviour
@@ -175,7 +175,7 @@ namespace UIDocumentDesignSystem.Showcase
             // which may fire BEFORE our AfterSceneLoad init — so the GameObjects
             // we just created would miss the initial attach. Nudge it manually.
             // The runtime is idempotent; calling twice is a no-op.
-            UIDocumentDesignSystem.DesignSystemRuntime.AttachToAllUIDocuments();
+            DesignSystemRuntime.AttachToAll();
         }
 
         static PanelSettings MakePanelSettings(int sortingOrder, string name, ThemeStyleSheet theme)
@@ -583,18 +583,18 @@ namespace UIDocumentDesignSystem.Showcase
         {
             if (root == null) return;
 
-            UIDocumentDesignSystem.DesignSystemRuntime.WireDrawer(
+            DesignSystemRuntime.WireDrawer(
                 root.Q<Button>("drawer-top-burger"),
                 root.Q("drawer-top-wrap"),
                 root.Q<Button>("drawer-top-close"));
 
-            UIDocumentDesignSystem.DesignSystemRuntime.WireDrawer(
+            DesignSystemRuntime.WireDrawer(
                 root.Q<Button>("drawer-right-burger"),
                 root.Q("drawer-right-wrap"),
                 root.Q<Button>("drawer-right-close"),
                 root.Q("drawer-right-backdrop"));
 
-            UIDocumentDesignSystem.DesignSystemRuntime.WireDrawer(
+            DesignSystemRuntime.WireDrawer(
                 root.Q<Button>("drawer-push-burger"),
                 root.Q("drawer-push-wrap"),
                 root.Q<Button>("drawer-push-close"));
@@ -607,7 +607,7 @@ namespace UIDocumentDesignSystem.Showcase
         {
             if (root == null) return;
             var sv = root.Q<ScrollView>("auto-hide-scroll");
-            UIDocumentDesignSystem.DesignSystemRuntime.WireScrollAutoHide(sv);
+            DesignSystemRuntime.WireScrollAutoHide(sv);
         }
     }
 }

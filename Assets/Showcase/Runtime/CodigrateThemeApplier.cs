@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace UIDocumentDesignSystem.Showcase
+namespace Showcase.Runtime
 {
     // Applies a flat color palette to the showcase tree via INLINE styles, then
     // can revert back to the USS cascade.

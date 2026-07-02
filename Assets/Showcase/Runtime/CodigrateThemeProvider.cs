@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace UIDocumentDesignSystem.Showcase
+namespace Showcase.Runtime
 {
     // Fetches Codigrate theme metadata + palette JSONs over HTTPS, with a
     // bundled mirror in Resources/CodigrateThemes/ as a CORS-friendly fallback.

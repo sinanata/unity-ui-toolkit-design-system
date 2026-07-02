@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
-namespace UIDocumentDesignSystem
+namespace DesignSystem.Runtime
 {
     /// <summary>
     /// Runtime helpers for the ds-* design system. Auto-attaches to every
@@ -17,58 +17,26 @@ namespace UIDocumentDesignSystem
     /// is the safety net for screens that didn't.
     /// </summary>
     [DisallowMultipleComponent]
-    public class DesignSystemRuntime : MonoBehaviour
+    public abstract class DesignSystemRuntimeBase<TComponent> : MonoBehaviour where TComponent : Component
     {
-        const string SPINNER_CLASS         = "ds-spinner";
-        const string SPINNER_ACTIVE_CLASS  = "is-spinning";
-        const string TOGGLE_CLASS          = "ds-toggle";
-        const string TOGGLE_KNOB_CLASS     = "ds-toggle__knob";
-        const string SKELETON_CLASS        = "ds-skeleton";
-        const string SHIMMER_CLASS         = "ds-skeleton__shimmer";
-        const string DRAGGABLE_CLASS       = "ds-draggable";
-        const string DRAG_WIRED_CLASS      = "ds-drag--wired";   // internal: marks an already-wired draggable
-        const string DROP_ZONE_CLASS       = "ds-drop-zone";
-        const string DRAG_OVER_CLASS       = "is-drag-over";
-        const string DRAG_GHOST_CLASS      = "ds-drag-ghost";
+        private const string SPINNER_CLASS         = "ds-spinner";
+        private const string SPINNER_ACTIVE_CLASS  = "is-spinning";
+        private const string TOGGLE_CLASS          = "ds-toggle";
+        private const string TOGGLE_KNOB_CLASS     = "ds-toggle__knob";
+        private const string SKELETON_CLASS        = "ds-skeleton";
+        private const string SHIMMER_CLASS         = "ds-skeleton__shimmer";
+        private const string DRAGGABLE_CLASS       = "ds-draggable";
+        private const string DRAG_WIRED_CLASS      = "ds-drag--wired";   // internal: marks an already-wired draggable
+        private const string DROP_ZONE_CLASS       = "ds-drop-zone";
+        private const string DRAG_OVER_CLASS       = "is-drag-over";
+        private const string DRAG_GHOST_CLASS      = "ds-drag-ghost";
+        
+        private IVisualElementScheduledItem _spinTask;
+        private float _spinAngle;
+        
+        protected abstract void OnEnable();
 
-        UIDocument _doc;
-        IVisualElementScheduledItem _spinTask;
-        float _spinAngle;
-
-        void OnEnable()
-        {
-            _doc = GetComponent<UIDocument>();
-            if (_doc == null) return;
-            var root = _doc.rootVisualElement;
-            if (root == null)
-            {
-                // The visual tree hasn't materialised yet (common when this
-                // component is added in Awake). Defer one frame.
-                _doc.rootVisualElement?.schedule.Execute(() => InitFor(_doc.rootVisualElement)).StartingIn(0);
-                // Fallback: poll briefly until the root exists.
-                schedulePollRoot();
-                return;
-            }
-            InitFor(root);
-        }
-
-        void schedulePollRoot()
-        {
-            // schedule via a temporary helper element since UIDocument.schedule
-            // isn't available without a root. Use MonoBehaviour-side coroutine
-            // semantics through Invoke.
-            Invoke(nameof(TryInit), 0.05f);
-        }
-
-        void TryInit()
-        {
-            if (_doc == null) return;
-            var root = _doc.rootVisualElement;
-            if (root == null) { Invoke(nameof(TryInit), 0.05f); return; }
-            InitFor(root);
-        }
-
-        void InitFor(VisualElement root)
+        protected void InitFor(VisualElement root)
         {
             if (root == null) return;
             EnsureToggleKnobs(root);
@@ -94,14 +62,14 @@ namespace UIDocumentDesignSystem
             }).Every(250);
         }
 
-        void OnDisable()
+        protected virtual void OnDisable()
         {
             _spinTask?.Pause();
             _spinTask = null;
             CancelInvoke();
         }
 
-        void StartSpinners(VisualElement root)
+        private void StartSpinners(VisualElement root)
         {
             // Rotate every element carrying `.is-spinning`, regardless of whether
             // it's a `.ds-spinner` ring, a `.ds-icon` glyph (e.g. a refresh icon
@@ -254,6 +222,11 @@ namespace UIDocumentDesignSystem
             if (scrollView == null) return;
 
             IVisualElementScheduledItem clearTask = null;
+
+            scrollView.RegisterCallback<WheelEvent>(_ => Flash(), TrickleDown.TrickleDown);
+            scrollView.RegisterCallback<PointerDownEvent>(_ => Flash(), TrickleDown.TrickleDown);
+            return;
+
             void Flash()
             {
                 if (!scrollView.ClassListContains("is-scrolling"))
@@ -262,9 +235,6 @@ namespace UIDocumentDesignSystem
                 clearTask = scrollView.schedule.Execute(() =>
                     scrollView.RemoveFromClassList("is-scrolling")).StartingIn(700);
             }
-
-            scrollView.RegisterCallback<WheelEvent>(_ => Flash(), TrickleDown.TrickleDown);
-            scrollView.RegisterCallback<PointerDownEvent>(_ => Flash(), TrickleDown.TrickleDown);
         }
 
         public static void EnsureSkeletonShimmers(VisualElement root)
@@ -309,39 +279,10 @@ namespace UIDocumentDesignSystem
             });
         }
 
-        static void WireDraggable(VisualElement item)
+        public static void WireDraggable(VisualElement item)
         {
             VisualElement ghost = null;
             VisualElement currentZone = null;
-
-            VisualElement Root() => item.panel != null ? item.panel.visualTree : null;
-
-            void PositionGhost(Vector2 pos)
-            {
-                if (ghost == null) return;
-                ghost.style.left = pos.x - ghost.resolvedStyle.width / 2f;
-                ghost.style.top = pos.y - ghost.resolvedStyle.height / 2f;
-            }
-
-            VisualElement ZoneUnder(Vector2 pos)
-            {
-                var root = Root();
-                if (root == null) return null;
-                VisualElement found = null;
-                root.Query(className: DROP_ZONE_CLASS).ForEach(z =>
-                {
-                    if (z.worldBound.Contains(pos)) found = z;
-                });
-                return found;
-            }
-
-            void SetZone(VisualElement zone)
-            {
-                if (currentZone == zone) return;
-                currentZone?.RemoveFromClassList(DRAG_OVER_CLASS);
-                currentZone = zone;
-                currentZone?.AddToClassList(DRAG_OVER_CLASS);
-            }
 
             item.RegisterCallback<PointerDownEvent>(e =>
             {
@@ -381,34 +322,68 @@ namespace UIDocumentDesignSystem
                 ghost?.RemoveFromHierarchy();
                 ghost = null;
             });
-        }
+            return;
 
+            VisualElement ZoneUnder(Vector2 pos)
+            {
+                var root = Root();
+                if (root == null) return null;
+                VisualElement found = null;
+                root.Query(className: DROP_ZONE_CLASS).ForEach(z =>
+                {
+                    if (z.worldBound.Contains(pos)) found = z;
+                });
+                return found;
+            }
+
+            VisualElement Root() => item.panel != null ? item.panel.visualTree : null;
+
+            void SetZone(VisualElement zone)
+            {
+                if (currentZone == zone) return;
+                currentZone?.RemoveFromClassList(DRAG_OVER_CLASS);
+                currentZone = zone;
+                currentZone?.AddToClassList(DRAG_OVER_CLASS);
+            }
+
+            void PositionGhost(Vector2 pos)
+            {
+                if (ghost == null) return;
+                ghost.style.left = pos.x - ghost.resolvedStyle.width / 2f;
+                ghost.style.top = pos.y - ghost.resolvedStyle.height / 2f;
+            }
+        }
+        
         // ──────────────────────────────────────────────────────────────────
         // Auto-attach: every UIDocument in the project gets the runtime
         // without per-prefab inspector wiring. Re-scan on every scene load
         // so Activator-spawned UIDocuments are covered.
         // ──────────────────────────────────────────────────────────────────
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void RegisterAutoAttach()
+        /*
+         * To child classes,
+         * add a method with [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] attribute
+         * and call RegisterAutoAttach method from there
+         * to be able to register the auto attach method.
+         * Otherwise, you will need to add your component manually to your GameObjects.
+         */
+        protected static void RegisterAutoAttach()
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneLoaded += OnSceneLoaded;
+            return;
+
+            void OnSceneLoaded(Scene scene, LoadSceneMode mode) => AttachToAll();   
         }
 
-        static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        public static void AttachToAll()
         {
-            AttachToAllUIDocuments();
-        }
-
-        public static void AttachToAllUIDocuments()
-        {
-            var docs = Object.FindObjectsByType<UIDocument>(FindObjectsSortMode.None);
+            var docs = FindObjectsByType<TComponent>();
             foreach (var doc in docs)
             {
-                if (doc == null) continue;
-                if (doc.GetComponent<DesignSystemRuntime>() == null)
-                    doc.gameObject.AddComponent<DesignSystemRuntime>();
+                if (doc == null || doc.gameObject.GetComponent<DesignSystemRuntimeBase<TComponent>>() == null )
+                    continue;
+                doc.gameObject.AddComponent<DesignSystemRuntimeBase<TComponent>>();
             }
         }
     }

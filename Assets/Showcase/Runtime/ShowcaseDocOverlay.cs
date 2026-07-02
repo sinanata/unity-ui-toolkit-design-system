@@ -4,7 +4,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace UIDocumentDesignSystem.Showcase
+namespace Showcase.Runtime
 {
     // Overlay attached to a higher-sortingOrder UIDocument that visualises the
     // selector chain of whatever element the user is hovering / tapping in the
