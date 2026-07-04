@@ -6,6 +6,7 @@ using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using DesignSystem.Runtime.UIDocumentRuntime;
+using Object = UnityEngine.Object;
 #if UNITY_WEBGL && !UNITY_EDITOR
 using System.Runtime.InteropServices;
 #endif
@@ -18,6 +19,7 @@ namespace Showcase.Runtime
     // recreated programmatically every Play.
     public static class ShowcaseBootstrap
     {
+        const string DEFAULT_PANEL_SETTINGS = "DefaultPanelSettings";
         const string SHOWCASE_RES_PATH = "UI/Styles/DesignSystem/DesignSystemShowcase";
         const string THEME_RES_PATH    = "UnityDefaultRuntimeTheme";
         const int    MOBILE_BREAKPOINT = 768;
@@ -183,7 +185,9 @@ namespace Showcase.Runtime
 
         static PanelSettings MakePanelSettings(int sortingOrder, string name, ThemeStyleSheet theme)
         {
-            var ps = ScriptableObject.CreateInstance<PanelSettings>();
+            var panelSettingsAsset = Resources.Load<PanelSettings>(DEFAULT_PANEL_SETTINGS);
+            Debug.Log($"panelSettingsAsset is {(panelSettingsAsset != null ? "exists" : "null")}");
+            var ps = panelSettingsAsset != null ? Object.Instantiate(panelSettingsAsset) : ScriptableObject.CreateInstance<PanelSettings>();
             ps.name = name;
             if (theme != null) ps.themeStyleSheet = theme;
 
