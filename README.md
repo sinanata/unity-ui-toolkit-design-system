@@ -4,7 +4,7 @@ A drop-in **design system for Unity 6 UI Toolkit** (UIDocument + UXML + USS). To
 
 <blockquote>
 <a href="https://store.steampowered.com/app/2269500/"><img src="docs/leap-of-legends-icon.png" align="left" width="70" height="70" alt="Leap of Legends"></a>
-Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap of Legends</a></strong> — a cross-platform multiplayer game in active development on Steam, Google Play (internal testing), TestFlight, and macOS. Every menu, HUD, lobby, and store screen in the game is built on this design system. <a href="https://store.steampowered.com/app/2269500/">Wishlist on Steam</a> — public mobile store pages coming soon.
+Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap of Legends</a></strong>, a cross-platform multiplayer game now live with full cross-play across Steam, iOS, and Android. Every menu, HUD, lobby, and store screen in the game is built on this design system. Play now on <a href="https://store.steampowered.com/app/2269500/">Steam</a>, the <a href="https://apps.apple.com/us/app/leap-of-legends/id6761757484">App Store</a>, and <a href="https://play.google.com/store/apps/details?id=com.exceptionly.leapoflegends">Google Play</a>.
 </blockquote>
 
 ---
@@ -311,10 +311,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the naming convention, file-load orde
 
 ## Credits & support
 
-Made for **[Leap of Legends](https://leapoflegends.com)** — a cross-platform physics-heavy multiplayer game in active development, targeting Steam, iOS, Android, and Mac. If this design system saved you time:
+Made for **[Leap of Legends](https://leapoflegends.com)**, a cross-platform physics-heavy multiplayer game now live with cross-play on Steam, iOS, Android, and Mac. If this design system saved you time:
 
 - ⭐ Star the repo
-- 🎮 [Wishlist Leap of Legends on Steam](https://store.steampowered.com/app/2269500/) — mobile store pages coming soon
+- 🎮 Play Leap of Legends: [Steam](https://store.steampowered.com/app/2269500/) · [App Store](https://apps.apple.com/us/app/leap-of-legends/id6761757484) · [Google Play](https://play.google.com/store/apps/details?id=com.exceptionly.leapoflegends)
 - 🐦 Shout out [@sinanata](https://x.com/sinanata)
 
 ## Licence
