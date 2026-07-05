@@ -186,7 +186,6 @@ namespace Showcase.Runtime
         static PanelSettings MakePanelSettings(int sortingOrder, string name, ThemeStyleSheet theme)
         {
             var panelSettingsAsset = Resources.Load<PanelSettings>(DEFAULT_PANEL_SETTINGS);
-            Debug.Log($"panelSettingsAsset is {(panelSettingsAsset != null ? "exists" : "null")}");
             var ps = panelSettingsAsset != null ? Object.Instantiate(panelSettingsAsset) : ScriptableObject.CreateInstance<PanelSettings>();
             ps.name = name;
             if (theme != null) ps.themeStyleSheet = theme;
