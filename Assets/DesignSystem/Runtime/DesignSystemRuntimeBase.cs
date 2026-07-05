@@ -374,10 +374,9 @@ namespace DesignSystem.Runtime
             s_componentTypeMap[typeof(TComponent)] = runtimeComponentType;
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneLoaded += OnSceneLoaded;
-            return;
-
-            void OnSceneLoaded(Scene scene, LoadSceneMode mode) => AttachToAll();   
         }
+        
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode) => AttachToAll();
 
         public static void AttachToAll()
         {
