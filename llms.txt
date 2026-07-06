@@ -1,0 +1,27 @@
+# Unity UI Toolkit Design System
+
+> A drop-in design system for Unity 6 UI Toolkit (UIDocument and PanelRenderer, UXML and USS). Design tokens, 24 components, 63 SVG icons, a one-class mobile flip, and a small auto-attaching C# runtime, all themed dark and editable from a single stylesheet. Battle-tested in the shipping cross-platform game Leap of Legends.
+
+Package id `com.sinanata.designsystem`, MIT licensed. Needs Unity 6000.0 or newer; the world-space `PanelRenderer` path needs 6000.5+. You style UI by composing `ds-`-prefixed BEM classes and `var(--...)` design tokens; the C# runtime auto-attaches and needs no wiring. The canonical class list is `docs/COMPONENTS.md`.
+
+## Documentation
+- [README](https://github.com/sinanata/unity-ui-document-design-system/blob/main/README.md): what it is, three install paths, quick start, requirements, architecture overview, live showcase.
+- [Component reference](https://github.com/sinanata/unity-ui-document-design-system/blob/main/docs/COMPONENTS.md): canonical list of every `ds-*` class with its DOM and states.
+- [Architecture](https://github.com/sinanata/unity-ui-document-design-system/blob/main/docs/ARCHITECTURE.md): the USS stack, tokens, load-bearing import order, the runtime layer, theming, and the mobile pattern.
+- [Icons](https://github.com/sinanata/unity-ui-document-design-system/blob/main/docs/ICONS.md): the 63 white-fill SVGs, the tint cascade, and how to add one.
+- [Mobile](https://github.com/sinanata/unity-ui-document-design-system/blob/main/docs/MOBILE.md): the one-class `.mobile` responsive flip.
+- [Contributing](https://github.com/sinanata/unity-ui-document-design-system/blob/main/CONTRIBUTING.md): naming convention, file-load order, and PR checklist.
+- [Agent guide (AGENTS.md)](https://github.com/sinanata/unity-ui-document-design-system/blob/main/AGENTS.md): rules and commands for AI coding agents.
+- [Changelog](https://github.com/sinanata/unity-ui-document-design-system/blob/main/CHANGELOG.md): version history in Keep a Changelog format.
+
+## Source of truth (read these to use classes correctly)
+- [DesignTokens.uss](https://github.com/sinanata/unity-ui-document-design-system/blob/main/Assets/DesignSystem/Resources/UI/Styles/DesignSystem/DesignTokens.uss): every color, spacing, radius, and motion token.
+- [DesignSystem.uss](https://github.com/sinanata/unity-ui-document-design-system/blob/main/Assets/DesignSystem/Resources/UI/Styles/DesignSystem/DesignSystem.uss): the master stylesheet that `@import`s the layers in order.
+- [DesignSystemShowcase.uxml](https://github.com/sinanata/unity-ui-document-design-system/blob/main/Assets/DesignSystem/Resources/UI/Styles/DesignSystem/DesignSystemShowcase.uxml): every class rendered in at least one state, with its expected DOM.
+- [DesignSystemRuntimeBase.cs](https://github.com/sinanata/unity-ui-document-design-system/blob/main/Assets/DesignSystem/Runtime/DesignSystemRuntimeBase.cs): the auto-attaching runtime (toggle knobs, spinner rotation, skeleton shimmer, drag and drop).
+
+## Live demo
+- [Interactive web showcase](https://sinanata.github.io/unity-ui-document-design-system/): all 29 sections, flat and world-space, day and night, click a component to copy its class list.
+
+## Optional
+- [Leap of Legends](https://leapoflegends.com): the shipping cross-platform game this system was built for and is battle-tested in.

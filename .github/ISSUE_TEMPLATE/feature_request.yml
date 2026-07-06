@@ -1,0 +1,34 @@
+name: Component, icon, or feature request
+description: Suggest a new component, icon, token, or improvement.
+title: "[Request]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What are you requesting?
+      options:
+        - New component
+        - New icon
+        - New token
+        - Improvement to an existing component
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What and why
+      description: Describe the component, icon, or feature and the use case it serves.
+    validations:
+      required: true
+  - type: textarea
+    id: dom
+    attributes:
+      label: Proposed DOM or classes (optional)
+      description: If it is a component, sketch the element structure and the `ds-*` class names.
+      render: xml
+  - type: markdown
+    attributes:
+      value: |
+        New icons must arrive as white-fill SVGs and new components must render in the showcase under the `ds-` BEM naming. See [CONTRIBUTING.md](https://github.com/sinanata/unity-ui-document-design-system/blob/main/CONTRIBUTING.md).

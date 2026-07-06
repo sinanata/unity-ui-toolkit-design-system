@@ -987,6 +987,7 @@ namespace Showcase.Runtime
                 DsRuntime.EnsureToggleKnobs(root);
                 DsRuntime.EnsureSkeletonShimmers(root);
                 DsRuntime.EnsureDraggables(root);
+                DsRuntime.EnsureDropdownMenus(root);
 
                 // Re-apply whatever theme the flat page is currently on, so a
                 // theme picked BEFORE entering the corridor (or while inside it)

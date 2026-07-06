@@ -8,16 +8,22 @@
   "documentationUrl": "https://github.com/sinanata/unity-ui-document-design-system",
   "changelogUrl": "https://github.com/sinanata/unity-ui-document-design-system/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/sinanata/unity-ui-document-design-system/blob/main/LICENSE",
-  "keyword": [
+  "keywords": [
     "ui",
-    "toolkit",
+    "ui-toolkit",
+    "uitoolkit",
+    "uielements",
+    "uxml",
+    "uss",
     "unity",
-    "design",
-    "system",
-    "tokens",
+    "unity6",
+    "design-system",
+    "design-tokens",
     "components",
+    "component-library",
     "icons",
     "mobile",
-    "responsive"
+    "responsive",
+    "dark-theme"
   ]
 }

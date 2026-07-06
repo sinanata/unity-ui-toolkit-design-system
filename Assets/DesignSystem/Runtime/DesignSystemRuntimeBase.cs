@@ -12,6 +12,9 @@ namespace DesignSystem.Runtime
     ///   - Toggle-knob auto-injection: every <Toggle class="ds-toggle"> gets a
     ///     child <VisualElement class="ds-toggle__knob"> if one is missing
     ///   - Skeleton shimmer translation (sliding overlay)
+    ///   - Pointer-drag ghosts for `.ds-draggable` / `.ds-drop-zone`
+    ///   - Dropdown popup placement for `.ds-dropdown`: always opens downward,
+    ///     height-capped with vertical-only scrolling (web select behavior)
     ///
     /// Authoring tip: hand-author the toggle knob in UXML when you can — it
     /// avoids a one-frame "no knob" flash during template clone. The runtime
@@ -32,6 +35,21 @@ namespace DesignSystem.Runtime
         private const string DROP_ZONE_CLASS       = "ds-drop-zone";
         private const string DRAG_OVER_CLASS       = "is-drag-over";
         private const string DRAG_GHOST_CLASS      = "ds-drag-ghost";
+        private const string DRAGGING_CLASS        = "is-dragging";      // on the source item while its ghost is out
+        private const string ROOT_CLASS            = "ds-root";
+        private const string DS_DROPDOWN_CLASS     = "ds-dropdown";
+        private const string DROPDOWN_WIRED_CLASS  = "ds-dropdown--menu-wired"; // internal: marks an already-wired dropdown
+        private const string POPUP_TUNED_CLASS     = "ds-popup--tuned";         // internal: marks an already-tuned popup instance
+
+        // Unity's GenericDropdownMenu internals (names verified against
+        // UnityCsReference; ShowcaseDropdownPopup.uss documents the full map).
+        private const string POPUP_CLASS       = "unity-base-dropdown";
+        private const string POPUP_OUTER_CLASS = "unity-base-dropdown__container-outer";
+
+        private const float DROPDOWN_POPUP_MAX_HEIGHT  = 320f; // web-select feel: tall lists scroll instead of towering
+        private const float DROPDOWN_POPUP_MIN_HEIGHT  = 72f;  // never degenerate into an unusable sliver
+        private const float DROPDOWN_POPUP_GAP         = 4f;   // field bottom -> popup top
+        private const float DROPDOWN_POPUP_EDGE_MARGIN = 8f;   // popup bottom -> panel bottom breathing room
         
         private IVisualElementScheduledItem _spinTask;
         private float _spinAngle;
@@ -44,6 +62,7 @@ namespace DesignSystem.Runtime
             EnsureToggleKnobs(root);
             EnsureSkeletonShimmers(root);
             EnsureDraggables(root);
+            EnsureDropdownMenus(root);
             StartSpinners(root);
 
             // Periodic re-scan: ScreenBase and similar consumers clone screen
@@ -61,6 +80,7 @@ namespace DesignSystem.Runtime
                 EnsureToggleKnobs(root);
                 EnsureSkeletonShimmers(root);
                 EnsureDraggables(root);
+                EnsureDropdownMenus(root);
             }).Every(250);
         }
 
@@ -289,15 +309,12 @@ namespace DesignSystem.Runtime
             item.RegisterCallback<PointerDownEvent>(e =>
             {
                 if (e.button != 0) return;
-                var root = Root();
-                if (root == null) return;
+                var host = GhostHost();
+                if (host == null) return;
 
-                ghost = new VisualElement();
-                ghost.AddToClassList(DRAG_GHOST_CLASS);
-                ghost.pickingMode = PickingMode.Ignore;
-                var label = item.Q<Label>();
-                ghost.Add(new Label(label != null ? label.text : "•"));
-                root.Add(ghost);
+                ghost = MakeGhost(item);
+                host.Add(ghost);
+                item.AddToClassList(DRAGGING_CLASS);
 
                 item.CapturePointer(e.pointerId);
                 PositionGhost(e.position);
@@ -319,7 +336,15 @@ namespace DesignSystem.Runtime
                 var zone = ZoneUnder(e.position);
                 if (zone != null && zone != item.parent)
                     zone.Add(item); // move into the drop zone
+            });
 
+            // Single cleanup path: fires from ReleasePointer above AND whenever
+            // the capture is lost some other way (element removed mid-drag,
+            // panel switch in the world-space gallery, focus loss). Without it
+            // those exits stranded the ghost on the page.
+            item.RegisterCallback<PointerCaptureOutEvent>(_ =>
+            {
+                item.RemoveFromClassList(DRAGGING_CLASS);
                 SetZone(null);
                 ghost?.RemoveFromHierarchy();
                 ghost = null;
@@ -328,7 +353,7 @@ namespace DesignSystem.Runtime
 
             VisualElement ZoneUnder(Vector2 pos)
             {
-                var root = Root();
+                var root = item.panel != null ? item.panel.visualTree : null;
                 if (root == null) return null;
                 VisualElement found = null;
                 root.Query(className: DROP_ZONE_CLASS).ForEach(z =>
@@ -338,7 +363,18 @@ namespace DesignSystem.Runtime
                 return found;
             }
 
-            VisualElement Root() => item.panel != null ? item.panel.visualTree : null;
+            // The ghost must live under a `.ds-root` ancestor: every ds-* rule
+            // (including .ds-drag-ghost's own `position: absolute`) ships in
+            // stylesheets attached AT the ds-root element, so a ghost parented
+            // to panel.visualTree — ABOVE those sheets — matched nothing and
+            // rendered as an unstyled full-width flow child at the bottom of
+            // the panel (the "huge drag artefact" in the world-space gallery).
+            VisualElement GhostHost()
+            {
+                for (var v = item.hierarchy.parent; v != null; v = v.hierarchy.parent)
+                    if (v.ClassListContains(ROOT_CLASS)) return v;
+                return item.panel?.visualTree;
+            }
 
             void SetZone(VisualElement zone)
             {
@@ -350,12 +386,133 @@ namespace DesignSystem.Runtime
 
             void PositionGhost(Vector2 pos)
             {
-                if (ghost == null) return;
-                ghost.style.left = pos.x - ghost.resolvedStyle.width / 2f;
-                ghost.style.top = pos.y - ghost.resolvedStyle.height / 2f;
+                if (ghost?.parent == null) return;
+                var local = ghost.parent.WorldToLocal(pos);
+                ghost.style.left = local.x;
+                ghost.style.top = local.y;
             }
         }
-        
+
+        // A visual stand-in for the dragged item: same classes (so a chip's
+        // ghost LOOKS like that chip) minus the drag markers, plus a shallow
+        // copy of the children (icon + label is the common case). The
+        // translate(-50%,-50%) centers it on the pointer without reading
+        // resolvedStyle — the old half-width math ran before the ghost's
+        // first layout and produced NaN offsets on the initial frame.
+        private static VisualElement MakeGhost(VisualElement item)
+        {
+            var ghost = new VisualElement { pickingMode = PickingMode.Ignore };
+            foreach (var c in item.GetClasses())
+                if (c != DRAGGABLE_CLASS && c != DRAG_WIRED_CLASS && c != DRAGGING_CLASS)
+                    ghost.AddToClassList(c);
+
+            foreach (var child in item.Children())
+            {
+                VisualElement copy = child is Label l ? new Label(l.text) : new VisualElement();
+                foreach (var c in child.GetClasses()) copy.AddToClassList(c);
+                copy.pickingMode = PickingMode.Ignore;
+                ghost.Add(copy);
+            }
+            if (ghost.childCount == 0)
+                ghost.Add(new Label("•") { pickingMode = PickingMode.Ignore });
+
+            ghost.AddToClassList(DRAG_GHOST_CLASS);
+            ghost.style.translate = new Translate(Length.Percent(-50), Length.Percent(-50));
+            return ghost;
+        }
+
+        /// <summary>
+        /// Wire popup-geometry tuning onto every `.ds-dropdown` DropdownField under
+        /// `root` that isn't wired yet. Unity's GenericDropdownMenu sizes the popup to
+        /// the full option list and slides/flips it when that doesn't fit under the
+        /// field: tall lists open UPWARD pinned to the panel edge with the default
+        /// chunky scrollbars (plus a horizontal one whenever an option renders wider
+        /// than the field), and inside a world-space panel — which is only as tall as
+        /// its own section — the popup gets clamped to whatever sliver remains. This
+        /// forces the web select model instead: the popup always opens DOWNWARD from
+        /// the field, capped to the space below it (up to 320px), scrolling vertically
+        /// only. Idempotent.
+        /// </summary>
+        public static void EnsureDropdownMenus(VisualElement root)
+        {
+            if (root == null) return;
+            root.Query<DropdownField>(className: DS_DROPDOWN_CLASS).ForEach(dd =>
+            {
+                if (dd.ClassListContains(DROPDOWN_WIRED_CLASS)) return;
+                dd.AddToClassList(DROPDOWN_WIRED_CLASS);
+                WireDropdownMenu(dd);
+            });
+        }
+
+        public static void WireDropdownMenu(DropdownField dd)
+        {
+            // The popup doesn't exist until BasePopupField's own handler runs,
+            // so tune one tick later, from every gesture that can open it.
+            // TrickleDown: the field stops propagation once it opens the menu,
+            // so a bubble-phase handler would never see the gesture. Down AND
+            // up are both registered because the open gesture differs across
+            // input paths (and Unity versions); a tune that finds no popup —
+            // or one already tuned — is a no-op.
+            dd.RegisterCallback<PointerDownEvent>(_ => ScheduleDropdownTune(dd), TrickleDown.TrickleDown);
+            dd.RegisterCallback<PointerUpEvent>(_ => ScheduleDropdownTune(dd), TrickleDown.TrickleDown);
+            dd.RegisterCallback<NavigationSubmitEvent>(_ => ScheduleDropdownTune(dd), TrickleDown.TrickleDown);
+        }
+
+        private static void ScheduleDropdownTune(DropdownField dd) =>
+            dd.schedule.Execute(() => TuneDropdownPopup(dd));
+
+        private static void TuneDropdownPopup(DropdownField dd)
+        {
+            var panel = dd.panel;
+            if (panel == null) return;
+
+            // The menu attaches at panel scope (a SIBLING of any ds-root), one
+            // fresh instance per open — search from the very top of the panel.
+            var menu = panel.visualTree.Q(className: POPUP_CLASS);
+            var outer = menu?.Q(className: POPUP_OUTER_CLASS);
+            var scroll = menu?.Q<ScrollView>();
+            if (outer == null || scroll == null) return;
+
+            scroll.mode = ScrollViewMode.Vertical;
+            scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+            scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
+
+            void Apply()
+            {
+                if (outer.panel == null) return;   // menu already closed
+                var fieldWB = dd.worldBound;
+                var menuWB = menu.worldBound;
+
+                float top = fieldWB.yMax - menuWB.yMin + DROPDOWN_POPUP_GAP;
+                float availBelow = menuWB.height - top - DROPDOWN_POPUP_EDGE_MARGIN;
+                float capH = Mathf.Min(DROPDOWN_POPUP_MAX_HEIGHT,
+                             Mathf.Max(DROPDOWN_POPUP_MIN_HEIGHT, availBelow));
+
+                float chrome = outer.resolvedStyle.paddingTop + outer.resolvedStyle.paddingBottom
+                             + outer.resolvedStyle.borderTopWidth + outer.resolvedStyle.borderBottomWidth;
+                if (float.IsNaN(chrome) || chrome < 0f) chrome = 10f;
+
+                outer.style.left = fieldWB.xMin - menuWB.xMin;
+                outer.style.top = top;
+                outer.style.width = fieldWB.width;
+                outer.style.height = StyleKeyword.Auto;   // hug the item list...
+                outer.style.maxHeight = capH;             // ...up to the cap
+                scroll.style.maxHeight = Mathf.Max(32f, capH - chrome);
+            }
+
+            // GenericDropdownMenu re-runs its own EnsureVisibilityInParent on
+            // scroll-geometry changes and writes left/top/height back, so
+            // re-assert after every outer-container layout pass. Once the
+            // capped popup genuinely fits below the field, Unity's own math
+            // lands on the same values and the layout settles.
+            if (!menu.ClassListContains(POPUP_TUNED_CLASS))
+            {
+                menu.AddToClassList(POPUP_TUNED_CLASS);
+                outer.RegisterCallback<GeometryChangedEvent>(_ => Apply());
+            }
+            Apply();
+        }
+
         // ──────────────────────────────────────────────────────────────────
         // Auto-attach: every UIDocument in the project gets the runtime
         // without per-prefab inspector wiring. Re-scan on every scene load

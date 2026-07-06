@@ -79,6 +79,8 @@
     padding-bottom: 6px;
     border-radius: 6px;
     min-height: 28px;
+    overflow: hidden;                 /* rows never push a horizontal scroller */
+    flex-shrink: 0;                   /* rows keep their height; the list scrolls instead */
 }
 
 .unity-base-dropdown__item:hover {
@@ -95,6 +97,13 @@
     font-size: 14px;
     -unity-text-align: middle-left;
     background-color: rgba(0, 0, 0, 0);
+    /* The popup is pinned to the field's width (EnsureDropdownMenus), so an
+       option longer than the field must ellipsize — never widen the content
+       and summon a horizontal scrollbar. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
 }
 
 /* Checkmark — Unity's default theme handles the visibility toggle via the
@@ -119,6 +128,57 @@
     margin-bottom: 4px;
     margin-left: 8px;
     margin-right: 8px;
+}
+
+/* ---- Scrolling ----
+   The popup ScrollView is OUTSIDE `.ds-root`, so the design system's slim
+   scrollbar restyle (Controls.uss, `.ds-root`-scoped) never reaches it and
+   the popup shipped Unity's chunky default scrollers on BOTH axes. Mirror
+   the slim 8px pill scrollbar here (literal colors, same reason as the rest
+   of this sheet). Horizontal scrolling is removed outright: the runtime
+   (DesignSystemRuntimeBase.EnsureDropdownMenus) pins the popup to the
+   field's width and caps its height, and the label rule above ellipsizes
+   anything wider — a dropdown list only ever scrolls vertically. */
+
+.unity-base-dropdown .unity-scroller--horizontal {
+    display: none;
+}
+
+.unity-base-dropdown .unity-scroller__low-button,
+.unity-base-dropdown .unity-scroller__high-button {
+    display: none;
+}
+
+.unity-base-dropdown .unity-scroll-view__content-container {
+    width: 100%;
+}
+
+.unity-base-dropdown .unity-scroll-view__vertical-scroller {
+    width: 8px;
+    margin-left: 2px;
+}
+
+.unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider {
+    width: 8px;
+    margin: 0;
+}
+
+.unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__tracker {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+.unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__dragger {
+    width: 8px;
+    left: 0;
+    margin: 0;
+    border-width: 0;
+    border-radius: 4px;
+    background-color: #364152;        /* color-border-strong */
+}
+
+.unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__dragger:hover {
+    background-color: #A1A7B3;        /* color-text-secondary */
 }
 
 /* ---- Light theme overrides ---- */
@@ -153,4 +213,12 @@
 
 .theme-light .unity-base-dropdown__separator {
     background-color: #E2E8F0;
+}
+
+.theme-light .unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__dragger {
+    background-color: #CBD5E1;        /* light color-border-strong */
+}
+
+.theme-light .unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__dragger:hover {
+    background-color: #475569;        /* light color-text-secondary */
 }

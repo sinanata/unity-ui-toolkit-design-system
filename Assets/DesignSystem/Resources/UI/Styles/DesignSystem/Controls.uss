@@ -645,6 +645,7 @@
    - .ds-draggable  : mark an element draggable (the runtime auto-wires it)
    - .ds-drop-zone  : a container that accepts a dropped .ds-draggable
    - .is-drag-over  : added to a drop zone while a drag hovers it
+   - .is-dragging   : added to the SOURCE item while its ghost is out
    - .ds-drag-ghost : the element that follows the pointer during a drag
    The runtime (DesignSystemRuntime.EnsureDraggables) wires `.ds-draggable` for the
    simple "move element between zones" case (reparents on drop). Game inventories with
@@ -677,18 +678,28 @@
     scale: 1.03 1.03;
 }
 
-/* Floating preview that follows the pointer. Positioned by the runtime (or by a consumer's
-   own drag code). Reused by game inventories that keep their own drag mechanics. */
-.ds-drag-ghost {
+/* The source item stays in place while its ghost is out — dim it so the drag
+   reads as "moving this", not as a duplicated item. */
+.ds-draggable.is-dragging {
+    opacity: 0.35;
+}
+
+/* Floating preview that follows the pointer. The runtime spawns it UNDER the
+   nearest `.ds-root` (that's where every design-system sheet attaches, so
+   tokens resolve and these rules actually match) and gives it the dragged
+   item's own classes — a chip's ghost looks like that chip, sized by its
+   content rather than a fixed square. This rule adds only the "lifted"
+   chrome. Both selector forms are identical on purpose: the `.ds-root`-
+   scoped one out-ranks the single-class component rules the ghost copies
+   (e.g. `.ds-chip--owned`'s transparent background) regardless of the
+   stylesheet load order; the bare one keeps consumers with custom hosts
+   covered. Reused by game inventories that keep their own drag mechanics. */
+.ds-drag-ghost,
+.ds-root .ds-drag-ghost {
     position: absolute;
-    width: 56px;
-    height: 56px;
+    margin: 0;
     background-color: var(--color-surface-elev);
     border-width: var(--border-regular);
     border-color: var(--color-primary);
-    border-radius: var(--radius-md);
-    opacity: 0.9;
-    align-items: center;
-    justify-content: center;
-    -unity-text-align: middle-center;
+    opacity: 0.92;
 }
