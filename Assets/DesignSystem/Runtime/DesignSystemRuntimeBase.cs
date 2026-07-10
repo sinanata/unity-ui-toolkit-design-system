@@ -540,7 +540,12 @@ namespace DesignSystem.Runtime
             if (!s_componentTypeMap.TryGetValue(typeof(TComponent), out var runtimeType))
                 return;
 
-            var docs = FindObjectsByType<TComponent>();
+#if UNITY_2022_2_OR_NEWER
+            var docs = FindObjectsByType<TComponent>(FindObjectsSortMode.None);
+#else
+            var docs = FindObjectsOfType<TComponent>();
+#endif
+
             foreach (var doc in docs)
             {
                 if (doc == null || doc.gameObject.GetComponent(runtimeType) != null)
