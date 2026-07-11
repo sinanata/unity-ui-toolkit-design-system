@@ -14,6 +14,7 @@ namespace DesignSystem.Runtime.Theme.Applier
             get => theme;
             set
             {
+                RemoveStyleSheet();
                 theme = value;
                 ApplyThemeToRoot();
             }
