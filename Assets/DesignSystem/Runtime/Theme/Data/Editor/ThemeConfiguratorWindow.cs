@@ -11,7 +11,8 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
 {
     public class ThemeConfiguratorWindow : EditorWindow
     {
-        private const string SHOWCASE_UXML_GUID = "ae1eea539fc84b67aee9a953483d8b42";
+        private const string PREVIEW_UXML_GUID = "ae1eea539fc84b67aee9a953483d8b42";
+        private const string PREVIEW_UXML_PREF_KEY = "DesignSystem.ThemeConfigurator.PreviewUxmlGuid";
         private const double DEBOUNCE_DELAY = 0.15;
 
         private ThemeData _theme;
@@ -26,6 +27,7 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
         private StyleSheet _previewStyleSheet;
         private string _previewTempPath;
         private ObjectField _themeField;
+        private ObjectField _previewUxmlField;
 
         [MenuItem("Design System/Theme Configurator")]
         public static void Open() => GetWindow<ThemeConfiguratorWindow>("Theme Configurator");
@@ -78,7 +80,7 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
             _themeField = new ObjectField
             {
                 objectType = typeof(ThemeData),
-                style = { flexGrow = 1, marginRight = 8 }
+                style = { flexGrow = 1, minWidth = 180, marginRight = 8 }
             };
             if (_theme)
                 _themeField.SetValueWithoutNotify(_theme);
@@ -88,6 +90,33 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
                     LoadTheme(td);
             });
             toolbar.Add(_themeField);
+
+            _previewUxmlField = new ObjectField
+            {
+                objectType = typeof(VisualTreeAsset),
+                style = { flexGrow = 1, minWidth = 180, marginRight = 8 }
+            };
+            var savedUxmlGuid = EditorPrefs.GetString(PREVIEW_UXML_PREF_KEY, "");
+            if (!string.IsNullOrEmpty(savedUxmlGuid))
+            {
+                var savedAsset = AssetDatabase.LoadAssetByGUID<VisualTreeAsset>(new GUID(savedUxmlGuid));
+                if (savedAsset)
+                    _previewUxmlField.SetValueWithoutNotify(savedAsset);
+            }
+            _previewUxmlField.RegisterValueChangedCallback(evt =>
+            {
+                if (evt.newValue is VisualTreeAsset vta)
+                {
+                    AssetDatabase.TryGetGUIDAndLocalFileIdentifier(vta, out var guid, out long _);
+                    EditorPrefs.SetString(PREVIEW_UXML_PREF_KEY, guid);
+                }
+                else
+                {
+                    EditorPrefs.SetString(PREVIEW_UXML_PREF_KEY, "");
+                }
+                SetupShowcase();
+            });
+            toolbar.Add(_previewUxmlField);
 
             var saveBtn = new Button(Save) { text = "Save" };
             toolbar.Add(saveBtn);
@@ -161,6 +190,18 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
         // Preview
         // ──────────────────────────────────────
 
+        private static string ResolvePreviewUxmlGuid()
+        {
+            var prefGuid = EditorPrefs.GetString(PREVIEW_UXML_PREF_KEY, "");
+            if (!string.IsNullOrEmpty(prefGuid))
+            {
+                var asset = AssetDatabase.LoadAssetByGUID<VisualTreeAsset>(new GUID(prefGuid));
+                if (asset) return prefGuid;
+                Debug.LogWarning($"ThemeConfigurator: Custom preview UXML not found, falling back to default.");
+            }
+            return PREVIEW_UXML_GUID;
+        }
+
         private void SetupShowcase()
         {
             if (_previewContainer == null || !_theme) return;
@@ -174,11 +215,15 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
             CleanupTempFile();
             _previewTempPath = null;
             _showcaseClone = null;
-            
-            var showcaseAsset = AssetDatabase.LoadAssetByGUID<VisualTreeAsset>(new GUID(SHOWCASE_UXML_GUID));
+
+            var previewGuid = ResolvePreviewUxmlGuid();
+            var showcaseAsset = AssetDatabase.LoadAssetByGUID<VisualTreeAsset>(new GUID(previewGuid));
             if (!showcaseAsset)
             {
-                _previewContainer.Add(new Label("Could not load DesignSystemShowcase.uxml")
+                _previewContainer.Add(new Label(
+                    previewGuid == PREVIEW_UXML_GUID
+                        ? "Could not load preview UXML"
+                        : "Could not load custom preview UXML")
                 {
                     style = { color = Color.red, paddingTop = 20, paddingLeft = 20 }
                 });
