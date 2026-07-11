@@ -20,7 +20,7 @@ namespace Showcase.Runtime
     public static class ShowcaseBootstrap
     {
         const string DEFAULT_PANEL_SETTINGS = "DefaultPanelSettings";
-        const string SHOWCASE_RES_PATH = "UI/Styles/DesignSystem/DesignSystemShowcase";
+        const string SHOWCASE_RES_PATH = "DesignSystemShowcase";
         const string THEME_RES_PATH    = "UnityDefaultRuntimeTheme";
         const int    MOBILE_BREAKPOINT = 768;
         const string SCENE_NAME = "Showcase";
