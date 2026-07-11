@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
-using DesignSystem.Runtime.UIDocumentRuntime;
+using DesignSystem.Runtime.Behaviour.UIDocument;
 using Object = UnityEngine.Object;
 #if UNITY_WEBGL && !UNITY_EDITOR
 using System.Runtime.InteropServices;
@@ -181,11 +181,11 @@ namespace Showcase.Runtime
             var overlay = overlayGO.AddComponent<ShowcaseDocOverlay>();
             overlay.AttachTo(showcaseDoc, overlayDoc);
 
-            // The DesignSystemRuntime auto-attaches via SceneManager.sceneLoaded
+            // The DesignSystemBehaviour auto-attaches via SceneManager.sceneLoaded
             // which may fire BEFORE our AfterSceneLoad init — so the GameObjects
             // we just created would miss the initial attach. Nudge it manually.
             // The runtime is idempotent; calling twice is a no-op.
-            DesignSystemRuntime.AttachToAll();
+            DesignSystemBehaviour.AttachToAll();
 
 #if UNITY_6000_5_OR_NEWER
             // World-space gallery mode + the switch that toggles into it. Only
@@ -852,18 +852,18 @@ namespace Showcase.Runtime
         {
             if (root == null) return;
 
-            DesignSystemRuntime.WireDrawer(
+            DesignSystemBehaviour.WireDrawer(
                 root.Q<Button>("drawer-top-burger"),
                 root.Q("drawer-top-wrap"),
                 root.Q<Button>("drawer-top-close"));
 
-            DesignSystemRuntime.WireDrawer(
+            DesignSystemBehaviour.WireDrawer(
                 root.Q<Button>("drawer-right-burger"),
                 root.Q("drawer-right-wrap"),
                 root.Q<Button>("drawer-right-close"),
                 root.Q("drawer-right-backdrop"));
 
-            DesignSystemRuntime.WireDrawer(
+            DesignSystemBehaviour.WireDrawer(
                 root.Q<Button>("drawer-push-burger"),
                 root.Q("drawer-push-wrap"),
                 root.Q<Button>("drawer-push-close"));
@@ -876,7 +876,7 @@ namespace Showcase.Runtime
         {
             if (root == null) return;
             var sv = root.Q<ScrollView>("auto-hide-scroll");
-            DesignSystemRuntime.WireScrollAutoHide(sv);
+            DesignSystemBehaviour.WireScrollAutoHide(sv);
         }
     }
 }

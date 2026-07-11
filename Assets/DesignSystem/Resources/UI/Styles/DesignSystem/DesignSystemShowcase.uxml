@@ -1341,7 +1341,7 @@
                     <ui:Label text="The bar appears when you hover this list." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="It uses pure USS opacity transitions on the scroll-view's vertical and horizontal scroller children; no per-frame work." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="The same modifier works on horizontal scrollers." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
-                    <ui:Label text="On touch devices :hover never fires, so DesignSystemRuntime.WireScrollAutoHide adds an is-scrolling marker class for about 700 ms after each WheelEvent or PointerDownEvent that the rule also responds to." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="On touch devices :hover never fires, so DesignSystemBehaviour.WireScrollAutoHide adds an is-scrolling marker class for about 700 ms after each WheelEvent or PointerDownEvent that the rule also responds to." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="It composes with the existing slim 8 px scrollbar styling; no extra rules needed beyond the .ds-scroll--auto-hide modifier." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="Bottom of the demo list." class="ds-body-2" style="white-space: normal;"/>
                 </ui:ScrollView>

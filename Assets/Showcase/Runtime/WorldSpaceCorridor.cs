@@ -24,7 +24,7 @@ using Object = UnityEngine.Object;
 // The ds-* runtime helpers (toggle-knob / skeleton / draggable injection) live
 // as public statics on the generic base; reach them through the concrete
 // UIDocument subclass, which inherits them.
-using DsRuntime = DesignSystem.Runtime.UIDocumentRuntime.DesignSystemRuntime;
+using DsBehaviour = DesignSystem.Runtime.Behaviour.UIDocument.DesignSystemBehaviour;
 
 namespace Showcase.Runtime
 {
@@ -50,7 +50,7 @@ namespace Showcase.Runtime
         const float PREFIT_SCALE        = 0.0001f; // sub-mm: invisible AND unpickable until measured
         const float FIT_TIMEOUT         = 20f;     // seconds of visible time before giving up on a panel
         const float FIT_STABLE_FOR      = 0.15f;   // a measurement must hold this long to count as settled
-        const float SPIN_DEG_PER_SEC    = 360f;    // matches DesignSystemRuntimeBase's 6° / 16 ms tick
+        const float SPIN_DEG_PER_SEC    = 360f;    // matches DesignSystemBehaviourBase's 6° / 16 ms tick
 
         // Palette (linear-ish sRGB values matching DesignTokens.uss).
         static readonly Color C_CLEAR    = new Color(0.020f, 0.028f, 0.045f); // camera/fog background (near-black)
@@ -999,7 +999,7 @@ namespace Showcase.Runtime
                 // Spinners are the one exception, and are not in EnsureAll: they
                 // need a MonoBehaviour's schedule handle, so the corridor drives
                 // `.is-spinning` across all panels itself (see Update).
-                DsRuntime.EnsureAll(root);
+                DsBehaviour.EnsureAll(root);
 
                 // Re-apply whatever theme the flat page is currently on, so a
                 // theme picked BEFORE entering the corridor (or while inside it)
