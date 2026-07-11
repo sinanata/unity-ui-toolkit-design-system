@@ -16,8 +16,6 @@ namespace DesignSystem.Runtime.Theme.Applier.UIDocument
             var root = _doc.rootVisualElement;
             if (root == null)
             {
-                _doc.rootVisualElement?.schedule.Execute(() =>
-                    ApplyTheme(_doc.rootVisualElement)).StartingIn(0);
                 Invoke(nameof(TryInit), 0.05f);
                 return;
             }
