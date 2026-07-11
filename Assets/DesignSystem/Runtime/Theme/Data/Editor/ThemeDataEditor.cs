@@ -33,14 +33,13 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();
 
-            /*GUILayout.Space(4);
+            GUILayout.Space(4);
 
             if (GUILayout.Button("Open in Theme Configurator", GUILayout.Height(26)))
             {
-                ThemeConfiguratorWindow.Open();
                 var window = EditorWindow.GetWindow<ThemeConfiguratorWindow>();
                 window.LoadTheme(theme);
-            }*/
+            }
 
             GUILayout.Space(8);
 
@@ -231,21 +230,10 @@ namespace DesignSystem.Runtime.Theme.Data.Editor
             AssetDatabase.DeleteAsset(tempPath);
             EditorUtility.SetDirty(theme);
         }
-
-        /*[OnOpenAsset(1)]
-        public static bool OnOpenAsset(EntityId entityId, int line)
-        {
-            var obj = EditorUtility.EntityIdToObject(entityId);
-            if (obj is not ThemeData theme) return false;
-            ThemeConfiguratorWindow.Open();
-            var window = EditorWindow.GetWindow<ThemeConfiguratorWindow>();
-            window.LoadTheme(theme);
-            return true;
-        }*/
     }
 
     // ReSharper disable once InconsistentNaming
-    internal class ThemeSOSaveProcessor : AssetModificationProcessor
+    internal class ThemeDataSaveProcessor : AssetModificationProcessor
     {
         private static string[] OnWillSaveAssets(string[] paths)
         {

@@ -63,7 +63,7 @@ namespace DesignSystem.Runtime.Theme.Data
         public float fontSizeBody2   = 12f;
         public float fontSizeCaption = 11f;
 
-        [Header("Radii")]
+        [Header("Radius")]
         public float radiusXs = 4f;
         public float radiusSm = 6f;
         public float radiusMd = 8f;
