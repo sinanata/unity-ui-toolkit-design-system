@@ -1,11 +1,11 @@
 # Architecture
 
-The design system is a stack of independent USS files imported by a single master stylesheet, plus one runtime helper script. This document walks through the layers and the load-bearing decisions behind them.
+The design system is a stack of independent USS files imported by a single master stylesheet, plus a theme-authoring pipeline and one runtime helper script. This document walks through the layers and the load-bearing decisions behind them.
 
 ## The stack
 
 ```
-DesignSystemRuntime.cs           ← C# helper, auto-attaches to UIDocument
+DesignSystemBehaviour.cs          ← C# helper, auto-attaches to UIDocument
         │
         ▼
 DesignSystem.uss                 ← master, @imports the layers below
@@ -188,7 +188,7 @@ Soft-bg controls (`.ds-nav-item.is-active`, `.ds-rail-item.is-active`, `.ds-bott
 
 ## The runtime layer
 
-`DesignSystemRuntime.cs` is auto-attached via two hooks:
+`DesignSystemBehaviourBase<TComponent>.cs` in `Runtime/Behaviour/` provides the shared runtime logic; concrete backends `UIDocument/DesignSystemBehaviour.cs` and `PanelRenderer/DesignSystemBehaviour.cs` auto-attach to their respective component types via `[RuntimeInitializeOnLoadMethod]` + `SceneManager.sceneLoaded`:
 
 ```csharp
 [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -201,7 +201,7 @@ static void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
 }
 ```
 
-Every `UIDocument` in every scene gets a `DesignSystemRuntime` MonoBehaviour. The runtime then:
+Every `UIDocument` in every scene gets a `DesignSystemBehaviour` MonoBehaviour. The runtime then:
 
 1. **Injects toggle knobs.** Unity's `Toggle` element doesn't render the iOS-style sliding pill — its checkmark is a square box. The runtime queries `.ds-toggle .unity-toggle__input` and adds a `.ds-toggle__knob` child if one isn't already present. Idempotent. Runs once at attach time and re-scans every 250 ms to cover toggles cloned in lazily by screen managers (e.g. a Settings panel that creates its toggles on first open).
 2. **Drives spinner rotation.** USS `transition` can't loop natively. The runtime increments `transform.rotate` by 6° every frame on `.ds-spinner.is-spinning` elements.
@@ -210,8 +210,8 @@ Every `UIDocument` in every scene gets a `DesignSystemRuntime` MonoBehaviour. Th
 Two helpers are exposed `public static` so screen managers can call them eagerly after a template clone:
 
 ```csharp
-DesignSystemRuntime.EnsureToggleKnobs(root);
-DesignSystemRuntime.EnsureSkeletonShimmers(root);
+DesignSystemBehaviour.EnsureToggleKnobs(root);
+DesignSystemBehaviour.EnsureSkeletonShimmers(root);
 ```
 
 This avoids the one-frame "flat pill" flash on the very first appearance of a screen, while the periodic re-scan still picks up anything cloned later.
@@ -338,7 +338,7 @@ Assets/
 2. Creates two GameObjects, each with a `UIDocument`. Their `PanelSettings` are also created in code (`scaleMode = ConstantPixelSize`, `themeStyleSheet = UnityDefaultRuntimeTheme`, sortingOrder 0 for the showcase doc, 1 for the doc-overlay) — no `.asset` files to maintain.
 3. Loads the showcase-only `ShowcaseTheme.uss` via `Resources.Load<StyleSheet>` and adds it to the showcase root's `styleSheets` list. Loaded *after* the design system stylesheet (which the UXML imports first) so its rules win specificity ties.
 4. Wires the day / night toggle, the GitHub / Steam promo links (`Application.OpenURL`), and adds `.mobile` to the showcase root when `Screen.width < 768`.
-5. Calls `DesignSystemRuntime.AttachToAllUIDocuments()` so the spinner / knob / shimmer runtime catches the bootstrap-created documents — `SceneManager.sceneLoaded` fires before our `AfterSceneLoad` init in some Unity versions.
+5. Calls `DesignSystemBehaviour.RegisterAutoAttach(typeof(...))` so the spinner / knob / shimmer runtime catches the bootstrap-created documents — `SceneManager.sceneLoaded` fires before our `AfterSceneLoad` init in some Unity versions.
 
 ### `ShowcaseDocOverlay.cs`
 

@@ -1,12 +1,11 @@
 using UnityEngine;
-using UnityEngine.UIElements;
 
-namespace DesignSystem.Runtime.UIDocumentRuntime
+namespace DesignSystem.Runtime.Behaviour.UIDocument
 {
-    [AddComponentMenu("Design System/UI Document Runtime")]
-    public class DesignSystemRuntime : DesignSystemRuntimeBase<UIDocument>
+    [AddComponentMenu("Design System/UI Document Behaviour")]
+    public class DesignSystemBehaviour : DesignSystemBehaviourBase<UnityEngine.UIElements.UIDocument>
     {
-        private UIDocument _doc;
+        private UnityEngine.UIElements.UIDocument _doc;
 
         protected override void OnEnable()
         {
@@ -42,6 +41,6 @@ namespace DesignSystem.Runtime.UIDocumentRuntime
         }
         
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void _RegisterAutoAttach() => RegisterAutoAttach(typeof(DesignSystemRuntime));
+        private static void _RegisterAutoAttach() => RegisterAutoAttach(typeof(DesignSystemBehaviour));
     }
 }

@@ -1,97 +1,63 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="DesignSystem.uss"/>
+    <Style src="project://database/Assets/DesignSystem/Resources/UI/Styles/DesignSystem/DesignSystem.uss?fileID=7433441132597879392&amp;guid=2fe121bab235f2a4f8cbc07737f87fe2&amp;type=3#DesignSystem"/>
     <ui:ScrollView mode="Vertical" class="ds-root">
-        <ui:VisualElement name="promo-banner" class="showcase-chrome" style="background-color: rgb(0, 0, 0); border-bottom-width: 1px; border-bottom-color: rgb(38, 48, 65); padding-top: 32px; padding-bottom: 32px; padding-left: 24px; padding-right: 24px; align-items: center;">
-            <ui:VisualElement style="max-width: 760px; align-items: center;">
-                <ui:Label text="Unity 6 UI Toolkit Design System" class="ds-h1" style="margin-bottom: 6px; -unity-text-align: middle-center;"/>
-                <ui:Label text="A drop-in design system for UIDocument + UXML + USS. Tokens, components, icons, mobile responsiveness, and a runtime helper: all themed dark, all keyboard-and-touch-ready, all editable from one stylesheet. Free under MIT." class="ds-body-1" style="color: rgb(161, 167, 179); -unity-text-align: middle-center; margin-bottom: 18px; white-space: normal;"/>
-                <ui:Label text="Hover or tap any component below to see its selector chain. Click classes to copy." class="ds-caption" style="color: rgb(103, 112, 133); -unity-text-align: middle-center; margin-bottom: 20px;"/>
-                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; justify-content: center;">
-                    <ui:Button name="promo-github" text="View on GitHub" class="ds-btn ds-btn--primary" style="margin-right: 8px; margin-bottom: 8px;"/>
-                    <ui:Button name="promo-steam" text="Steam" class="ds-btn ds-btn--secondary" style="margin-right: 8px; margin-bottom: 8px;"/>
-                    <ui:Button name="promo-appstore" text="App Store" class="ds-btn ds-btn--secondary" style="margin-right: 8px; margin-bottom: 8px;"/>
-                    <ui:Button name="promo-playstore" text="Google Play" class="ds-btn ds-btn--secondary" style="margin-bottom: 8px;"/>
-                </ui:VisualElement>
-                <ui:Label text="Built for and battle-tested in Leap of Legends, a multiplayer platform fighter out now on Steam, the App Store, and Google Play." class="ds-caption" style="color: rgb(103, 112, 133); -unity-text-align: middle-center; margin-top: 12px; white-space: normal;"/>
-            </ui:VisualElement>
-        </ui:VisualElement>
         <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; padding: 12px;">
             <ui:VisualElement class="ds-section" style="width: 240px;">
                 <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <ui:Label text="COLORS" class="ds-section__title" style="margin-bottom: 0;"/>
-                    <ui:VisualElement style="flex-direction: row; align-items: center;">
-                        <ui:VisualElement class="ds-icon ds-icon--xs ds-icon--sun" style="margin-right: 6px;"/>
-                        <ui:Toggle name="theme-toggle" class="ds-toggle"/>
-                    </ui:VisualElement>
+                    <ui:VisualElement style="flex-direction: row; align-items: center;"/>
                 </ui:VisualElement>
-                <ui:DropdownField name="theme-provider-dropdown" choices="Design System default" index="0" class="ds-dropdown" style="margin-bottom: 8px;"/>
-                <ui:Button name="theme-randomize" text="Randomize colors" class="ds-btn ds-btn--secondary" style="margin-bottom: 6px;"/>
-                <ui:Button name="theme-codigrate-link" text="Themes by Codigrate" class="ds-btn ds-btn--ghost" style="margin-bottom: 8px;"/>
-                <ui:Label name="theme-provider-status" text="" class="ds-caption showcase-placeholder-text" style="margin-bottom: 8px; white-space: normal;"/>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--primary"/>
                     <ui:Label text="Primary" class="ds-swatch__name"/>
-                    <ui:Label name="hex-primary" text="#22C55E" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--primary-hover"/>
                     <ui:Label text="Primary Hover" class="ds-swatch__name"/>
-                    <ui:Label name="hex-primary-hover" text="#16A34A" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--secondary"/>
                     <ui:Label text="Secondary" class="ds-swatch__name"/>
-                    <ui:Label name="hex-secondary" text="#3B82F6" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--tertiary"/>
                     <ui:Label text="Tertiary" class="ds-swatch__name"/>
-                    <ui:Label name="hex-tertiary" text="#A855F7" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--warning"/>
                     <ui:Label text="Warning" class="ds-swatch__name"/>
-                    <ui:Label name="hex-warning" text="#F59E0B" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--danger"/>
                     <ui:Label text="Danger" class="ds-swatch__name"/>
-                    <ui:Label name="hex-danger" text="#EF4444" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--text-primary"/>
                     <ui:Label text="Text Primary" class="ds-swatch__name"/>
-                    <ui:Label name="hex-text-primary" text="#F2F4F7" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--text-secondary"/>
                     <ui:Label text="Text Secondary" class="ds-swatch__name"/>
-                    <ui:Label name="hex-text-secondary" text="#A1A7B3" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--text-disabled"/>
                     <ui:Label text="Text Disabled" class="ds-swatch__name"/>
-                    <ui:Label name="hex-text-disabled" text="#677085" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--bg"/>
                     <ui:Label text="Background" class="ds-swatch__name"/>
-                    <ui:Label name="hex-bg" text="#0B0F17" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--surface"/>
                     <ui:Label text="Surface" class="ds-swatch__name"/>
-                    <ui:Label name="hex-surface" text="#131A24" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--surface-elev"/>
                     <ui:Label text="Surface Elevated" class="ds-swatch__name"/>
-                    <ui:Label name="hex-surface-elev" text="#1A2330" class="ds-swatch__hex"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--border"/>
                     <ui:Label text="Border" class="ds-swatch__name"/>
-                    <ui:Label name="hex-border" text="#263041" class="ds-swatch__hex"/>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 280px;">
@@ -234,16 +200,6 @@
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 280px;">
                 <ui:Label text="INPUTS" class="ds-section__title"/>
-                <!-- Inputs render with `value` attribute showing example
-                     content rather than absolute-positioned placeholder
-                     Labels. Unity Label's intrinsic top margin made the
-                     fake placeholders sit a few px below the input's
-                     real text baseline. The field's own internal text
-                     rendering is correctly centered (input) or top-
-                     padded (textarea) by the .ds-input / .ds-textarea
-                     rules in Inputs.uss. Real placeholder text in your
-                     screens should use Unity 6's
-                     `field.textEdition.placeholder = ...` API. -->
                 <ui:VisualElement class="ds-search" style="margin-bottom: 8px;">
                     <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--search ds-search__icon"/>
                     <ui:TextField value="Frog" class="ds-search__field"/>
@@ -298,133 +254,6 @@
                     <ui:Button class="ds-view-toggle__btn">
                         <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--list"/>
                     </ui:Button>
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="ds-section" style="width: 280px;">
-                <ui:Label text="TABBED PANELS" class="ds-section__title"/>
-                <ui:VisualElement class="ds-tabs" style="margin-bottom: 12px;">
-                    <ui:Button text="Graphics" class="ds-tab is-active"/>
-                    <ui:Button text="Audio" class="ds-tab"/>
-                    <ui:Button text="Controls" class="ds-tab"/>
-                </ui:VisualElement>
-                <ui:VisualElement class="ds-tabpanels">
-                    <ui:VisualElement class="ds-tabpanel is-active">
-                        <ui:VisualElement class="ds-row" style="margin-bottom: 12px;">
-                            <ui:Label text="Quality" class="ds-body-1" style="flex-grow: 1;"/>
-                            <ui:DropdownField choices="Low,Medium,High,Ultra" index="2" class="ds-dropdown" style="width: 110px;"/>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="ds-row">
-                            <ui:Label text="Fullscreen" class="ds-body-1" style="flex-grow: 1;"/>
-                            <ui:Toggle class="ds-toggle" value="true">
-                                <ui:VisualElement class="ds-toggle__knob"/>
-                            </ui:Toggle>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="ds-tabpanel">
-                        <ui:VisualElement class="ds-row" style="margin-bottom: 12px;">
-                            <ui:Label text="Master" class="ds-body-1" style="flex-grow: 1;"/>
-                            <ui:Slider low-value="0" high-value="100" value="80" class="ds-slider ds-slider--filled" style="width: 110px;"/>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="ds-row">
-                            <ui:Label text="Music" class="ds-body-1" style="flex-grow: 1;"/>
-                            <ui:Slider low-value="0" high-value="100" value="55" class="ds-slider ds-slider--filled" style="width: 110px;"/>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="ds-tabpanel">
-                        <ui:VisualElement class="ds-row" style="margin-bottom: 12px;">
-                            <ui:Label text="Invert Y" class="ds-body-1" style="flex-grow: 1;"/>
-                            <ui:Toggle class="ds-toggle">
-                                <ui:VisualElement class="ds-toggle__knob"/>
-                            </ui:Toggle>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="ds-row">
-                            <ui:Label text="Sensitivity" class="ds-body-1" style="flex-grow: 1;"/>
-                            <ui:Slider low-value="1" high-value="10" value="4" class="ds-slider ds-slider--filled" style="width: 110px;"/>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="ds-section" style="width: 460px;">
-                <ui:Label text="VERTICAL TABS (SIDE NAV)" class="ds-section__title"/>
-                <ui:Label text="A side nav IS a tab strip. Give it a .ds-tabpanels sibling and the Nth .ds-nav-item shows the Nth .ds-tabpanel. Same mechanism as .ds-tabs, no wiring." class="ds-body-2 ds-text-secondary" style="margin-bottom: 12px;"/>
-                <ui:VisualElement style="flex-direction: row;">
-                    <ui:VisualElement class="ds-side-nav" style="width: 140px; margin-right: 16px;">
-                        <ui:VisualElement class="ds-nav-item is-active">
-                            <ui:VisualElement class="ds-nav-item__icon ds-icon ds-icon--sun"/>
-                            <ui:Label text="Graphics" class="ds-nav-item__label"/>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="ds-nav-item">
-                            <ui:VisualElement class="ds-nav-item__icon ds-icon ds-icon--sound"/>
-                            <ui:Label text="Audio" class="ds-nav-item__label"/>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="ds-nav-item">
-                            <ui:VisualElement class="ds-nav-item__icon ds-icon ds-icon--bolt"/>
-                            <ui:Label text="Controls" class="ds-nav-item__label"/>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="ds-tabpanels">
-                        <ui:VisualElement class="ds-tabpanel is-active">
-                            <ui:VisualElement class="ds-info-row">
-                                <ui:VisualElement class="ds-info-row__left"><ui:Label text="Preset" class="ds-info-row__label"/></ui:VisualElement>
-                                <ui:DropdownField choices="Low,Medium,High,Ultra" index="3" class="ds-dropdown" style="width: 110px;"/>
-                            </ui:VisualElement>
-                            <ui:VisualElement class="ds-info-row">
-                                <ui:VisualElement class="ds-info-row__left"><ui:Label text="VSync" class="ds-info-row__label"/></ui:VisualElement>
-                                <ui:Toggle class="ds-toggle" value="true"><ui:VisualElement class="ds-toggle__knob"/></ui:Toggle>
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="ds-tabpanel">
-                            <ui:VisualElement class="ds-info-row">
-                                <ui:VisualElement class="ds-info-row__left"><ui:Label text="Master" class="ds-info-row__label"/></ui:VisualElement>
-                                <ui:Slider low-value="0" high-value="100" value="80" class="ds-slider ds-slider--filled" style="width: 110px;"/>
-                            </ui:VisualElement>
-                            <ui:VisualElement class="ds-info-row">
-                                <ui:VisualElement class="ds-info-row__left"><ui:Label text="Subtitles" class="ds-info-row__label"/></ui:VisualElement>
-                                <ui:Toggle class="ds-toggle"><ui:VisualElement class="ds-toggle__knob"/></ui:Toggle>
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="ds-tabpanel">
-                            <ui:VisualElement class="ds-info-row">
-                                <ui:VisualElement class="ds-info-row__left"><ui:Label text="Invert Y" class="ds-info-row__label"/></ui:VisualElement>
-                                <ui:Toggle class="ds-toggle"><ui:VisualElement class="ds-toggle__knob"/></ui:Toggle>
-                            </ui:VisualElement>
-                            <ui:VisualElement class="ds-info-row">
-                                <ui:VisualElement class="ds-info-row__left"><ui:Label text="Sensitivity" class="ds-info-row__label"/></ui:VisualElement>
-                                <ui:Slider low-value="1" high-value="10" value="4" class="ds-slider ds-slider--filled" style="width: 110px;"/>
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="ds-section" style="width: 460px;">
-                <ui:Label text="GAME METERS (HEALTH / MANA / XP)" class="ds-section__title"/>
-                <ui:Label text="The label is a SIBLING of the fill and comes AFTER it. UI Toolkit has no z-index, so later in the DOM is the only way to paint over the fill. Never put a Label inside an overflow:hidden track." class="ds-body-2 ds-text-secondary" style="margin-bottom: 12px;"/>
-
-                <ui:Label text="Health (20px, the HUD default)" class="ds-caption ds-text-secondary" style="margin-bottom: 4px;"/>
-                <ui:VisualElement class="ds-meter ds-meter--danger" style="margin-bottom: 12px;">
-                    <ui:VisualElement name="hp-fill" class="ds-meter__fill" style="width: 62%;"/>
-                    <ui:Label text="184 / 240" class="ds-meter__label"/>
-                </ui:VisualElement>
-
-                <ui:Label text="Mana (secondary fill)" class="ds-caption ds-text-secondary" style="margin-bottom: 4px;"/>
-                <ui:VisualElement class="ds-meter ds-meter--secondary" style="margin-bottom: 12px;">
-                    <ui:VisualElement name="mp-fill" class="ds-meter__fill" style="width: 80%;"/>
-                    <ui:Label text="96 / 120" class="ds-meter__label"/>
-                </ui:VisualElement>
-
-                <ui:Label text="XP (with level badges either side)" class="ds-caption ds-text-secondary" style="margin-bottom: 4px;"/>
-                <ui:VisualElement class="ds-row" style="margin-bottom: 12px;">
-                    <ui:Label text="Lv. 23" class="ds-badge ds-badge--rare ds-nowrap" style="margin-right: 8px;"/>
-                    <ui:VisualElement class="ds-meter ds-meter--tertiary" style="flex-grow: 1;">
-                        <ui:VisualElement name="xp-fill" class="ds-meter__fill" style="width: 76%;"/>
-                        <ui:Label text="1,840 / 2,400 XP" class="ds-meter__label"/>
-                    </ui:VisualElement>
-                    <ui:Label text="Lv. 24" class="ds-badge ds-badge--rare ds-nowrap" style="margin-left: 8px; opacity: 0.6;"/>
-                </ui:VisualElement>
-
-                <ui:Label text="Stamina (--sm, 10px, no label)" class="ds-caption ds-text-secondary" style="margin-bottom: 4px;"/>
-                <ui:VisualElement class="ds-meter ds-meter--sm ds-meter--warning">
-                    <ui:VisualElement class="ds-meter__fill" style="width: 45%;"/>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 460px;">
@@ -1149,16 +978,6 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="ds-section" style="width: 200px;">
-                <ui:Label text="AVATAR" class="ds-section__title"/>
-                <ui:VisualElement style="flex-direction: row; align-items: center;">
-                    <ui:VisualElement class="ds-avatar ds-avatar--xl" style="margin-right: 8px; background-image: resource('sinanata'); -unity-background-scale-mode: scale-and-crop;"/>
-                    <ui:VisualElement style="flex-direction: column;">
-                        <ui:VisualElement class="ds-avatar ds-avatar--md" style="margin-bottom: 4px; background-image: resource('sinanata'); -unity-background-scale-mode: scale-and-crop;"/>
-                        <ui:VisualElement class="ds-avatar ds-avatar--sm" style="background-image: resource('sinanata'); -unity-background-scale-mode: scale-and-crop;"/>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 320px;">
                 <ui:Label text="SCROLLBARS" class="ds-section__title"/>
                 <ui:VisualElement class="ds-row" style="align-items: flex-start;">
@@ -1339,9 +1158,9 @@
                 <ui:Label text="Hover the box to reveal the scrollbar; it fades out when the cursor leaves. On touch the helper flashes the bar for 700 ms after each scroll." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
                 <ui:ScrollView name="auto-hide-scroll" mode="Vertical" class="ds-scrollbar-demo ds-scroll--auto-hide" style="height: 200px;">
                     <ui:Label text="The bar appears when you hover this list." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
-                    <ui:Label text="It uses pure USS opacity transitions on the scroll-view's vertical and horizontal scroller children; no per-frame work." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="It uses pure USS opacity transitions on the scroll-view&apos;s vertical and horizontal scroller children; no per-frame work." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="The same modifier works on horizontal scrollers." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
-                    <ui:Label text="On touch devices :hover never fires, so DesignSystemRuntime.WireScrollAutoHide adds an is-scrolling marker class for about 700 ms after each WheelEvent or PointerDownEvent that the rule also responds to." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
+                    <ui:Label text="On touch devices :hover never fires, so DesignSystemBehaviour.WireScrollAutoHide adds an is-scrolling marker class for about 700 ms after each WheelEvent or PointerDownEvent that the rule also responds to." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="It composes with the existing slim 8 px scrollbar styling; no extra rules needed beyond the .ds-scroll--auto-hide modifier." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="Bottom of the demo list." class="ds-body-2" style="white-space: normal;"/>
                 </ui:ScrollView>

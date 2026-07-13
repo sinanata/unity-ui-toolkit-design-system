@@ -311,7 +311,7 @@ The `.ds-scrollbar-demo` class adds a `var(--color-bg)` background, `var(--color
 | `.ds-drop-zone.is-drag-over` | Highlight applied to a drop zone while a drag hovers it. |
 | `.ds-drag-ghost` | The floating preview that follows the pointer during a drag. Reuse it from custom drag code (e.g. a game inventory) for a consistent look. |
 
-The runtime (`DesignSystemRuntime.EnsureDraggables`) auto-wires `.ds-draggable` for the simple "move between zones" case. Inventories with split / merge / transfer logic drive their own pointer handling and reuse only the `.ds-drag-ghost` / `.is-drag-over` visuals.
+The runtime (`DesignSystemBehaviour.EnsureDraggables`) auto-wires `.ds-draggable` for the simple "move between zones" case. Inventories with split / merge / transfer logic drive their own pointer handling and reuse only the `.ds-drag-ghost` / `.is-drag-over` visuals.
 
 ## Icons
 

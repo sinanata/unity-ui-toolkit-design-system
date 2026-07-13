@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
-namespace DesignSystem.Runtime
+namespace DesignSystem.Runtime.Behaviour
 {
     /// <summary>
     /// Runtime helpers for the ds-* design system. Auto-attaches to every
@@ -21,7 +21,7 @@ namespace DesignSystem.Runtime
     /// is the safety net for screens that didn't.
     /// </summary>
     [DisallowMultipleComponent]
-    public abstract class DesignSystemRuntimeBase<TComponent> : MonoBehaviour where TComponent : Component
+    public abstract class DesignSystemBehaviourBase<TComponent> : MonoBehaviour where TComponent : Component
     {
         private static readonly Dictionary<System.Type, System.Type> s_componentTypeMap = new();
         private const string SPINNER_CLASS         = "ds-spinner";

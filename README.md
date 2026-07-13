@@ -41,7 +41,7 @@ Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap 
 
 Hover (desktop) or tap (mobile) any component to surface its **selector chain** — every parent class on the way down to the leaf, plus the leaf's class list ready to copy. Click the classes line to copy to clipboard. Toggle day / night in the COLORS section header and the whole tree retheme over 240 ms via the var() cascade. Slim themed scrollbar throughout, mobile flip below 768 px.
 
-**World-space gallery (Unity 6000.5+).** The switch under the hero flips the showcase from the flat page into a walkable 3D corridor where every section hangs on the walls as a live world-space panel: same UXML, same USS, fully interactive (type in the inputs, flip the toggles, pick a codigrate theme from inside the gallery and every exhibit re-paints). Walk with W/A/S/D or the arrow keys, hold right-mouse or use Q/E to look, click anything, Esc or the Screen Space tab to exit. On touch devices two on-screen sticks handle walking and looking, so taps stay reserved for the components. Built on `PanelRenderer` + world-space `PanelSettings` with one panel per section, and driven by the same `DesignSystemRuntime` backends the drop-in ships. (`UIDocument` can host world-space UI too; the showcase uses `PanelRenderer` because it is Unity's go-forward native renderer for UI Toolkit, and its reload-callback model fits one procedural panel per section.)
+**World-space gallery (Unity 6000.5+).** The switch under the hero flips the showcase from the flat page into a walkable 3D corridor where every section hangs on the walls as a live world-space panel: same UXML, same USS, fully interactive (type in the inputs, flip the toggles, pick a codigrate theme from inside the gallery and every exhibit re-paints). Walk with W/A/S/D or the arrow keys, hold right-mouse or use Q/E to look, click anything, Esc or the Screen Space tab to exit. On touch devices two on-screen sticks handle walking and looking, so taps stay reserved for the components. Built on `PanelRenderer` + world-space `PanelSettings` with one panel per section, and driven by the same `DesignSystemBehaviour` backends the drop-in ships. (`UIDocument` can host world-space UI too; the showcase uses `PanelRenderer` because it is Unity's go-forward native renderer for UI Toolkit, and its reload-callback model fits one procedural panel per section.)
 
 **External theme provider.** The COLORS section also ships a dropdown of 12 [Codigrate](https://codigrate.com) IDE themes (Sequoia, Sakura, Tokyo, Paris, …) plus a `Randomize colors` button. Picking a codigrate theme fetches the palette at runtime (bundled fallback on WebGL since codigrate.com sends no CORS headers), maps its `tokens.interface` block to the DS palette, and stamps the result onto every component via inline styles — the DS USS stays the single source of truth for spacing, radii, transitions, and layout; only the colours flow from the external source. The day / night toggle is suppressed while a third-party palette is active (codigrate carries its own `appearance` field) and re-enabled when you select `Design System default`. `Randomize` generates an HSV-driven palette in the toggle's current mood for try-until-you-like-it exploration. See [CHANGELOG `[1.4.0]`](CHANGELOG.md#140--2026-05-16) for the full coverage matrix.
 
@@ -80,7 +80,7 @@ What you get on day one:
 - **24 ready components** — buttons (5 variants × 4 states + icon + sizes), inputs (text / textarea / search / dropdown), tabs, toggles, checkboxes, radios, sliders + range, progress, modals, dialogs, drawers, toasts, badges, chips, tags, navigation (side / rail / bottom), avatars, notification dots, pagination, steppers, empty states, skeleton loaders, spinners.
 - **63 SVG icons** — paw, shirt, hats, store, cart, plus arrows, chevrons, status glyphs, action icons. White-fill SVGs that tint via `-unity-background-image-tint-color` so the same artwork serves passive / hover / active / muted states.
 - **One `.mobile` class** — add it to your screen root to flip every spacing token, tap target, and dropdown to touch-friendly sizes. Same UXML, same USS, two layouts.
-- **A runtime helper with two backends** — a generic `DesignSystemRuntimeBase<T>` with concrete components for `UIDocument` and `PanelRenderer` (Unity 6000.5+). Both host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery because it is Unity's go-forward native renderer for UI Toolkit, while `UIDocument` now sits under UI Toolkit > Legacy yet stays fully supported. It auto-attaches in every scene, injects toggle knobs (Unity's `Toggle` doesn't render the iOS-style sliding pill on its own), drives spinner rotation (USS transitions can't loop), animates skeleton shimmer, and wires drag & drop.
+- **A runtime helper with two backends** — a generic `DesignSystemBehaviourBase<TComponent>` with concrete components for `UIDocument` and `PanelRenderer` (Unity 6000.5+). Both host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery because it is Unity's go-forward native renderer for UI Toolkit, while `UIDocument` now sits under UI Toolkit > Legacy yet stays fully supported. It auto-attaches in every scene, injects toggle knobs (Unity's `Toggle` doesn't render the iOS-style sliding pill on its own), drives spinner rotation (USS transitions can't loop), animates skeleton shimmer, and wires drag & drop.
 - **Slim themed scrollbars** — 8 px-wide pill thumb in `var(--color-border-strong)` that brightens on hover, scoped to `.ds-root` so it doesn't leak into editor windows. Auto-themes with the rest of the system.
 
 ## Requirements
@@ -107,9 +107,14 @@ your-unity-project/
         │   ├── UI/Styles/DesignSystem/    ← USS + UXML showcase
         │   └── Textures/Icons/            ← 63 SVG icons
         ├── Runtime/
-        │   ├── DesignSystemRuntimeBase.cs     ← generic behaviors (knobs, spinners, shimmer, drag & drop)
-        │   ├── UIDocumentRuntime/             ← auto-attach backend (UIDocument host)
-        │   └── PanelRendererRuntime/          ← auto-attach backend (PanelRenderer host, 6000.5+)
+        │   ├── Behaviour/
+        │   │   ├── DesignSystemBehaviourBase.cs     ← generic behaviors (knobs, spinners, shimmer, drag & drop, dropdown menus)
+        │   │   ├── UIDocument/                      ← auto-attach backend for flat screens
+        │   │   └── PanelRenderer/                   ← auto-attach backend for world-space panels (6000.5+)
+        │   └── Theme/
+        │       ├── Data/ThemeData.cs                ← ScriptableObject that stores every design token
+        │       ├── Data/Editor/                      ← ThemeConfiguratorWindow, ThemeDataEditor, ThemePreview.uxml
+        │       └── Applier/                          ← ThemeApplierBase<T> + UIDocument / PanelRenderer components
         └── Editor/                    ← stylesheet-attach menu helper
 ```
 
@@ -268,18 +273,30 @@ Assets/
 │   │   ├── Controls.uss                ← .ds-toggle / .ds-check / .ds-radio / .ds-slider / .ds-range / scrollbars
 │   │   ├── Overlays.uss                ← .ds-modal / .ds-dialog / .ds-toast / .ds-sheet / empty
 │   │   ├── Feedback.uss                ← .ds-progress / .ds-spinner / .ds-skeleton / .ds-pagination
-│   │   ├── Mobile.uss                  ← every .mobile-prefixed responsive override (loaded LAST)
-│   │   └── DesignSystemShowcase.uxml   ← living style guide
+│   │   └── Mobile.uss                  ← every .mobile-prefixed responsive override (loaded LAST)
 │   ├── Runtime/
-│   │   ├── DesignSystemRuntimeBase.cs  ← generic behaviors (knobs, spinners, shimmer, drag & drop)
-│   │   ├── UIDocumentRuntime/          ← auto-attaches to every UIDocument
-│   │   └── PanelRendererRuntime/       ← auto-attaches to every PanelRenderer (6000.5+)
+│   │   ├── Behaviour/
+│   │   │   ├── DesignSystemBehaviourBase.cs  ← generic behaviors (knobs, spinners, shimmer, drag & drop, dropdown menus)
+│   │   │   ├── UIDocument/                   ← auto-attaches to every UIDocument
+│   │   │   └── PanelRenderer/                ← auto-attaches to every PanelRenderer (6000.5+)
+│   │   └── Theme/
+│   │       ├── Applier/
+│   │       │   ├── ThemeApplierBase.cs       ← abstract base; adds/removes theme styleSheet at runtime
+│   │       │   ├── UIDocument/ThemeApplier.cs
+│   │       │   └── PanelRenderer/ThemeApplier.cs
+│   │       └── Data/
+│   │           ├── ThemeData.cs              ← token-store ScriptableObject → USS :root generator
+│   │           └── Editor/
+│   │               ├── ThemeConfiguratorWindow.cs   ← split-pane live-preview theme editor
+│   │               ├── ThemeDataEditor.cs           ← custom inspector with save/revert
+│   │               └── ThemePreview.uxml            ← default preview snapshot for the configurator
 │   ├── Editor/EditorHelpers.cs         ← attach-DesignSystem.uss menu action
 │   └── package.json                    ← UPM package (com.sinanata.designsystem)
 │
 ├── Showcase/                           ← showcase host project (only if cloning the repo)
 │   ├── Showcase.unity                  ← minimal scene; bootstrap creates UIDocuments at runtime
 │   ├── Resources/
+│   │   ├── DesignSystemShowcase.uxml    ← living style guide (moved from package to host project)
 │   │   ├── ShowcaseTheme.uss           ← .theme-light override + universal opacity transition + drawer-frame helpers
 │   │   ├── ShowcaseDropdownPopup.uss   ← popup chrome at panel.visualTree scope (sibling of root)
 │   │   ├── ShowcaseFocusRing.uss       ← :focus rules for keyboard / gamepad navigation
@@ -328,13 +345,13 @@ One-line summary per component lives in [docs/COMPONENTS.md](docs/COMPONENTS.md)
 - **Tokens, not hex.** Every colour, radius, spacing, motion timing references a `var(--…)` variable. Theme by editing one file (`DesignTokens.uss`).
 - **Parent-state cascades for icons.** A `.ds-icon` inside `.ds-btn:hover` retints automatically — you don't write per-component `:hover .icon` rules.
 - **Per-axis radius tokens.** Unity 6 USS clamps `border-radius` per axis to half the element's side. We ship `--radius-pill-9 / -16 / -20 / -28 / -36` so a circle stays a circle and a pill stays a pill regardless of element height.
-- **Auto-knob injection.** Unity's `Toggle` doesn't render the sliding pill on its own. `DesignSystemRuntime` injects a `.ds-toggle__knob` child every 250 ms — covers UXML-authored screens, C#-cloned templates, and world-space panels alike.
+- **Auto-knob injection.** Unity's `Toggle` doesn't render the sliding pill on its own. `DesignSystemBehaviour` injects a `.ds-toggle__knob` child every 250 ms — covers UXML-authored screens, C#-cloned templates, and world-space panels alike.
 - **No `Resources.Load<Texture2D>` in C#.** Icons resolve via USS `resource(...)` so they survive Sprite-vs-Texture import differences. The runtime never touches a backgroundImage.
 - **MinMaxSlider thumbs cross-centred via `top: 50% + margin-top: -<half>px`** — Unity's stock slider positions thumbs at `top: 0` which floats them above the track. Same trick for the single slider.
 - **Checkbox tick shrunk via `background-size: 12px 12px`** — the `check.svg` viewBox runs path-edge to viewBox-edge; default `stretch-to-fill` made the tick overflow the box's 2 px border. Constraining the rendered size leaves a clean inner margin.
 - **Day / night theme via single class.** Adding `.theme-light` to `.ds-root` redefines every colour token under that scope; the var() cascade re-paints the whole tree. A universal `transition-property` in `ShowcaseTheme.uss` animates the swap over 240 ms. Same pattern works for any custom theme — just author the token block.
 - **Progress-bar `min-height: 0` overrides.** Unity's stock `.unity-progress-bar` ships with `min-height: 21px`. `.ds-progress` resets it to 0 across container, background, and progress layers so an 8 px bar reserves exactly 8 px of vertical space (not the 21 px Unity defaults to).
-- **Spinner rotation is C#-driven, no USS transition.** `DesignSystemRuntime.StartSpinners` writes `style.rotate` every 16 ms. We deliberately omit `transition-property: rotate` from `.ds-spinner` — a transition would try to ease between consecutive per-frame writes and the spinner visibly jiggles instead of spinning.
+- **Spinner rotation is C#-driven, no USS transition.** `DesignSystemBehaviour.StartSpinners` writes `style.rotate` every 16 ms. We deliberately omit `transition-property: rotate` from `.ds-spinner` — a transition would try to ease between consecutive per-frame writes and the spinner visibly jiggles instead of spinning.
 
 Every "why is this ugly?" complaint we hit while shipping the game lives as a comment on the rule that fixed it. Read the USS files — half of them are documentation.
 

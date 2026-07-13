@@ -2,12 +2,12 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace DesignSystem.Runtime.PanelRendererRuntime
+namespace DesignSystem.Runtime.Behaviour.PanelRenderer
 {
-    [AddComponentMenu("Design System/Panel Renderer Runtime")]
-    public class DesignSystemRuntime : DesignSystemRuntimeBase<PanelRenderer>
+    [AddComponentMenu("Design System/Panel Renderer Behaviour")]
+    public class DesignSystemBehaviour : DesignSystemBehaviourBase<UnityEngine.UIElements.PanelRenderer>
     {
-        private PanelRenderer _panelRenderer;
+        private UnityEngine.UIElements.PanelRenderer _panelRenderer;
         private int _uiVersion;
         
         protected override void OnEnable()
@@ -24,7 +24,7 @@ namespace DesignSystem.Runtime.PanelRendererRuntime
             base.OnDisable();
         }
 
-        private void OnUIReload(PanelRenderer pRenderer, VisualElement root, int version)
+        private void OnUIReload(UnityEngine.UIElements.PanelRenderer pRenderer, VisualElement root, int version)
         {
             if (_uiVersion == version || root == null) return;
             InitFor(root);
@@ -32,7 +32,7 @@ namespace DesignSystem.Runtime.PanelRendererRuntime
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void _RegisterAutoAttach() => RegisterAutoAttach(typeof(DesignSystemRuntime));
+        private static void _RegisterAutoAttach() => RegisterAutoAttach(typeof(DesignSystemBehaviour));
     }
 }
 #endif
