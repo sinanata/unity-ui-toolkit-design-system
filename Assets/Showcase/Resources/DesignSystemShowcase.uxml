@@ -311,7 +311,7 @@
                     <ui:VisualElement class="ds-tabpanel is-active">
                         <ui:VisualElement class="ds-row" style="margin-bottom: 12px;">
                             <ui:Label text="Quality" class="ds-body-1" style="flex-grow: 1;"/>
-                            <ui:DropdownField choices="Low,Medium,High,Ultra" index="2" class="ds-dropdown" style="width: 110px;"/>
+                            <ui:DropdownField choices="Low,Medium,High,Ultra" index="2" class="ds-dropdown" style="width: 140px;"/>
                         </ui:VisualElement>
                         <ui:VisualElement class="ds-row">
                             <ui:Label text="Fullscreen" class="ds-body-1" style="flex-grow: 1;"/>
@@ -366,7 +366,7 @@
                         <ui:VisualElement class="ds-tabpanel is-active">
                             <ui:VisualElement class="ds-info-row">
                                 <ui:VisualElement class="ds-info-row__left"><ui:Label text="Preset" class="ds-info-row__label"/></ui:VisualElement>
-                                <ui:DropdownField choices="Low,Medium,High,Ultra" index="3" class="ds-dropdown" style="width: 110px;"/>
+                                <ui:DropdownField choices="Low,Medium,High,Ultra" index="3" class="ds-dropdown" style="width: 140px;"/>
                             </ui:VisualElement>
                             <ui:VisualElement class="ds-info-row">
                                 <ui:VisualElement class="ds-info-row__left"><ui:Label text="VSync" class="ds-info-row__label"/></ui:VisualElement>
@@ -637,10 +637,130 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="ds-section" style="width: 480px;">
+            <ui:VisualElement class="ds-section" style="width: 700px;">
                 <ui:Label text="ICONS" class="ds-section__title"/>
-                <ui:Label text="SVGs in Resources/Textures/Icons. Use class .ds-icon ds-icon--&lt;name&gt;. Tints inherit from parent state, or override with .ds-icon--accent / --danger / --gold." class="ds-body-2" style="margin-bottom: 8px; white-space: normal;"/>
+                <ui:Label text="All 120 SVGs in Resources/Textures/Icons. Use class .ds-icon ds-icon--&lt;name&gt;. Tints inherit from parent state, or override with .ds-icon--accent / --danger / --gold." class="ds-body-2" style="margin-bottom: 8px; white-space: normal;"/>
                 <ui:VisualElement style="flex-direction: row; flex-wrap: wrap;">
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--arrow-up"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--arrow-down"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--arrow-left"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--arrow-right"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--chevron-up"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--chevron-down"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--chevron-left"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--chevron-right"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--sort-asc"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--sort-desc"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--check"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--close"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--info"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--error"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--warning"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--help"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--smile"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--frown"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--plus"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--edit"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--trash"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--share"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--refresh"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--sync"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--search"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--filter"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--more-horizontal"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--more-vertical"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--menu"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--list"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--lock"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--unlock"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--eye"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--settings"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--bell"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--clock"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--calendar"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--user"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--home"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--target"/>
+                    </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
                         <ui:VisualElement class="ds-icon ds-icon--paw"/>
                     </ui:Button>
@@ -687,9 +807,6 @@
                         <ui:VisualElement class="ds-icon ds-icon--sun"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--target"/>
-                    </ui:Button>
-                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
                         <ui:VisualElement class="ds-icon ds-icon--leaf"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
@@ -702,121 +819,187 @@
                         <ui:VisualElement class="ds-icon ds-icon--droplet"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--plus"/>
+                        <ui:VisualElement class="ds-icon ds-icon--mic"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--search"/>
+                        <ui:VisualElement class="ds-icon ds-icon--sound"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--filter"/>
+                        <ui:VisualElement class="ds-icon ds-icon--speak"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--sort-asc"/>
+                        <ui:VisualElement class="ds-icon ds-icon--nametag"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--sort-desc"/>
+                        <ui:VisualElement class="ds-icon ds-icon--arcade"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--edit"/>
-                    </ui:Button>
-                    <ui:Button class="ds-btn ds-btn--icon ds-btn--icon-danger" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--trash"/>
+                        <ui:VisualElement class="ds-icon ds-icon--cartridge"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--share"/>
+                        <ui:VisualElement class="ds-icon ds-icon--console"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--refresh"/>
+                        <ui:VisualElement class="ds-icon ds-icon--handheld"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--sync"/>
+                        <ui:VisualElement class="ds-icon ds-icon--gamepad"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--settings"/>
+                        <ui:VisualElement class="ds-icon ds-icon--joystick"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--menu"/>
+                        <ui:VisualElement class="ds-icon ds-icon--dpad"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--list"/>
+                        <ui:VisualElement class="ds-icon ds-icon--keyboard"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--bell"/>
+                        <ui:VisualElement class="ds-icon ds-icon--mouse"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--clock"/>
+                        <ui:VisualElement class="ds-icon ds-icon--monitor"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--calendar"/>
+                        <ui:VisualElement class="ds-icon ds-icon--headset"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--user"/>
+                        <ui:VisualElement class="ds-icon ds-icon--vr-headset"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--home"/>
+                        <ui:VisualElement class="ds-icon ds-icon--disc"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--lock"/>
+                        <ui:VisualElement class="ds-icon ds-icon--power"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--unlock"/>
+                        <ui:VisualElement class="ds-icon ds-icon--battery"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--eye"/>
+                        <ui:VisualElement class="ds-icon ds-icon--wifi"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--more-horizontal"/>
+                        <ui:VisualElement class="ds-icon ds-icon--bug"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--more-vertical"/>
+                        <ui:VisualElement class="ds-icon ds-icon--save"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--info"/>
+                        <ui:VisualElement class="ds-icon ds-icon--axe"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--warning"/>
-                    </ui:Button>
-                    <ui:Button class="ds-btn ds-btn--icon ds-btn--icon-danger" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--error"/>
+                        <ui:VisualElement class="ds-icon ds-icon--bow"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--help"/>
+                        <ui:VisualElement class="ds-icon ds-icon--hammer"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--smile"/>
+                        <ui:VisualElement class="ds-icon ds-icon--pickaxe"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--frown"/>
+                        <ui:VisualElement class="ds-icon ds-icon--swords"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--check"/>
+                        <ui:VisualElement class="ds-icon ds-icon--helmet"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--close"/>
+                        <ui:VisualElement class="ds-icon ds-icon--bomb"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--arrow-up"/>
+                        <ui:VisualElement class="ds-icon ds-icon--crosshair"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--arrow-down"/>
+                        <ui:VisualElement class="ds-icon ds-icon--skull"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--arrow-left"/>
+                        <ui:VisualElement class="ds-icon ds-icon--alien"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--arrow-right"/>
+                        <ui:VisualElement class="ds-icon ds-icon--castle"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--chevron-up"/>
+                        <ui:VisualElement class="ds-icon ds-icon--crown"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--chevron-down"/>
+                        <ui:VisualElement class="ds-icon ds-icon--gem"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--chevron-left"/>
+                        <ui:VisualElement class="ds-icon ds-icon--ghost"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
-                        <ui:VisualElement class="ds-icon ds-icon--chevron-right"/>
+                        <ui:VisualElement class="ds-icon ds-icon--mushroom"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--portal"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--potion"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--robot"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--wand"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--treasure"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--key"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--map"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--compass"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--trophy"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--medal"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--leaderboard"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--star"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--coin"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--cards"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--dice"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--puzzle"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--play"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--pause"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--music"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--book"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--flag"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--flag-checkered"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--rocket"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--snowflake"/>
                     </ui:Button>
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -1166,7 +1349,7 @@
                     <ui:ScrollView mode="Vertical" class="ds-scrollbar-demo" style="flex-grow: 1; height: 120px;">
                         <ui:Label text="Design Tokens" class="ds-body-2" style="margin-bottom: 4px;"/>
                         <ui:Label text="Typography" class="ds-body-2" style="margin-bottom: 4px;"/>
-                        <ui:Label text="Icons (63)" class="ds-body-2" style="margin-bottom: 4px;"/>
+                        <ui:Label text="Icons (120)" class="ds-body-2" style="margin-bottom: 4px;"/>
                         <ui:Label text="Buttons" class="ds-body-2" style="margin-bottom: 4px;"/>
                         <ui:Label text="Inputs" class="ds-body-2" style="margin-bottom: 4px;"/>
                         <ui:Label text="Tabs &amp; Filters" class="ds-body-2" style="margin-bottom: 4px;"/>
@@ -1345,6 +1528,19 @@
                     <ui:Label text="It composes with the existing slim 8 px scrollbar styling; no extra rules needed beyond the .ds-scroll--auto-hide modifier." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="Bottom of the demo list." class="ds-body-2" style="white-space: normal;"/>
                 </ui:ScrollView>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 540px;">
+                <ui:Label text="THEMING" class="ds-section__title"/>
+                <ui:Label text="A theme is an asset, not a code path. A ThemeData holds every token and bakes them into a real stylesheet. The applier adds that one sheet to your panel root, the var() cascade repaints the whole tree, and every hover, disabled and checked rule re-resolves on its own. There is no per-component work and nothing to keep in sync when you add a component." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 8px; white-space: normal;"/>
+                <ui:Label text="Pick a theme in the COLORS section and this block changes. It is the actual USS the running showcase is painting with right now, generated from the ThemeData asset that theme lives in." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 8px;">
+                    <ui:Label text="ACTIVE" class="ds-caption" style="margin-right: 8px;"/>
+                    <ui:Label name="theming-active" text="Design System Dark" class="ds-tag ds-tag--aquatic"/>
+                </ui:VisualElement>
+                <ui:ScrollView name="theming-uss-scroll" mode="Vertical" class="ds-scrollbar-demo ds-scroll--auto-hide" style="height: 260px;">
+                    <ui:Label name="theming-uss" text="" class="ds-body-2" style="white-space: normal;"/>
+                </ui:ScrollView>
+                <ui:Label text="Randomize is the one palette that cannot be an asset. It is invented at runtime, and Unity cannot compile a stylesheet from a string in a player build, so there is no sheet to add and no way to make one. That palette alone is still stamped inline, element by element." class="ds-caption" style="color: rgb(103, 112, 133); margin-top: 12px; white-space: normal;"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:ScrollView>

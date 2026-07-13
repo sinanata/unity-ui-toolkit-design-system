@@ -69,7 +69,6 @@ namespace Showcase.Runtime
         StyleSheet _dsUss;
         StyleSheet _themeOverrideUss;
         StyleSheet _focusRingUss;   // loaded lazily in EnsureBuilt
-        StyleSheet _popupUss;       // dropdown popup chrome — must sit at panel scope
 
         // Built lazily on first entry.
         GameObject _content;            // parent of everything the corridor owns
@@ -85,8 +84,13 @@ namespace Showcase.Runtime
 
         // Theme state mirrored from the flat page so the exhibits match whatever
         // day/night / codigrate / random palette the user has chosen.
+        //
+        // Only the day/night MOOD lives here. The palette itself — a baked ThemeData painted
+        // through the USS cascade, or a runtime-generated ColorMap stamped inline — belongs to
+        // ShowcaseBootstrap, and its PaintRoot applies whichever is current. So an exhibit rebuilt
+        // on a later reload picks up the live theme without the corridor mirroring a second copy
+        // of it and getting to disagree.
         bool _themeLight;
-        CodigrateThemeApplier.ColorMap _themeMap;
 
         // Cached scene state we restore when leaving world mode.
         bool _isShown;
@@ -239,10 +243,9 @@ namespace Showcase.Runtime
         // day/night toggle, a codigrate palette, randomize, or revert. Stores the
         // state and fans it out to every exhibit; OnReload also re-applies it so
         // panels rebuilt on a later mode-toggle come back themed.
-        public void ApplyScreenTheme(bool light, CodigrateThemeApplier.ColorMap map)
+        public void ApplyScreenTheme(bool light)
         {
             _themeLight = light;
-            _themeMap = map;
             foreach (var p in _panels) ApplyThemeToPanel(p);
         }
 
@@ -250,25 +253,32 @@ namespace Showcase.Runtime
         {
             var root = p?.Root;
             if (root == null) return;
+
+            // Paint FIRST. A class-scoped theme (every light-appearance codigrate palette bakes to
+            // `.theme-light`) adds and removes that very class as it goes on and off, so the
+            // day/night class has to be re-asserted AFTER the sheets have settled or a swap would
+            // leave the mood inverted.
+            ShowcaseBootstrap.PaintRoot(root);
+
             if (_themeLight) root.AddToClassList("theme-light");
             else             root.RemoveFromClassList("theme-light");
-            // Mirror onto the panel's visualTree too: dropdown popups attach
-            // there (sibling of root), and DropdownPopup.uss keys its
-            // light-theme block off an ancestor .theme-light class.
+
+            // Mirror the mood onto the panel's visualTree too. PaintRoot has already put the theme's
+            // SHEET there (that is how the dropdown popup gets themed at all), but a class-scoped
+            // theme gates on a class, and the day/night class is the showcase's own state rather than
+            // the theme's — so it has to be asserted here, at the same scope, or a `.theme-light`
+            // palette would land its tokens on the panel root with nothing to switch them on.
             var panelScope = root.panel?.visualTree;
             if (panelScope != null && panelScope != root)
             {
                 if (_themeLight) panelScope.AddToClassList("theme-light");
                 else             panelScope.RemoveFromClassList("theme-light");
             }
-            if (_themeMap != null) CodigrateThemeApplier.Apply(root, _themeMap);
-            else                   CodigrateThemeApplier.Revert(root);
-            // The applier stamps the palette bg INLINE onto the root, and no
-            // class (not even `ds-root--hud`) outranks an inline style — so a
-            // world exhibit, whose backdrop is the 3D plate, has to re-assert
-            // transparency as the last write. Revert() needs no such help: it
-            // clears the inline bg back to USS, which `ds-root--hud` already
-            // resolves to transparent.
+
+            // The INLINE path stamps the palette's bg onto the root, and no class (not even
+            // `ds-root--hud`) outranks an inline style — so a world exhibit, whose backdrop is the
+            // 3D plate behind it, has to re-assert transparency as the last write. The cascade path
+            // never writes an inline bg at all, so this is simply a no-op there.
             root.style.backgroundColor = Color.clear;
         }
 
@@ -286,6 +296,14 @@ namespace Showcase.Runtime
                 var r = _overlayDoc.rootVisualElement;
                 if (r != null) r.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
             }
+
+            // Tell the bootstrap, so it can stop repainting a page nobody can see. `display: none`
+            // takes an element out of layout and rendering, but NOT out of style resolution, so the
+            // flat page kept paying full price for every theme change made while the corridor was up.
+            // Last, and after the display flip: on the way back in this flushes any theme change that
+            // landed while the page was hidden, and it should flush onto a page that is already
+            // visible again.
+            ShowcaseBootstrap.SetFlatPageVisible(visible);
         }
 
         void CacheAndPrepareScene()
@@ -368,7 +386,6 @@ namespace Showcase.Runtime
             _baseMaterial = ResolveBaseMaterial();
             _plateMat = MakeMat(C_PLATE, 0.2f);
             _focusRingUss = Resources.Load<StyleSheet>("ShowcaseFocusRing");
-            _popupUss = Resources.Load<StyleSheet>("UI/Styles/DesignSystem/DropdownPopup");
             _cam = Camera.main;
             if (_cam == null)
             {
@@ -700,7 +717,6 @@ namespace Showcase.Runtime
                 Ds = _dsUss,
                 Theme = _themeOverrideUss,
                 Focus = _focusRingUss,
-                Popup = _popupUss,
                 Handler = handler,
             };
             pr.RegisterUIReloadCallback(binding.OnReload);
@@ -928,7 +944,6 @@ namespace Showcase.Runtime
             public StyleSheet Ds;
             public StyleSheet Theme;
             public StyleSheet Focus;    // ShowcaseFocusRing — keyboard focus parity with the flat page
-            public StyleSheet Popup;    // DropdownPopup — see OnReload, panel-scope attach
             public PanelEventHandler Handler;
 
             public bool WantsPlate;
@@ -949,17 +964,19 @@ namespace Showcase.Runtime
                 Root = root;
                 Spinners = null;   // new root, stale cache
 
-                // The design system scopes a whole family of rules under
-                // `.ds-root` (scrollbar restyling, the 14px/-text-primary base,
-                // the universal color-transition rule in ShowcaseTheme.uss) —
-                // on the flat page that's the page ScrollView. Without the
-                // class, world exhibits get the chunky default-theme
-                // scrollbars and a 12px baseline. The page background that
-                // comes with it is unwanted here (the exhibit's backdrop is
-                // the 3D plate), which is exactly what `ds-root--hud` is for:
-                // the ds-root cascade with no opaque fill.
+                // The design system scopes a whole family of rules under `.ds-root` (scrollbar
+                // restyling, the 14px/-text-primary base) — on the flat page that's the page
+                // ScrollView. Without the class, world exhibits get the chunky default-theme
+                // scrollbars and a 12px baseline. The page background that comes with it is
+                // unwanted here (the exhibit's backdrop is the 3D plate), which is exactly what
+                // `ds-root--hud` is for: the ds-root cascade with no opaque fill.
                 root.AddToClassList("ds-root");
                 root.AddToClassList("ds-root--hud");
+
+                // Carries the theme-swap guard, exactly as on the flat page: the guard is written as
+                // `.showcase-root.ds-no-transition` so it outranks a ThemeData's `:root` token block
+                // and can zero --transition-fast during a swap. See ShowcaseTheme.uss.
+                root.AddToClassList("showcase-root");
 
                 // Pin the root to the exhibit's own width and centre the wrap in
                 // it. Without a definite width the Dynamic world panel resolved to
@@ -1014,15 +1031,14 @@ namespace Showcase.Runtime
                 if (panel != null && Handler != null)
                     Handler.panel = panel;
 
-                // Dropdown popups: Unity 6's GenericDropdownMenu adds the
-                // popup as a SIBLING of the panel root (under the panel's
-                // visualTree), so root-attached stylesheets never reach it.
-                // Each world panel is its own panel — give each one the
-                // dedicated popup-chrome sheet at panel scope, exactly like
-                // the bootstrap does for the flat page.
+                // Dropdown popups: Unity 6's GenericDropdownMenu adds the popup as a SIBLING of the
+                // panel root (under the panel's visualTree), so root-attached stylesheets never reach
+                // it. Each exhibit is its OWN panel, so each one needs its own attach — the popup
+                // chrome, and the token block that chrome's var(--color-*) references resolve against.
+                // ShowcaseBootstrap.PaintRoot then adds the active theme's sheet on top, at the same
+                // scope, which is what lets a world-space popup follow the theme.
                 var panelScope = root.parent ?? panel?.visualTree;
-                if (panelScope != null && Popup != null && !panelScope.styleSheets.Contains(Popup))
-                    panelScope.styleSheets.Add(Popup);
+                ShowcaseBootstrap.InstallPanelScopeSheets(panelScope);
 
                 // Wire the exhibit's cloned controls exactly ONCE: the wired
                 // elements live in the persistent Content tree (re-parented,

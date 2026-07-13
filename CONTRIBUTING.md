@@ -66,7 +66,7 @@ When in doubt, here's the routing:
 | Modal / dialog / drawer / toast / empty-state | `Overlays.uss` |
 | Pagination, stepper, spinner, skeleton, **swatch + section helpers** | `Feedback.uss` |
 | Anything `.mobile`-prefixed | `Mobile.uss` |
-| Showcase-only theme overrides (`.theme-light`, universal transitions) | `Assets/Showcase/Resources/ShowcaseTheme.uss` |
+| Showcase-only theme overrides (`.theme-light`, the `ds-no-transition` swap guard) | `Assets/Showcase/Resources/ShowcaseTheme.uss` |
 
 If your new rule doesn't fit any file cleanly, you've probably invented a new component family. Make a new file (`<Family>.uss`), add the import to `DesignSystem.uss`, document it in `docs/COMPONENTS.md`.
 

@@ -56,7 +56,7 @@
          <ui:VisualElement class="ds-tabpanel">...audio rows...</ui:VisualElement>
      </ui:VisualElement>
 
-   The runtime wires clicks automatically (DesignSystemRuntime.EnsureTabs); `is-active` is the only
+   The runtime wires clicks automatically (DesignSystemBehaviour.EnsureTabs); `is-active` is the only
    state, so a pure-USS author or a C# controller can drive the same markup by flipping the class. */
 .ds-tabpanels {
     flex-grow: 1;

@@ -43,7 +43,7 @@ Hover (desktop) or tap (mobile) any component to surface its **selector chain** 
 
 **World-space gallery (Unity 6000.5+).** The switch under the hero flips the showcase from the flat page into a walkable 3D corridor where every section hangs on the walls as a live world-space panel: same UXML, same USS, fully interactive (type in the inputs, flip the toggles, pick a codigrate theme from inside the gallery and every exhibit re-paints). Walk with W/A/S/D or the arrow keys, hold right-mouse or use Q/E to look, click anything, Esc or the Screen Space tab to exit. On touch devices two on-screen sticks handle walking and looking, so taps stay reserved for the components. Built on `PanelRenderer` + world-space `PanelSettings` with one panel per section, and driven by the same `DesignSystemBehaviour` backends the drop-in ships. (`UIDocument` can host world-space UI too; the showcase uses `PanelRenderer` because it is Unity's go-forward native renderer for UI Toolkit, and its reload-callback model fits one procedural panel per section.)
 
-**External theme provider.** The COLORS section also ships a dropdown of 12 [Codigrate](https://codigrate.com) IDE themes (Sequoia, Sakura, Tokyo, Paris, …) plus a `Randomize colors` button. Picking a codigrate theme fetches the palette at runtime (bundled fallback on WebGL since codigrate.com sends no CORS headers), maps its `tokens.interface` block to the DS palette, and stamps the result onto every component via inline styles — the DS USS stays the single source of truth for spacing, radii, transitions, and layout; only the colours flow from the external source. The day / night toggle is suppressed while a third-party palette is active (codigrate carries its own `appearance` field) and re-enabled when you select `Design System default`. `Randomize` generates an HSV-driven palette in the toggle's current mood for try-until-you-like-it exploration. See [CHANGELOG `[1.4.0]`](CHANGELOG.md#140--2026-05-16) for the full coverage matrix.
+**External theme provider.** The COLORS section also ships a dropdown of 12 [Codigrate](https://codigrate.com) IDE themes (Sequoia, Sakura, Tokyo, Paris, …) plus a `Randomize colors` button. Each of the twelve is baked into a `ThemeData` asset at build time, so picking one adds **one stylesheet** to the panel root and the `var()` cascade repaints the tree — which is why `:hover`, `:disabled` and `:checked` re-theme along with everything else. The DS USS stays the single source of truth for spacing, radii, transitions, and layout; only the colours flow from the external source. The day / night toggle is suppressed while a third-party palette is active (codigrate carries its own `appearance` field) and re-enabled when you select `Design System default`. `Randomize` generates an HSV-driven palette in the toggle's current mood for try-until-you-like-it exploration — and it is the one palette that *cannot* be an asset, because it is invented at runtime and Unity cannot compile a stylesheet from a string in a player build, so it alone is stamped inline onto every element. The THEMING section prints the live USS of whichever theme you have picked. See [CHANGELOG `[1.4.7]`](CHANGELOG.md#147--2026-07-13) for the mechanics and [`[1.4.0]`](CHANGELOG.md#140--2026-05-16) for the colour coverage matrix.
 
 Build the demo locally any time:
 
@@ -77,8 +77,9 @@ UI Toolkit ships great primitives but no design language. Every project re-inven
 What you get on day one:
 
 - **A dark-themed token palette** — primary / secondary / tertiary / warning / danger / surface stack, all referenced via `var(--color-...)`. Swap one token, the whole UI follows. The showcase ships a `.theme-light` override under `Assets/Showcase/Resources/ShowcaseTheme.uss` so you can see the cascade animate to a light palette in real time.
-- **24 ready components** — buttons (5 variants × 4 states + icon + sizes), inputs (text / textarea / search / dropdown), tabs, toggles, checkboxes, radios, sliders + range, progress, modals, dialogs, drawers, toasts, badges, chips, tags, navigation (side / rail / bottom), avatars, notification dots, pagination, steppers, empty states, skeleton loaders, spinners.
-- **63 SVG icons** — paw, shirt, hats, store, cart, plus arrows, chevrons, status glyphs, action icons. White-fill SVGs that tint via `-unity-background-image-tint-color` so the same artwork serves passive / hover / active / muted states.
+- **42 ready components** — buttons (5 variants × 4 states + icon + sizes), inputs (text / textarea / search / dropdown), tabs and view toggles, toggles, checkboxes, radios, sliders + range, meters, progress, scrollbars, drag & drop, cards (plain / animal / detail), carousels, info rows, modals, dialogs, sheets, drawers, tooltips, toasts, badges, chips, tags, avatars, notification dots, navigation (side / rail / bottom / profile), pagination, steppers, empty states, skeleton loaders, spinners, icons.
+- **120 SVG icons** — the original UI set (arrows, chevrons, status glyphs, action icons, cosmetics) plus a gaming pack: hardware (gamepad, joystick, d-pad, arcade, cartridge, console, handheld, VR headset), combat and gear (sword, axe, bow, hammer, pickaxe, helmet, bomb), fantasy and adventure (castle, crown, gem, ghost, portal, potion, robot, wand, treasure, map, compass), and progression (trophy, medal, leaderboard, star, coin, dice, cards). White-fill SVGs that tint via `-unity-background-image-tint-color` so the same artwork serves passive / hover / active / muted states.
+- **Themes are assets, not code.** A `ThemeData` holds every token, bakes them into a real stylesheet stored inside the asset, and a `ThemeApplier` adds that one sheet to your panel root. The `var()` cascade repaints the whole tree, so `:hover`, `:disabled` and `:checked` re-resolve on their own — no per-component work, and nothing to keep in sync when you add a component. `Dark` and `Light` ship ready to apply; author your own in `Design System > Theme Configurator`, which previews live against real components. Scope a theme to `:root` for the whole panel, or to a class like `.theme-night` so two themes can live side by side.
 - **One `.mobile` class** — add it to your screen root to flip every spacing token, tap target, and dropdown to touch-friendly sizes. Same UXML, same USS, two layouts.
 - **A runtime helper with two backends** — a generic `DesignSystemBehaviourBase<TComponent>` with concrete components for `UIDocument` and `PanelRenderer` (Unity 6000.5+). Both host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery because it is Unity's go-forward native renderer for UI Toolkit, while `UIDocument` now sits under UI Toolkit > Legacy yet stays fully supported. It auto-attaches in every scene, injects toggle knobs (Unity's `Toggle` doesn't render the iOS-style sliding pill on its own), drives spinner rotation (USS transitions can't loop), animates skeleton shimmer, and wires drag & drop.
 - **Slim themed scrollbars** — 8 px-wide pill thumb in `var(--color-border-strong)` that brightens on hover, scoped to `.ds-root` so it doesn't leak into editor windows. Auto-themes with the rest of the system.
@@ -104,8 +105,9 @@ your-unity-project/
     └── DesignSystem/                  ← drop the whole folder
         ├── package.json               ← also consumable as a UPM package
         ├── Resources/
-        │   ├── UI/Styles/DesignSystem/    ← USS + UXML showcase
-        │   └── Textures/Icons/            ← 63 SVG icons
+        │   ├── UI/Styles/DesignSystem/    ← the 14 USS files
+        │   ├── UI/Themes/                 ← Dark + Light, ready to apply
+        │   └── Textures/Icons/            ← 120 SVG icons
         ├── Runtime/
         │   ├── Behaviour/
         │   │   ├── DesignSystemBehaviourBase.cs     ← generic behaviors (knobs, spinners, shimmer, drag & drop, dropdown menus)
@@ -113,9 +115,10 @@ your-unity-project/
         │   │   └── PanelRenderer/                   ← auto-attach backend for world-space panels (6000.5+)
         │   └── Theme/
         │       ├── Data/ThemeData.cs                ← ScriptableObject that stores every design token
-        │       ├── Data/Editor/                      ← ThemeConfiguratorWindow, ThemeDataEditor, ThemePreview.uxml
-        │       └── Applier/                          ← ThemeApplierBase<T> + UIDocument / PanelRenderer components
-        └── Editor/                    ← stylesheet-attach menu helper
+        │       └── Applier/                         ← ThemeRuntime + ThemeApplier (UIDocument / PanelRenderer)
+        └── Editor/
+            ├── EditorHelpers.cs                     ← stylesheet-attach menu helper
+            └── Theme/                               ← Theme Configurator, baker, built-in presets
 ```
 
 **Option A — copy files:**
@@ -237,7 +240,7 @@ All in `Mobile.uss` — one file, ~350 lines, parallel-class structure to the de
 
 ## Icons
 
-63 white-fill SVGs under `Resources/Textures/Icons/`. Each has a class in `Icons.uss`:
+120 white-fill SVGs under `Resources/Textures/Icons/`. Each has a class in `Icons.uss`:
 
 ```xml
 <!-- Default tint = text-secondary -->
@@ -263,7 +266,7 @@ Assets/
 │   │   ├── DesignSystem.uss            ← master, @imports the rest in order
 │   │   ├── DesignTokens.uss            ← :root variables (colors, radii, spacing, motion)
 │   │   ├── Typography.uss              ← .ds-h1 / .ds-h2 / .ds-h3 / .ds-body-1 / .ds-caption
-│   │   ├── Icons.uss                   ← .ds-icon + 63 .ds-icon--<name> + state cascade
+│   │   ├── Icons.uss                   ← .ds-icon + 120 .ds-icon--<name> + state cascade
 │   │   ├── Buttons.uss                 ← .ds-btn + variants + sizes + icon button
 │   │   ├── Inputs.uss                  ← .ds-input / .ds-search / .ds-dropdown / .ds-textarea
 │   │   ├── TabsAndFilters.uss          ← .ds-tabs / .ds-tab / .ds-view-toggle
@@ -274,6 +277,9 @@ Assets/
 │   │   ├── Overlays.uss                ← .ds-modal / .ds-dialog / .ds-toast / .ds-sheet / empty
 │   │   ├── Feedback.uss                ← .ds-progress / .ds-spinner / .ds-skeleton / .ds-pagination
 │   │   └── Mobile.uss                  ← every .mobile-prefixed responsive override (loaded LAST)
+│   ├── Resources/UI/Themes/
+│   │   ├── Dark.asset                  ← the design system's own palette; duplicate this to start a brand theme
+│   │   └── Light.asset                 ← day mode, scoped to .theme-light
 │   ├── Runtime/
 │   │   ├── Behaviour/
 │   │   │   ├── DesignSystemBehaviourBase.cs  ← generic behaviors (knobs, spinners, shimmer, drag & drop, dropdown menus)
@@ -281,24 +287,27 @@ Assets/
 │   │   │   └── PanelRenderer/                ← auto-attaches to every PanelRenderer (6000.5+)
 │   │   └── Theme/
 │   │       ├── Applier/
-│   │       │   ├── ThemeApplierBase.cs       ← abstract base; adds/removes theme styleSheet at runtime
+│   │       │   ├── ThemeRuntime.cs           ← the mechanism: add one stylesheet, add the scope class
+│   │       │   ├── ThemeApplierBase.cs       ← binds it to a component lifecycle
 │   │       │   ├── UIDocument/ThemeApplier.cs
 │   │       │   └── PanelRenderer/ThemeApplier.cs
-│   │       └── Data/
-│   │           ├── ThemeData.cs              ← token-store ScriptableObject → USS :root generator
-│   │           └── Editor/
-│   │               ├── ThemeConfiguratorWindow.cs   ← split-pane live-preview theme editor
-│   │               ├── ThemeDataEditor.cs           ← custom inspector with save/revert
-│   │               └── ThemePreview.uxml            ← default preview snapshot for the configurator
-│   ├── Editor/EditorHelpers.cs         ← attach-DesignSystem.uss menu action
+│   │       └── Data/ThemeData.cs         ← token-store ScriptableObject + USS generator; carries its baked StyleSheet as a sub-asset
+│   ├── Editor/
+│   │   ├── EditorHelpers.cs             ← attach-DesignSystem.uss menu action
+│   │   └── Theme/
+│   │       ├── ThemeConfiguratorWindow.cs   ← split-pane live-preview theme editor
+│   │       ├── ThemeDataEditor.cs           ← custom inspector with save / revert
+│   │       ├── ThemeDataGUI.cs              ← the inspector body both of them share
+│   │       ├── ThemeBaker.cs                ← compiles a theme's tokens into its StyleSheet sub-asset
+│   │       ├── ThemePresets.cs              ← generates Dark + Light
+│   │       └── ThemePreview.uxml            ← default preview snapshot for the configurator
 │   └── package.json                    ← UPM package (com.sinanata.designsystem)
 │
 ├── Showcase/                           ← showcase host project (only if cloning the repo)
 │   ├── Showcase.unity                  ← minimal scene; bootstrap creates UIDocuments at runtime
 │   ├── Resources/
 │   │   ├── DesignSystemShowcase.uxml    ← living style guide (moved from package to host project)
-│   │   ├── ShowcaseTheme.uss           ← .theme-light override + universal opacity transition + drawer-frame helpers
-│   │   ├── ShowcaseDropdownPopup.uss   ← popup chrome at panel.visualTree scope (sibling of root)
+│   │   ├── ShowcaseTheme.uss           ← .theme-light override + ds-no-transition swap guard + drawer-frame helpers
 │   │   ├── ShowcaseFocusRing.uss       ← :focus rules for keyboard / gamepad navigation
 │   │   ├── DefaultPanelSettings.asset  ← base PanelSettings cloned per panel
 │   │   ├── CorridorLit.mat             ← Simple Lit base for the 3D gallery (pins shader variants into WebGL builds)
@@ -349,7 +358,7 @@ One-line summary per component lives in [docs/COMPONENTS.md](docs/COMPONENTS.md)
 - **No `Resources.Load<Texture2D>` in C#.** Icons resolve via USS `resource(...)` so they survive Sprite-vs-Texture import differences. The runtime never touches a backgroundImage.
 - **MinMaxSlider thumbs cross-centred via `top: 50% + margin-top: -<half>px`** — Unity's stock slider positions thumbs at `top: 0` which floats them above the track. Same trick for the single slider.
 - **Checkbox tick shrunk via `background-size: 12px 12px`** — the `check.svg` viewBox runs path-edge to viewBox-edge; default `stretch-to-fill` made the tick overflow the box's 2 px border. Constraining the rendered size leaves a clean inner margin.
-- **Day / night theme via single class.** Adding `.theme-light` to `.ds-root` redefines every colour token under that scope; the var() cascade re-paints the whole tree. A universal `transition-property` in `ShowcaseTheme.uss` animates the swap over 240 ms. Same pattern works for any custom theme — just author the token block.
+- **Day / night theme via single class.** Adding `.theme-light` to `.ds-root` redefines every colour token under that scope; the var() cascade re-paints the whole tree, instantly. Same pattern works for any custom theme — just author the token block. Do **not** animate the swap with a universal transition rule: see `docs/ARCHITECTURE.md`, "Do not animate the swap".
 - **Progress-bar `min-height: 0` overrides.** Unity's stock `.unity-progress-bar` ships with `min-height: 21px`. `.ds-progress` resets it to 0 across container, background, and progress layers so an 8 px bar reserves exactly 8 px of vertical space (not the 21 px Unity defaults to).
 - **Spinner rotation is C#-driven, no USS transition.** `DesignSystemBehaviour.StartSpinners` writes `style.rotate` every 16 ms. We deliberately omit `transition-property: rotate` from `.ds-spinner` — a transition would try to ease between consecutive per-frame writes and the spinner visibly jiggles instead of spinning.
 
@@ -380,7 +389,7 @@ Made for **[Leap of Legends](https://leapoflegends.com)**, a cross-platform phys
 
 MIT — see [LICENSE](LICENSE). Free for commercial use. No warranty.
 
-The 63 SVG icons under `Resources/Textures/Icons/` are released under the same MIT licence — use them in your own projects, ship them in commercial products, modify them freely.
+The 120 SVG icons under `Resources/Textures/Icons/` are released under the same MIT licence — use them in your own projects, ship them in commercial products, modify them freely.
 
 ---
 

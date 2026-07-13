@@ -57,10 +57,16 @@ namespace DesignSystem.Runtime.Behaviour
         private const string POPUP_CLASS       = "unity-base-dropdown";
         private const string POPUP_OUTER_CLASS = "unity-base-dropdown__container-outer";
 
-        private const float DROPDOWN_POPUP_MAX_HEIGHT  = 320f; // web-select feel: tall lists scroll instead of towering
-        private const float DROPDOWN_POPUP_MIN_HEIGHT  = 72f;  // never degenerate into an unusable sliver
-        private const float DROPDOWN_POPUP_GAP         = 4f;   // field bottom -> popup top
-        private const float DROPDOWN_POPUP_EDGE_MARGIN = 8f;   // popup bottom -> panel bottom breathing room
+        // A row resolves to ~42px (28px min-height loses to 6px padding + a 14px line), so 360px is
+        // eight of them: enough of a list to browse, short enough that a 40-item list still scrolls
+        // rather than towering over the page.
+        private const float DROPDOWN_POPUP_MAX_HEIGHT  = 360f;
+        private const float DROPDOWN_POPUP_MIN_HEIGHT  = 72f;  // absolute floor when NEITHER side has room
+        private const float DROPDOWN_POPUP_GAP         = 4f;   // field edge -> popup edge
+        private const float DROPDOWN_POPUP_EDGE_MARGIN = 8f;   // popup edge -> panel edge breathing room
+        private const float DROPDOWN_POPUP_ROW_HEIGHT  = 28f;  // fallback row height before the list has laid out
+        private const int   DROPDOWN_TUNE_MAX_TICKS    = 30;   // frames to wait for the popup to attach before giving up
+        private const string PANEL_TUNER_CLASS = "ds-dropdown-tuner";   // on the PANEL ROOT: "a tuner is watching, safe to hide the popup until it is placed"
         
         private IVisualElementScheduledItem _spinTask;
         private float _spinAngle;
@@ -620,12 +626,27 @@ namespace DesignSystem.Runtime.Behaviour
         public static void EnsureDropdownMenus(VisualElement root)
         {
             if (root == null) return;
+            int found = 0, wired = 0;
             root.Query<DropdownField>(className: DS_DROPDOWN_CLASS).ForEach(dd =>
             {
+                found++;
                 if (dd.ClassListContains(DROPDOWN_WIRED_CLASS)) return;
                 dd.AddToClassList(DROPDOWN_WIRED_CLASS);
                 WireDropdownMenu(dd);
+                wired++;
             });
+
+            // Tell the panel that a tuner is watching it. DropdownPopup.uss keys the popup's
+            // hide-until-placed rule off this class and NOTHING else, so a project that takes the
+            // stylesheet without the runtime still gets a visible dropdown. Set on every pass, not just
+            // when something was newly wired: a PanelRenderer hands out a fresh root on reload, and the
+            // second pass through here finds every field already wired.
+            if (found > 0) root.panel?.visualTree.AddToClassList(PANEL_TUNER_CLASS);
+
+            // Only when something actually happened. This runs on a rescan loop, and logging every
+            // no-op pass buries the interesting lines under a hundred "wired 0".
+            if (DesignSystemEvents.DropdownDiagnostics && wired > 0)
+                Debug.Log($"[dsdiag] EnsureDropdownMenus on '{root.name}': wired {wired} .ds-dropdown field(s)");
         }
 
         public static void WireDropdownMenu(DropdownField dd)
@@ -642,46 +663,184 @@ namespace DesignSystem.Runtime.Behaviour
             dd.RegisterCallback<NavigationSubmitEvent>(_ => ScheduleDropdownTune(dd), TrickleDown.TrickleDown);
         }
 
-        private static void ScheduleDropdownTune(DropdownField dd) =>
-            dd.schedule.Execute(() => TuneDropdownPopup(dd));
+        /// <summary>
+        /// Tune the popup as soon as it exists — POLLING, not once.
+        ///
+        /// This used to be a single `schedule.Execute`, i.e. "look for the popup on the next tick".
+        /// That is a race, Unity raises no event when the menu attaches, and losing the race is SILENT:
+        /// the tuner finds nothing, returns, nothing retries, and Unity's own placement quietly stands.
+        /// It won the race in the editor and lost it in the WebGL player, which is why every dropdown
+        /// in the build was untuned — flipping upward in world space, pinned to the field's width, and
+        /// never raising the event a runtime palette needs — while the editor's own test suite passed
+        /// every check. A race you lose silently is worse than a crash; this one cost days.
+        ///
+        /// So: try every frame until it is there, then stop. The cap keeps a dropdown that never opens
+        /// (a click that turned into a drag) from polling forever.
+        /// </summary>
+        private static void ScheduleDropdownTune(DropdownField dd)
+        {
+            int tries = 0;
+            IVisualElementScheduledItem tick = null;
+            tick = dd.schedule.Execute(() =>
+            {
+                if (TuneDropdownPopup(dd)) { tick.Pause(); return; }
+                if (++tries < DROPDOWN_TUNE_MAX_TICKS) return;
 
-        private static void TuneDropdownPopup(DropdownField dd)
+                tick.Pause();
+                if (DesignSystemEvents.DropdownDiagnostics) DumpPanelScope(dd);
+            }).Every(0);   // 0 = every frame
+        }
+
+        // Where the trail goes cold: the popup never turned up at panel scope. Say what IS parented
+        // there, in case a Unity version renames it or hangs it somewhere else entirely.
+        private static void DumpPanelScope(DropdownField dd)
+        {
+            var tree = dd.panel?.visualTree;
+            if (tree == null) { Debug.Log($"[dsdiag] tune '{dd.name}': gave up, dd has no panel"); return; }
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"[dsdiag] tune '{dd.name}': GAVE UP after {DROPDOWN_TUNE_MAX_TICKS} ticks, ")
+              .Append($"no '.{POPUP_CLASS}' at panel scope. Panel root children ({tree.childCount}):");
+            for (int i = 0; i < tree.childCount; i++)
+            {
+                var c = tree[i];
+                sb.Append($"\n    [{i}] <{c.GetType().Name}> name='{c.name}' classes=[")
+                  .Append(string.Join(",", c.GetClasses())).Append(']');
+            }
+            Debug.Log(sb.ToString());
+        }
+
+        /// <summary>Returns true once the popup was found and tuned, so the poller can stop.</summary>
+        private static bool TuneDropdownPopup(DropdownField dd)
         {
             var panel = dd.panel;
-            if (panel == null) return;
+            if (panel == null) return false;
 
             // The menu attaches at panel scope (a SIBLING of any ds-root), one
             // fresh instance per open — search from the very top of the panel.
             var menu = panel.visualTree.Q(className: POPUP_CLASS);
             var outer = menu?.Q(className: POPUP_OUTER_CLASS);
             var scroll = menu?.Q<ScrollView>();
-            if (outer == null || scroll == null) return;
+            if (outer == null || scroll == null) return false;   // not there YET; the poller retries
+
+            if (DesignSystemEvents.DropdownDiagnostics)
+                Debug.Log($"[dsdiag] tune '{dd.name}': popup FOUND, tuning");
 
             scroll.mode = ScrollViewMode.Vertical;
             scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
 
+            // Places the popup and sizes it to its CONTENT, preferring downward.
+            //
+            // The old version only ever measured the space BELOW the field, and clamped what it
+            // found to a 72px floor. Two bugs fell out of that, and they compounded:
+            //
+            //   * A field with little room beneath it (low in the viewport, or in a short world-space
+            //     panel) got a 72px popup — two rows — no matter how many choices it had. A 14-item
+            //     theme picker rendered as a sliver.
+            //   * That sliver was then FORCED downward, past the bottom edge of the panel. Unity's own
+            //     GenericDropdownMenu.EnsureVisibilityInParent notices a popup hanging outside its
+            //     container and shoves it back up, we re-assert downward on the next geometry pass, and
+            //     whoever writes last wins. The visible result is a dropdown that opens UPWARD — which
+            //     is the one thing this method existed to prevent.
+            //
+            // So: measure BOTH sides, size to the actual list, and flip only when flipping genuinely
+            // buys room. Once the popup honestly fits where we put it, Unity's math agrees with ours
+            // and stops fighting, which is what makes "opens downward" stick.
             void Apply()
             {
                 if (outer.panel == null) return;   // menu already closed
-                var fieldWB = dd.worldBound;
-                var menuWB = menu.worldBound;
 
-                float top = fieldWB.yMax - menuWB.yMin + DROPDOWN_POPUP_GAP;
-                float availBelow = menuWB.height - top - DROPDOWN_POPUP_EDGE_MARGIN;
-                float capH = Mathf.Min(DROPDOWN_POPUP_MAX_HEIGHT,
-                             Mathf.Max(DROPDOWN_POPUP_MIN_HEIGHT, availBelow));
+                // EVERYTHING here is in the OVERLAY's local space. That is the space `outer.style.top`
+                // and `outer.style.width` are written in, and the space `resolvedStyle` reports in, so
+                // it is the only space in which the numbers can be compared to each other at all.
+                //
+                // They used to be mixed, and it cost us both halves of the world-space bug:
+                //
+                //   * `worldBound` is NOT pixels inside a world-space panel. The panel root carries a
+                //     pixels-to-metres transform, so a laid-out 206x48 field reports a worldBound of
+                //     roughly 2.1x0.4. Sizing a popup by comparing that against `resolvedStyle` — which
+                //     stays in pixels — compares 0.4 to 42 and loses every time.
+                //   * The overlay is stretched to the panel root, and with WorldSpaceSizeMode.Dynamic
+                //     that root has no viewport to fill: it measures 0x0 (confirmed on a live exhibit:
+                //     content 240x400, exhibit root 240x460, panel root 0x0). So there was no room
+                //     anywhere, on any side, for any field.
+                //
+                // Either one alone flips a dropdown upward. WorldToLocal fixes the first by putting
+                // foreign rects into the overlay's pixels; LaidOutContainerOf fixes the second by
+                // measuring the room against the exhibit's own content box — the visible wall panel,
+                // and the only thing a world-space popup can sensibly be asked to stay inside.
+                //
+                // On a screen panel WorldToLocal is a pure translation and the panel root IS the
+                // viewport, so both reduce to what this always did.
+                Rect bounds = menu.contentRect;
+                if (float.IsNaN(bounds.height) || bounds.height <= 1f)
+                {
+                    var container = LaidOutContainerOf(dd);
+                    if (container.height <= 0.001f) return;   // nothing laid out yet; geometry will retry
+                    bounds = menu.WorldToLocal(container);
+                    if (float.IsNaN(bounds.height) || bounds.height <= 1f) return;
+                }
+
+                Rect field = menu.WorldToLocal(dd.worldBound);
+                if (float.IsNaN(field.height) || field.height <= 1f) return;
 
                 float chrome = outer.resolvedStyle.paddingTop + outer.resolvedStyle.paddingBottom
                              + outer.resolvedStyle.borderTopWidth + outer.resolvedStyle.borderBottomWidth;
                 if (float.IsNaN(chrome) || chrome < 0f) chrome = 10f;
 
-                outer.style.left = fieldWB.xMin - menuWB.xMin;
-                outer.style.top = top;
-                outer.style.width = fieldWB.width;
+                // What the list WANTS: its natural height, capped so a 40-item list scrolls instead of
+                // towering. Read from the content container, which keeps its full height even once the
+                // ScrollView clips it — so this does not collapse to the cap we set on the last pass.
+                float contentH = scroll.contentContainer.resolvedStyle.height;
+                if (float.IsNaN(contentH) || contentH < 1f)
+                    contentH = Mathf.Max(1, dd.choices?.Count ?? 1) * DROPDOWN_POPUP_ROW_HEIGHT;
+                float wantH = Mathf.Min(DROPDOWN_POPUP_MAX_HEIGHT, contentH + chrome);
+
+                float roomBelow = bounds.yMax - field.yMax - DROPDOWN_POPUP_GAP - DROPDOWN_POPUP_EDGE_MARGIN;
+                float roomAbove = field.yMin - bounds.yMin - DROPDOWN_POPUP_GAP - DROPDOWN_POPUP_EDGE_MARGIN;
+
+                // Downward unless upward is genuinely roomier. A dropdown that fits below always opens
+                // below, which is what people expect; one that fits NEITHER side opens toward whichever
+                // side is less bad rather than committing to a sliver in the wrong direction.
+                bool down = roomBelow >= wantH || roomBelow >= roomAbove;
+                float room = Mathf.Max(0f, down ? roomBelow : roomAbove);
+
+                // Never taller than the list, never taller than the room, and only ever shorter than the
+                // 72px floor when the list itself is shorter (a 2-choice dropdown is 2 rows, not 3).
+                float h = Mathf.Clamp(Mathf.Min(wantH, room), Mathf.Min(wantH, DROPDOWN_POPUP_MIN_HEIGHT),
+                                      DROPDOWN_POPUP_MAX_HEIGHT);
+
+                // WIDTH: at least the field, but free to grow to fit the longest item, capped by the
+                // room to its right. This is what a native <select> does, and pinning the popup to the
+                // field's width instead is what turned "Medium" into "Me.." in every narrow dropdown
+                // (the showcase's 110px quality pickers). `auto` lets the layout measure the items for
+                // us rather than us guessing at text widths.
+                float maxW = Mathf.Max(field.width, bounds.xMax - field.xMin - DROPDOWN_POPUP_EDGE_MARGIN);
+
+                outer.style.left = field.xMin;
+                outer.style.top = down ? field.yMax + DROPDOWN_POPUP_GAP
+                                       : field.yMin - DROPDOWN_POPUP_GAP - h;
+                outer.style.width = StyleKeyword.Auto;    // hug the widest item...
+                outer.style.minWidth = field.width;       // ...never narrower than the field...
+                outer.style.maxWidth = maxW;              // ...never off the right edge
                 outer.style.height = StyleKeyword.Auto;   // hug the item list...
-                outer.style.maxHeight = capH;             // ...up to the cap
-                scroll.style.maxHeight = Mathf.Max(32f, capH - chrome);
+                outer.style.maxHeight = h;                // ...up to whatever we just decided it may have
+                scroll.style.maxHeight = Mathf.Max(32f, h - chrome);
+
+                if (DesignSystemEvents.DropdownDiagnostics)
+                {
+                    var tree = dd.panel?.visualTree;
+                    Debug.Log(
+                        $"[dsdiag] tune '{dd.name}' ({(dd.choices?.Count ?? 0)} choices)\n" +
+                        $"  panelRoot   layout={tree?.layout}  worldBound={tree?.worldBound}\n" +
+                        $"  menu        contentRect={menu.contentRect}  worldBound={menu.worldBound}\n" +
+                        $"  dd          layout={dd.layout}  worldBound={dd.worldBound}\n" +
+                        $"  container   {LaidOutContainerOf(dd)}\n" +
+                        $"  => bounds={bounds}  field={field}\n" +
+                        $"  chrome={chrome:F1} contentH={contentH:F1} wantH={wantH:F1}\n" +
+                        $"  roomBelow={roomBelow:F1} roomAbove={roomAbove:F1} DOWN={down} h={h:F1} maxW={maxW:F1}");
+                }
             }
 
             // GenericDropdownMenu re-runs its own EnsureVisibilityInParent on
@@ -689,12 +848,58 @@ namespace DesignSystem.Runtime.Behaviour
             // re-assert after every outer-container layout pass. Once the
             // capped popup genuinely fits below the field, Unity's own math
             // lands on the same values and the layout settles.
-            if (!menu.ClassListContains(POPUP_TUNED_CLASS))
-            {
-                menu.AddToClassList(POPUP_TUNED_CLASS);
+            // The GeometryChangedEvent hook is registered ONCE per menu element, because re-registering
+            // it would stack a second identical callback on every tune.
+            bool firstTune = !menu.ClassListContains(POPUP_TUNED_CLASS);
+            if (firstTune)
                 outer.RegisterCallback<GeometryChangedEvent>(_ => Apply());
-            }
+
             Apply();
+
+            // The EVENT is raised every time — deliberately NOT gated on "is this menu new". That gate
+            // was a bug waiting to happen: it assumed Unity builds a fresh popup element per open, and
+            // if any Unity version instead REUSES one, the marker class survives, the gate reads false
+            // forever after the first open, and a host that themes by hand silently stops being told the
+            // popup exists. Handlers are expected to be idempotent (the showcase's re-stamps the same
+            // inline styles), which is a far cheaper contract than a liveness assumption about someone
+            // else's element pooling.
+            DesignSystemEvents.RaiseDropdownPopupOpened(dd, menu);
+
+            // REVEAL, and only now. DropdownPopup.uss keeps the popup at `opacity: 0` from the frame
+            // Unity creates it until this class lands, so the first frame anyone actually sees is one
+            // we have already placed AND the host has already painted. Adding it any earlier — before
+            // Apply, or before the event — puts Unity's default position or the base palette on screen
+            // for a frame, which is exactly the flicker this exists to kill. It goes last for that
+            // reason, and it doubles as the "already hooked" marker read above.
+            if (firstTune) menu.AddToClassList(POPUP_TUNED_CLASS);
+
+            if (DesignSystemEvents.DropdownDiagnostics)
+                Debug.Log($"[dsdiag] raised DropdownPopupOpened for '{dd.name}' " +
+                          $"to {DesignSystemEvents.DropdownPopupSubscribers} subscriber(s)");
+
+            return true;
+        }
+
+        /// <summary>
+        /// The OUTERMOST ancestor of <paramref name="el"/> that actually has a size, in WORLD
+        /// coordinates. Exists for world-space panels, where the usual "the panel root is the viewport,
+        /// so it bounds everything" assumption is false: a PanelRenderer's root measures 0x0 and would
+        /// hand out no room at all.
+        ///
+        /// The epsilon is deliberately tiny rather than a pixel: world-panel rects are in metres, and a
+        /// whole exhibit is only a few units tall. The one thing this has to reject is the exactly-zero
+        /// panel root.
+        /// </summary>
+        private static Rect LaidOutContainerOf(VisualElement el)
+        {
+            var best = new Rect();
+            for (var p = el.parent; p != null; p = p.parent)
+            {
+                var wb = p.worldBound;
+                if (float.IsNaN(wb.height) || wb.height <= 0.001f) continue;   // the degenerate panel root
+                best = wb;   // keep climbing: the LAST valid one is the outermost
+            }
+            return best;
         }
 
         // ──────────────────────────────────────────────────────────────────

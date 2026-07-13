@@ -254,7 +254,15 @@
 }
 
 /* Selected-value text — match font, color, and vertical alignment of
-   the other inputs so a populated dropdown reads consistently. */
+   the other inputs so a populated dropdown reads consistently.
+
+   `text-overflow` is not decoration. A value longer than the field does not
+   ellipsize on its own in UI Toolkit, it gets CLIPPED, mid-glyph, with no
+   indication that anything was cut: "Design System default" renders as
+   "Design System defa" and reads like a bug in the label rather than a value
+   that does not fit. Ellipsis needs all three of nowrap + hidden + ellipsis;
+   any one missing and it silently falls back to clipping. The popup does not
+   have this problem, because it now grows to fit its longest item. */
 .ds-dropdown .unity-popup-field__text,
 .ds-dropdown .unity-base-popup-field__text,
 .ds-dropdown .unity-text-element {
@@ -263,6 +271,9 @@
     -unity-text-align: middle-left;
     flex-grow: 1;
     flex-shrink: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Chevron — explicit dimensions, color, and right-edge inset.

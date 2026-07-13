@@ -34,6 +34,15 @@ namespace Showcase.Runtime
         readonly UIDocument _doc;
         readonly StyleSheet _dsUss;
         readonly Action _onExit;
+        readonly Action<VisualElement> _onBuilt;
+
+        /// <summary>
+        /// The HUD's document root, once it exists. The host needs it to repaint the mode switch on a
+        /// theme change: the switch is a real `.ds-tabs`, so it takes its colours from the `--color-*`
+        /// tokens on this root and from nowhere else. Null until <see cref="Build"/> runs, which is a
+        /// frame or more after Create returns — hence <c>onBuilt</c> rather than a property you poll.
+        /// </summary>
+        public VisualElement Root { get; private set; }
 
         VisualElement _overlay;
         VisualElement _hints;
@@ -44,18 +53,20 @@ namespace Showcase.Runtime
         VirtualStick _moveStick, _lookStick;
         bool _touchUi;
 
-        public static ShowcaseModeHud Create(UIDocument doc, StyleSheet dsUss, Action onExit)
+        public static ShowcaseModeHud Create(UIDocument doc, StyleSheet dsUss, Action onExit,
+                                             Action<VisualElement> onBuilt = null)
         {
-            var hud = new ShowcaseModeHud(doc, dsUss, onExit);
+            var hud = new ShowcaseModeHud(doc, dsUss, onExit, onBuilt);
             hud.ScheduleBuild();
             return hud;
         }
 
-        ShowcaseModeHud(UIDocument doc, StyleSheet dsUss, Action onExit)
+        ShowcaseModeHud(UIDocument doc, StyleSheet dsUss, Action onExit, Action<VisualElement> onBuilt)
         {
             _doc = doc;
             _dsUss = dsUss;
             _onExit = onExit;
+            _onBuilt = onBuilt;
         }
 
         void ScheduleBuild()
@@ -100,6 +111,9 @@ namespace Showcase.Runtime
             _overlay.schedule.Execute(RefreshTouchUi).Every(500);
 
             _overlay.style.display = DisplayStyle.None; // screen mode by default
+
+            Root = root;
+            _onBuilt?.Invoke(root);   // the host paints us; see ShowcaseBootstrap.PaintHud
         }
 
         // The SAME segmented Screen/World switch the flat page shows under its

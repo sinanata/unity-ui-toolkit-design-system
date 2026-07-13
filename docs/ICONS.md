@@ -1,6 +1,6 @@
 # Icons
 
-The design system ships **63 SVG icons** under `Assets/DesignSystem/Resources/Textures/Icons/`. Every icon is rendered via the same class system: a base `.ds-icon` for sizing + tint cascade, plus a per-glyph `.ds-icon--<name>` that resolves the SVG.
+The design system ships **120 SVG icons** under `Assets/DesignSystem/Resources/Textures/Icons/`. Every icon is rendered via the same class system: a base `.ds-icon` for sizing + tint cascade, plus a per-glyph `.ds-icon--<name>` that resolves the SVG.
 
 ## Anatomy
 
@@ -84,6 +84,25 @@ Same pattern for `:active`, `.is-active`, `:disabled`.
 ### When NOT to use the cascade
 
 Some interactive containers — `.ds-nav-item.is-active`, `.ds-rail-item.is-active`, `.ds-bottom-nav__item.is-active` — paint the icon with primary green on a soft fill rather than on-accent on a green fill. Their per-`__icon` rules in their own files (`Navigation.uss`) own the active-state tint. The cascade list in `Icons.uss` intentionally **omits** these; if you add them, you'll double-override the per-class rule.
+
+## The set
+
+All 120 glyphs, by the group they are declared in inside `Icons.uss`. The class is the file name with underscores hyphenated (`vr_headset.svg` is `.ds-icon--vr-headset`).
+
+| Group | Icons |
+| --- | --- |
+| **Arrows** | `arrow-up`, `arrow-down`, `arrow-left`, `arrow-right`, `chevron-up`, `chevron-down`, `chevron-left`, `chevron-right`, `sort-asc`, `sort-desc` |
+| **Status / feedback** | `check`, `close`, `info`, `error`, `warning`, `help`, `smile`, `frown` |
+| **Actions** | `plus`, `edit`, `trash`, `share`, `refresh`, `sync`, `search`, `filter`, `more-horizontal`, `more-vertical`, `menu`, `list`, `lock`, `unlock`, `eye`, `settings`, `bell`, `clock`, `calendar`, `user`, `home`, `target` |
+| **Game / cosmetics** | `paw`, `shirt`, `hats`, `store`, `cart`, `bag`, `gift`, `heart`, `shield`, `sword`, `bolt`, `fire`, `flame`, `sparkle`, `sun` |
+| **Nature / habitat** | `leaf`, `tree`, `mountain`, `droplet` |
+| **Voice / audio** | `mic`, `sound`, `speak`, `nametag` |
+| **Gaming hardware** | `arcade`, `cartridge`, `console`, `handheld`, `gamepad`, `joystick`, `dpad`, `keyboard`, `mouse`, `monitor`, `headset`, `vr-headset`, `disc` |
+| **System & connectivity** | `power`, `battery`, `wifi`, `bug`, `save` |
+| **Combat & gear** | `axe`, `bow`, `hammer`, `pickaxe`, `swords`, `helmet`, `bomb`, `crosshair`, `skull` |
+| **Fantasy & adventure** | `alien`, `castle`, `crown`, `gem`, `ghost`, `mushroom`, `portal`, `potion`, `robot`, `wand`, `treasure`, `key`, `map`, `compass` |
+| **Progression & rewards** | `trophy`, `medal`, `leaderboard`, `star`, `coin`, `cards`, `dice`, `puzzle` |
+| **Media & transport** | `play`, `pause`, `music`, `book`, `flag`, `flag-checkered`, `rocket`, `snowflake` |
 
 ## Adding a new icon
 

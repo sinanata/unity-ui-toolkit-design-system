@@ -1,7 +1,9 @@
 {
     "name": "DesignSystem.Editor",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "DesignSystem.Runtime"
+    ],
     "includePlatforms": [
         "Editor"
     ],

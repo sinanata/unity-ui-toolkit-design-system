@@ -13,18 +13,36 @@
        // once per UIDocument, after the first layout pass
        var panelScope = doc.rootVisualElement.parent
                      ?? doc.rootVisualElement.panel?.visualTree;
-       var popup = Resources.Load<StyleSheet>("UI/Styles/DesignSystem/DropdownPopup");
-       if (panelScope != null && popup != null && !panelScope.styleSheets.Contains(popup))
-           panelScope.styleSheets.Add(popup);
+       var tokens = Resources.Load<StyleSheet>("UI/Styles/DesignSystem/DesignTokens");
+       var popup  = Resources.Load<StyleSheet>("UI/Styles/DesignSystem/DropdownPopup");
+       if (panelScope != null)
+       {
+           if (tokens != null && !panelScope.styleSheets.Contains(tokens)) panelScope.styleSheets.Add(tokens);
+           if (popup  != null && !panelScope.styleSheets.Contains(popup))  panelScope.styleSheets.Add(popup);
+       }
 
    Every panel needs its own attach — a world-space UI is one panel PER quad,
-   not one for the scene. ShowcaseBootstrap (flat page), WorldSpaceCorridor
-   (world-space) and u0's preview player all do exactly the above.
+   not one for the scene. ShowcaseBootstrap (flat page) and WorldSpaceCorridor
+   (world-space) both do exactly the above.
 
-   ONLY this small sheet is pulled up. Hoisting the full DesignSystem.uss +
-   theme bundle to panel scope also "works" and then quietly breaks the popup's
-   own layout, because component rules written for screen content start
-   matching Unity's internal popup elements.
+   WHY DesignTokens.uss COMES UP TOO, AND WHY THAT IS SAFE:
+   The colours below are `var(--color-*)` references, so the popup themes itself
+   from whatever palette the panel is wearing — swap a ThemeData and the popup
+   swaps with it, including third-party palettes. For those to resolve, the token
+   block has to exist AT PANEL SCOPE, because custom properties reach the popup
+   by INHERITANCE and the popup's only ancestor is the panel root.
+
+   Hoisting DesignTokens.uss is safe precisely because it is 72 custom-property
+   declarations and nothing else: no component rules, no layout. A baked
+   ThemeData compiles to the same shape — a pure `{scope} { --token: value }`
+   block — which is why a host can add one at panel scope on top of these and
+   have the popup follow the theme. What must NEVER come up here is the full
+   DesignSystem.uss: its component rules start matching Unity's internal popup
+   elements and quietly break the popup's own layout.
+
+   This sheet used to hard-code hex and carry its own `.theme-light` block. That
+   worked for exactly two palettes and silently ignored every other theme, which
+   is what made the popup the one thing in the showcase a theme could not reach.
 
    IMPORTANT — element responsibilities:
    The OUTER `.unity-base-dropdown` element is intentionally sized by Unity
@@ -38,11 +56,10 @@
 
    So `.unity-base-dropdown` MUST stay transparent — painting a background
    on it covers the whole page. The actual visible popup chrome belongs on
-   `.unity-base-dropdown__container-outer`, which Unity positions at the
-   target's worldBound:
-
-       m_OuterContainer.style.left = m_PositionLeft;
-       m_OuterContainer.style.top  = m_PositionTop;
+   `.unity-base-dropdown__container-outer`, which the design-system runtime
+   positions and sizes (DesignSystemBehaviourBase.TuneDropdownPopup: prefers
+   downward, flips up only when up is genuinely roomier, and caps the height to
+   the item list rather than to a fixed floor).
 
    Class names verified against Unity 6's UnityCsReference repo:
      unity-base-dropdown                  — fullscreen overlay (transparent)
@@ -56,16 +73,7 @@
 
    Selected-state: GenericDropdownMenu sets `pseudoStates |= Checked` on the
    item element, exposing `:checked`. There is no `--checked` modifier class.
-
-   Color values are inlined (literal hex) rather than `var(--color-*)` so this
-   stylesheet doesn't depend on DesignTokens.uss being reachable from the
-   panel-root scope. The `.theme-light` block at the bottom mirrors the
-   light-theme palette in `ShowcaseTheme.uss`; ShowcaseBootstrap.WireThemeToggle
-   adds the `theme-light` class to BOTH `.ds-root` AND `panel.visualTree` so
-   the popup picks up the override.
    ============================================================================ */
-
-/* ---- Dark theme defaults (no .theme-light class) ---- */
 
 /* Fullscreen click-capture overlay — keep transparent. Painting a colour
    here covers the entire viewport. */
@@ -73,14 +81,42 @@
     background-color: rgba(0, 0, 0, 0);
 }
 
-/* Visible popup chrome — Unity positions this at the source field's
-   worldBound. All the popup's surface, border, and radius live here. */
+/* Visible popup chrome — the runtime positions this at the source field. All
+   the popup's surface, border, and radius live here. */
 .unity-base-dropdown__container-outer {
-    background-color: #1A2330;       /* color-surface-elev */
-    border-color: #263041;            /* color-border */
+    background-color: var(--color-surface-elev);
+    border-color: var(--color-border);
     border-width: 1px;
     border-radius: 8px;
     padding: 4px;
+}
+
+/* ── Hide the popup until the runtime has placed and painted it ──────────────
+   Unity builds the popup, lays it out and RENDERS it before anything of ours
+   can touch it: the element does not exist when the pointer goes down, and no
+   event fires when it attaches, so the earliest we can reach it is a frame or
+   more later. Those frames are visible — the popup appears in Unity's default
+   position (upward, pinned to the panel) wearing the base palette, then jumps
+   to where we put it in the colour we painted it. Only USS can suppress that,
+   because USS is the one thing that applies on the same frame the element is
+   born, before the first repaint.
+
+   `ds-dropdown-tuner` is the interlock, and it matters: it is added to the
+   PANEL ROOT by EnsureDropdownMenus, i.e. only where the runtime is actually
+   present and will actually reveal the popup again. Without it — a project that
+   takes this stylesheet but not the behaviour — the hide rule never matches and
+   the popup behaves exactly as Unity intended. Never hide it unconditionally;
+   that trades a flicker for an invisible dropdown.
+
+   Reveal is `ds-popup--tuned`, which TuneDropdownPopup adds LAST: after
+   placement, and after the popup-opened event has given the host its chance to
+   paint. So the first frame anyone sees is already correct. */
+.ds-dropdown-tuner .unity-base-dropdown__container-outer {
+    opacity: 0;
+}
+
+.ds-dropdown-tuner .ds-popup--tuned .unity-base-dropdown__container-outer {
+    opacity: 1;
 }
 
 .unity-base-dropdown__container-inner {
@@ -90,7 +126,7 @@
 
 .unity-base-dropdown__item {
     background-color: rgba(0, 0, 0, 0);
-    color: #F2F4F7;                   /* color-text-primary */
+    color: var(--color-text-primary);
     padding-left: 12px;
     padding-right: 12px;
     padding-top: 6px;
@@ -102,20 +138,20 @@
 }
 
 .unity-base-dropdown__item:hover {
-    background-color: #1F2937;        /* color-surface-hover */
+    background-color: var(--color-surface-hover);
 }
 
 .unity-base-dropdown__item:checked {
-    background-color: rgba(34, 197, 94, 0.16); /* color-primary-soft */
+    background-color: var(--color-primary-soft);
 }
 
 .unity-base-dropdown__label,
 .unity-base-dropdown__item .unity-text-element {
-    color: #F2F4F7;
+    color: var(--color-text-primary);
     font-size: 14px;
     -unity-text-align: middle-left;
     background-color: rgba(0, 0, 0, 0);
-    /* The popup is pinned to the field's width (EnsureDropdownMenus), so an
+    /* The popup is pinned to the field's width (TuneDropdownPopup), so an
        option longer than the field must ellipsize — never widen the content
        and summon a horizontal scrollbar. */
     overflow: hidden;
@@ -127,7 +163,7 @@
 /* Checkmark — Unity's default theme handles the visibility toggle via the
    `:checked` rule on the parent item, so we only swap the source image
    here. The Vector Graphics package rasterises the SVG at the actual
-   rendered pixel count instead of bilinearly upscaling a 1× PNG. */
+   rendered pixel count instead of bilinearly upscaling a 1x PNG. */
 .unity-base-dropdown__checkmark {
     width: 14px;
     height: 14px;
@@ -136,11 +172,11 @@
     flex-grow: 0;
     background-image: resource("Textures/Icons/check");
     -unity-background-scale-mode: scale-to-fit;
-    -unity-background-image-tint-color: #22C55E; /* color-primary */
+    -unity-background-image-tint-color: var(--color-primary);
 }
 
 .unity-base-dropdown__separator {
-    background-color: #263041;
+    background-color: var(--color-border);
     height: 1px;
     margin-top: 4px;
     margin-bottom: 4px;
@@ -152,10 +188,9 @@
    The popup ScrollView is OUTSIDE `.ds-root`, so the design system's slim
    scrollbar restyle (Controls.uss, `.ds-root`-scoped) never reaches it and
    the popup shipped Unity's chunky default scrollers on BOTH axes. Mirror
-   the slim 8px pill scrollbar here (literal colors, same reason as the rest
-   of this sheet). Horizontal scrolling is removed outright: the runtime
-   (DesignSystemRuntimeBase.EnsureDropdownMenus) pins the popup to the
-   field's width and caps its height, and the label rule above ellipsizes
+   the slim 8px pill scrollbar here. Horizontal scrolling is removed outright:
+   the runtime (DesignSystemBehaviourBase.TuneDropdownPopup) pins the popup to
+   the field's width and caps its height, and the label rule above ellipsizes
    anything wider — a dropdown list only ever scrolls vertically. */
 
 .unity-base-dropdown .unity-scroller--horizontal {
@@ -192,51 +227,9 @@
     margin: 0;
     border-width: 0;
     border-radius: 4px;
-    background-color: #364152;        /* color-border-strong */
+    background-color: var(--color-border-strong);
 }
 
 .unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__dragger:hover {
-    background-color: #A1A7B3;        /* color-text-secondary */
-}
-
-/* ---- Light theme overrides ---- */
-
-/* The fullscreen overlay stays transparent in both themes. The chrome
-   block migrates to __container-outer below. */
-.theme-light .unity-base-dropdown__container-outer {
-    background-color: #F1F5F9;
-    border-color: #E2E8F0;
-}
-
-.theme-light .unity-base-dropdown__item {
-    color: #0F172A;
-}
-
-.theme-light .unity-base-dropdown__item:hover {
-    background-color: #E2E8F0;
-}
-
-.theme-light .unity-base-dropdown__item:checked {
-    background-color: rgba(22, 163, 74, 0.16);
-}
-
-.theme-light .unity-base-dropdown__label,
-.theme-light .unity-base-dropdown__item .unity-text-element {
-    color: #0F172A;
-}
-
-.theme-light .unity-base-dropdown__checkmark {
-    -unity-background-image-tint-color: #16A34A;
-}
-
-.theme-light .unity-base-dropdown__separator {
-    background-color: #E2E8F0;
-}
-
-.theme-light .unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__dragger {
-    background-color: #CBD5E1;        /* light color-border-strong */
-}
-
-.theme-light .unity-base-dropdown .unity-scroll-view__vertical-scroller .unity-base-slider__dragger:hover {
-    background-color: #475569;        /* light color-text-secondary */
+    background-color: var(--color-text-secondary);
 }

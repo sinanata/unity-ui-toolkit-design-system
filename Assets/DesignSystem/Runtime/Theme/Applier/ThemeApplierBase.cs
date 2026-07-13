@@ -4,6 +4,14 @@ using UnityEngine.UIElements;
 
 namespace DesignSystem.Runtime.Theme.Applier
 {
+    /// <summary>
+    /// Drop this on a UI host and its root wears the assigned <see cref="ThemeData"/>.
+    /// Assign <see cref="Theme"/> at runtime to swap themes; assign null to fall back to
+    /// the base tokens in <c>DesignTokens.uss</c>.
+    ///
+    /// All the actual work is <see cref="ThemeRuntime"/>. This class exists to bind that
+    /// to a component lifecycle and to the two UI Toolkit backends.
+    /// </summary>
     [DisallowMultipleComponent]
     public abstract class ThemeApplierBase<TComponent> : MonoBehaviour where TComponent : Component
     {
@@ -14,7 +22,6 @@ namespace DesignSystem.Runtime.Theme.Applier
             get => theme;
             set
             {
-                RemoveStyleSheet();
                 theme = value;
                 ApplyThemeToRoot();
             }
@@ -22,42 +29,27 @@ namespace DesignSystem.Runtime.Theme.Applier
 
         protected abstract void OnEnable();
 
-        protected virtual void OnDisable()
-        {
-            RemoveStyleSheet();
-        }
+        protected virtual void OnDisable() => ThemeRuntime.Clear(GetCurrentRoot());
 
         protected abstract void ApplyThemeToRoot();
 
+        protected abstract VisualElement GetCurrentRoot();
+
         protected void ApplyTheme(VisualElement root)
         {
-            RemoveStyleSheet();
-            if (!theme || root == null) return;
+            if (root == null) return;
 
-            var sheet = theme.StyleSheet;
-            if (!sheet)
+            if (theme && !theme.StyleSheet)
             {
                 Debug.LogWarning(
-                    $"[ThemeApplier] Theme '{theme.name}' has no companion .uss. " +
-                    "Open it in Theme Configurator and click 'Save .uss'.", theme);
-                return;
+                    $"[ThemeApplier] Theme '{theme.name}' has no baked stylesheet, so it will not " +
+                    "paint anything. Open it in Design System > Theme Configurator and press Save, " +
+                    "or run Design System > Rebake All Themes.", theme);
             }
 
-            if (!root.styleSheets.Contains(sheet))
-                root.styleSheets.Add(sheet);
+            // ThemeRuntime tracks what each root wears, so this takes the previous theme off for
+            // us — including across a PanelRenderer reload, which hands us a brand new root.
+            ThemeRuntime.Apply(root, theme);
         }
-
-        private void RemoveStyleSheet()
-        {
-            if (!theme) return;
-            var sheet = theme.StyleSheet;
-            if (!sheet) return;
-
-            var root = GetCurrentRoot();
-            if (root != null && root.styleSheets.Contains(sheet))
-                root.styleSheets.Remove(sheet);
-        }
-
-        protected abstract VisualElement GetCurrentRoot();
     }
 }

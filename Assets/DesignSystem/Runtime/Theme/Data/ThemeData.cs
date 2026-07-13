@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
@@ -6,9 +7,38 @@ using UnityEngine.UIElements;
 
 namespace DesignSystem.Runtime.Theme.Data
 {
+    /// <summary>
+    /// A whole design-system palette, as an asset. Every field below maps to one
+    /// <c>var(--…)</c> token in <c>DesignTokens.uss</c>. <see cref="GenerateUssString"/>
+    /// renders them as a USS custom-property block, and the editor bakes that block
+    /// into a companion <see cref="StyleSheet"/> stored inside this same asset.
+    ///
+    /// A theme therefore reaches the UI through the ordinary USS cascade: the applier
+    /// adds ONE stylesheet, and every `:hover`, `:disabled` and `:checked` rule in the
+    /// design system re-resolves against the new token values on its own. There is no
+    /// per-component work, and nothing to keep in sync when a component is added.
+    ///
+    /// Why that matters: the alternative is walking the tree and stamping inline styles
+    /// on every element, which is what the showcase's `CodigrateThemeApplier` has to do
+    /// for a palette that only exists at RUNTIME — Unity cannot compile a StyleSheet
+    /// from a string in a player build. Baking the theme at EDIT time sidesteps the
+    /// whole problem. A genuinely runtime-generated palette (the showcase's Randomize
+    /// button) is the only case that still needs the inline path.
+    /// </summary>
     [CreateAssetMenu(fileName = "Theme", menuName = "Design System/Theme", order = 100)]
     public class ThemeData : ScriptableObject
     {
+        public const string RootScope = ":root";
+
+        [Header("Scope")]
+        [Tooltip("The USS selector the generated token block is written under.\n\n" +
+                 ":root — themes the whole panel. Use this for a single app-wide theme.\n\n" +
+                 ".theme-x — themes any subtree carrying that class. Two themes can then " +
+                 "coexist in one panel, and the applier adds the class for you. This is how " +
+                 "the design system's own day / night pair is built: the Light theme is " +
+                 "scoped to .theme-light, so it only paints once that class is present.")]
+        public string scopeSelector = RootScope;
+
         [Header("Brand & Semantic")]
         public Color primaryColor        = new(0.133f, 0.773f, 0.369f);
         public Color primaryHoverColor   = new(0.086f, 0.639f, 0.290f);
@@ -80,7 +110,7 @@ namespace DesignSystem.Runtime.Theme.Data
         public float spacing8 = 32f;
 
         [Header("Border Widths")]
-        public float borderThin   = 1f;
+        public float borderThin    = 1f;
         public float borderRegular = 2f;
 
         [Header("Motion")]
@@ -90,145 +120,227 @@ namespace DesignSystem.Runtime.Theme.Data
         [HideInInspector, SerializeField]
         private StyleSheet styleSheet;
 
+        /// <summary>The baked companion stylesheet, stored as a sub-asset of this theme.</summary>
         public StyleSheet StyleSheet => styleSheet;
 
-        // ──────────────────────────────────────────────────
-        // USS Variable Mapping
-        // ──────────────────────────────────────────────────
+        public void SetStyleSheetReference(StyleSheet sheet) => styleSheet = sheet;
+        public void ClearStyleSheetReference() => styleSheet = null;
 
-        private static readonly Dictionary<string, string> FieldToUss = new()
+        // ──────────────────────────────────────────────────────────────────────
+        // Scope
+        // ──────────────────────────────────────────────────────────────────────
+
+        /// <summary>The selector the token block is emitted under. Never empty.</summary>
+        public string Scope
         {
-            ["primaryColor"]         = "--color-primary",
-            ["primaryHoverColor"]    = "--color-primary-hover",
-            ["primaryPressColor"]    = "--color-primary-press",
-            ["primarySoftColor"]     = "--color-primary-soft",
-            ["secondaryColor"]       = "--color-secondary",
-            ["secondaryHoverColor"]  = "--color-secondary-hover",
-            ["secondaryPressColor"]  = "--color-secondary-press",
-            ["secondarySoftColor"]   = "--color-secondary-soft",
-            ["tertiaryColor"]        = "--color-tertiary",
-            ["tertiaryHoverColor"]   = "--color-tertiary-hover",
-            ["tertiaryPressColor"]   = "--color-tertiary-press",
-            ["tertiarySoftColor"]    = "--color-tertiary-soft",
-            ["warningColor"]         = "--color-warning",
-            ["warningHoverColor"]    = "--color-warning-hover",
-            ["warningSoftColor"]     = "--color-warning-soft",
-            ["dangerColor"]          = "--color-danger",
-            ["dangerHoverColor"]     = "--color-danger-hover",
-            ["dangerPressColor"]     = "--color-danger-press",
-            ["dangerSoftColor"]      = "--color-danger-soft",
-            ["textPrimaryColor"]     = "--color-text-primary",
-            ["textSecondaryColor"]   = "--color-text-secondary",
-            ["textDisabledColor"]    = "--color-text-disabled",
-            ["textOnAccentColor"]    = "--color-text-on-accent",
-            ["bgColor"]              = "--color-bg",
-            ["surfaceColor"]         = "--color-surface",
-            ["surfaceElevColor"]     = "--color-surface-elev",
-            ["surfaceHoverColor"]    = "--color-surface-hover",
-            ["borderColor"]          = "--color-border",
-            ["borderStrongColor"]    = "--color-border-strong",
-            ["overlayColor"]         = "--color-overlay",
-            ["rarityCommonColor"]    = "--color-rarity-common",
-            ["rarityRareColor"]      = "--color-rarity-rare",
-            ["rarityEpicColor"]      = "--color-rarity-epic",
-            ["rarityLegendaryColor"] = "--color-rarity-legendary",
-            ["fontSizeH1"]           = "--font-size-h1",
-            ["fontSizeH2"]           = "--font-size-h2",
-            ["fontSizeH3"]           = "--font-size-h3",
-            ["fontSizeBody1"]        = "--font-size-body-1",
-            ["fontSizeBody2"]        = "--font-size-body-2",
-            ["fontSizeCaption"]      = "--font-size-caption",
-            ["radiusXs"]             = "--radius-xs",
-            ["radiusSm"]             = "--radius-sm",
-            ["radiusMd"]             = "--radius-md",
-            ["radiusLg"]             = "--radius-lg",
-            ["radiusXl"]             = "--radius-xl",
-            ["spacing1"]             = "--space-1",
-            ["spacing2"]             = "--space-2",
-            ["spacing3"]             = "--space-3",
-            ["spacing4"]             = "--space-4",
-            ["spacing5"]             = "--space-5",
-            ["spacing6"]             = "--space-6",
-            ["spacing8"]             = "--space-8",
-            ["borderThin"]           = "--border-thin",
-            ["borderRegular"]        = "--border-regular",
-            ["transitionFast"]       = "--transition-fast",
-            ["transitionMedium"]     = "--transition-medium",
-        };
-
-        // ReSharper disable once InconsistentNaming
-        private static Dictionary<string, FieldInfo> s_fieldMap;
-
-        private static Dictionary<string, FieldInfo> GetFieldMap()
-        {
-            if (s_fieldMap != null) return s_fieldMap;
-
-            s_fieldMap = new Dictionary<string, FieldInfo>();
-            var fields = typeof(ThemeData).GetFields(
-                BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var f in fields)
+            get
             {
-                if (f.FieldType != typeof(Color) && f.FieldType != typeof(float))
-                    continue;
-                if (FieldToUss.TryGetValue(f.Name, out var uss))
-                    s_fieldMap[uss] = f;
+                var s = scopeSelector?.Trim();
+                return string.IsNullOrEmpty(s) ? RootScope : s;
             }
-
-            return s_fieldMap;
         }
 
-        public static Dictionary<string, FieldInfo> GetTokenMap() => GetFieldMap();
+        /// <summary>
+        /// The bare class name when this theme is class-scoped (".theme-tokyo" gives
+        /// "theme-tokyo"), or null when it is a <c>:root</c> theme. The applier adds this
+        /// class to the element it themes and removes it again on swap, so a class-scoped
+        /// theme needs no wiring beyond assigning it.
+        ///
+        /// Anything more elaborate than a single class (a descendant or compound selector)
+        /// returns null: the author is doing something deliberate and drives the class
+        /// themselves.
+        /// </summary>
+        public string ScopeClass
+        {
+            get
+            {
+                var s = Scope;
+                if (s.Length < 2 || s[0] != '.') return null;
+                for (var i = 1; i < s.Length; i++)
+                {
+                    var ch = s[i];
+                    if (!char.IsLetterOrDigit(ch) && ch != '-' && ch != '_') return null;
+                }
+                return s.Substring(1);
+            }
+        }
 
-        // ──────────────────────────────────────────────────
-        // USS Generation
-        // ──────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
+        // Token table
+        // ──────────────────────────────────────────────────────────────────────
+
+        private enum TokenUnit { Color, Px, Ms }
+
+        private readonly struct TokenBinding
+        {
+            public readonly string Field;
+            public readonly string Token;
+            public readonly TokenUnit Unit;
+
+            public TokenBinding(string field, string token, TokenUnit unit)
+            {
+                Field = field;
+                Token = token;
+                Unit  = unit;
+            }
+        }
+
+        // Declaration order here IS the order tokens are emitted in. This was a
+        // Dictionary, and Dictionary iteration order is an implementation detail of
+        // both the runtime and of reflection's field ordering — the generated .uss
+        // came out shuffled on a different machine and the baked sub-asset churned in
+        // every diff. An array pins it.
+        //
+        // Deliberately ABSENT: --radius-pill-*. Those are geometry constants, not brand
+        // (--radius-pill-9 means "9px, which is half of an 18px-tall element"), and Unity
+        // clamps border-radius per axis to half the side. A themeable pill radius is just
+        // a way to turn a pill into an ellipse. Every pill in the system is locked to an
+        // explicit px size for exactly this reason; see the note in DesignTokens.uss.
+        private static readonly TokenBinding[] Tokens =
+        {
+            new("primaryColor",         "--color-primary",           TokenUnit.Color),
+            new("primaryHoverColor",    "--color-primary-hover",     TokenUnit.Color),
+            new("primaryPressColor",    "--color-primary-press",     TokenUnit.Color),
+            new("primarySoftColor",     "--color-primary-soft",      TokenUnit.Color),
+
+            new("secondaryColor",       "--color-secondary",         TokenUnit.Color),
+            new("secondaryHoverColor",  "--color-secondary-hover",   TokenUnit.Color),
+            new("secondaryPressColor",  "--color-secondary-press",   TokenUnit.Color),
+            new("secondarySoftColor",   "--color-secondary-soft",    TokenUnit.Color),
+
+            new("tertiaryColor",        "--color-tertiary",          TokenUnit.Color),
+            new("tertiaryHoverColor",   "--color-tertiary-hover",    TokenUnit.Color),
+            new("tertiaryPressColor",   "--color-tertiary-press",    TokenUnit.Color),
+            new("tertiarySoftColor",    "--color-tertiary-soft",     TokenUnit.Color),
+
+            new("warningColor",         "--color-warning",           TokenUnit.Color),
+            new("warningHoverColor",    "--color-warning-hover",     TokenUnit.Color),
+            new("warningSoftColor",     "--color-warning-soft",      TokenUnit.Color),
+
+            new("dangerColor",          "--color-danger",            TokenUnit.Color),
+            new("dangerHoverColor",     "--color-danger-hover",      TokenUnit.Color),
+            new("dangerPressColor",     "--color-danger-press",      TokenUnit.Color),
+            new("dangerSoftColor",      "--color-danger-soft",       TokenUnit.Color),
+
+            new("textPrimaryColor",     "--color-text-primary",      TokenUnit.Color),
+            new("textSecondaryColor",   "--color-text-secondary",    TokenUnit.Color),
+            new("textDisabledColor",    "--color-text-disabled",     TokenUnit.Color),
+            new("textOnAccentColor",    "--color-text-on-accent",    TokenUnit.Color),
+
+            new("bgColor",              "--color-bg",                TokenUnit.Color),
+            new("surfaceColor",         "--color-surface",           TokenUnit.Color),
+            new("surfaceElevColor",     "--color-surface-elev",      TokenUnit.Color),
+            new("surfaceHoverColor",    "--color-surface-hover",     TokenUnit.Color),
+            new("borderColor",          "--color-border",            TokenUnit.Color),
+            new("borderStrongColor",    "--color-border-strong",     TokenUnit.Color),
+            new("overlayColor",         "--color-overlay",           TokenUnit.Color),
+
+            new("rarityCommonColor",    "--color-rarity-common",     TokenUnit.Color),
+            new("rarityRareColor",      "--color-rarity-rare",       TokenUnit.Color),
+            new("rarityEpicColor",      "--color-rarity-epic",       TokenUnit.Color),
+            new("rarityLegendaryColor", "--color-rarity-legendary",  TokenUnit.Color),
+
+            new("fontSizeH1",           "--font-size-h1",            TokenUnit.Px),
+            new("fontSizeH2",           "--font-size-h2",            TokenUnit.Px),
+            new("fontSizeH3",           "--font-size-h3",            TokenUnit.Px),
+            new("fontSizeBody1",        "--font-size-body-1",        TokenUnit.Px),
+            new("fontSizeBody2",        "--font-size-body-2",        TokenUnit.Px),
+            new("fontSizeCaption",      "--font-size-caption",       TokenUnit.Px),
+
+            new("radiusXs",             "--radius-xs",               TokenUnit.Px),
+            new("radiusSm",             "--radius-sm",               TokenUnit.Px),
+            new("radiusMd",             "--radius-md",               TokenUnit.Px),
+            new("radiusLg",             "--radius-lg",               TokenUnit.Px),
+            new("radiusXl",             "--radius-xl",               TokenUnit.Px),
+
+            new("spacing1",             "--space-1",                 TokenUnit.Px),
+            new("spacing2",             "--space-2",                 TokenUnit.Px),
+            new("spacing3",             "--space-3",                 TokenUnit.Px),
+            new("spacing4",             "--space-4",                 TokenUnit.Px),
+            new("spacing5",             "--space-5",                 TokenUnit.Px),
+            new("spacing6",             "--space-6",                 TokenUnit.Px),
+            new("spacing8",             "--space-8",                 TokenUnit.Px),
+
+            new("borderThin",           "--border-thin",             TokenUnit.Px),
+            new("borderRegular",        "--border-regular",          TokenUnit.Px),
+
+            new("transitionFast",       "--transition-fast",         TokenUnit.Ms),
+            new("transitionMedium",     "--transition-medium",       TokenUnit.Ms),
+        };
+
+        private static Dictionary<string, FieldInfo> s_fields;
+
+        private static FieldInfo Field(string name)
+        {
+            if (s_fields == null)
+            {
+                s_fields = new Dictionary<string, FieldInfo>(Tokens.Length);
+                foreach (var f in typeof(ThemeData).GetFields(BindingFlags.Public | BindingFlags.Instance))
+                    if (f.FieldType == typeof(Color) || f.FieldType == typeof(float))
+                        s_fields[f.Name] = f;
+            }
+
+            return s_fields.TryGetValue(name, out var hit) ? hit : null;
+        }
+
+        // ──────────────────────────────────────────────────────────────────────
+        // USS generation
+        // ──────────────────────────────────────────────────────────────────────
 
         public string GenerateUssString()
         {
-            var sb = new StringBuilder();
-            sb.AppendLine("/* Generated by Theme Configurator */");
-            sb.AppendLine(":root {");
+            var sb = new StringBuilder(2048);
+            sb.AppendLine("/* GENERATED from a ThemeData asset by the Design System Theme Configurator.");
+            sb.AppendLine("   Do not edit: this block is rewritten from the asset on every save. */");
+            sb.Append(Scope).AppendLine(" {");
 
-            var map = GetFieldMap();
-            foreach (var kv in map)
+            foreach (var t in Tokens)
             {
-                var value = kv.Value.GetValue(this);
-                switch (value)
+                var field = Field(t.Field);
+                if (field == null) continue;
+
+                var value = field.GetValue(this);
+                var rendered = t.Unit switch
                 {
-                    case Color col:
-                        sb.AppendLine($"  {kv.Key}: {ColorToUss(col)};");
-                        break;
-                    case float f:
-                        var unit = kv.Key.Contains("transition") ? "ms" : "px";
-                        sb.AppendLine($"  {kv.Key}: {f:F0}{unit};");
-                        break;
-                }
+                    TokenUnit.Color when value is Color c => ColorToUss(c),
+                    TokenUnit.Px    when value is float p => Num(p) + "px",
+                    TokenUnit.Ms    when value is float m => Num(m) + "ms",
+                    _ => null,
+                };
+                if (rendered == null) continue;
+
+                sb.Append("    ").Append(t.Token).Append(": ").Append(rendered).AppendLine(";");
             }
 
             sb.AppendLine("}");
             return sb.ToString();
         }
 
+        // Every number that reaches USS goes through here, and it is InvariantCulture on
+        // purpose. The editor runs under the OS locale, and on a Turkish / German / French
+        // machine 0.16f.ToString("F2") is "0,16" — which emits `rgba(34, 197, 94, 0,16)`
+        // and produces a stylesheet that silently fails to parse. This is not hypothetical
+        // for this repo; it is the author's own locale.
+        private static string Num(float v)
+        {
+            var rounded = Mathf.Round(v);
+            return Mathf.Approximately(v, rounded)
+                ? ((int)rounded).ToString(CultureInfo.InvariantCulture)
+                : v.ToString("0.###", CultureInfo.InvariantCulture);
+        }
+
         private static string ColorToUss(Color c)
         {
-            if (Mathf.Approximately(c.a, 1f))
-                return $"#{ColorUtility.ToHtmlStringRGB(c)}";
+            if (c.a >= 0.9995f)
+                return "#" + ColorUtility.ToHtmlStringRGB(c);
 
-            var r = Mathf.RoundToInt(c.r * 255f);
-            var g = Mathf.RoundToInt(c.g * 255f);
-            var b = Mathf.RoundToInt(c.b * 255f);
-            return $"rgba({r}, {g}, {b}, {c.a:F2})";
-        }
+            var r = Mathf.Clamp(Mathf.RoundToInt(c.r * 255f), 0, 255);
+            var g = Mathf.Clamp(Mathf.RoundToInt(c.g * 255f), 0, 255);
+            var b = Mathf.Clamp(Mathf.RoundToInt(c.b * 255f), 0, 255);
 
-        public void SetStyleSheetReference(StyleSheet sheet)
-        {
-            styleSheet = sheet;
-        }
-
-        public void ClearStyleSheetReference()
-        {
-            styleSheet = null;
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "rgba({0}, {1}, {2}, {3})", r, g, b, Num(c.a));
         }
     }
 }

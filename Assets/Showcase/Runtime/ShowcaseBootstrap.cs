@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
+using DesignSystem.Runtime.Behaviour;
 using DesignSystem.Runtime.Behaviour.UIDocument;
+using DesignSystem.Runtime.Theme.Applier;
+using DesignSystem.Runtime.Theme.Data;
 using Object = UnityEngine.Object;
 #if UNITY_WEBGL && !UNITY_EDITOR
 using System.Runtime.InteropServices;
@@ -57,6 +61,21 @@ namespace Showcase.Runtime
             return Mathf.Max(1f, dpi / 96f);
         }
 
+        // BEFORE the scene loads, because the design system auto-attaches to every UIDocument and wires
+        // its dropdowns as the scene comes up — so a flag set any later than this misses the very logs
+        // that say whether the wiring happened at all.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void InitDiagnostics()
+        {
+            // A WebGL build is the one place a dropdown popup cannot be inspected: no inspector, no
+            // debugger, and the UI is pixels on a canvas with no DOM behind it. `?dsdebug=1` makes the
+            // popup tuner narrate itself to the browser console.
+            DesignSystemEvents.DropdownDiagnostics =
+                (Application.absoluteURL ?? string.Empty).Contains("dsdebug");
+            if (DesignSystemEvents.DropdownDiagnostics)
+                Debug.Log("[dsdiag] dropdown diagnostics ON");
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Initialize()
         {
@@ -75,7 +94,7 @@ namespace Showcase.Runtime
             if (showcaseUxml == null)
             {
                 Debug.LogError($"[ShowcaseBootstrap] Could not load {SHOWCASE_RES_PATH}.uxml from Resources. " +
-                               "Confirm Assets/DesignSystem/Resources/UI/Styles/DesignSystem/DesignSystemShowcase.uxml exists.");
+                               "Confirm Assets/Showcase/Resources/DesignSystemShowcase.uxml exists.");
                 return;
             }
 
@@ -138,24 +157,41 @@ namespace Showcase.Runtime
                 var root = showcaseDoc.rootVisualElement;
                 if (root == null) return;
 
-                var panelRoot = root.parent;
-                if (panelRoot != null)
-                {
-                    var popupChrome = Resources.Load<StyleSheet>("UI/Styles/DesignSystem/DropdownPopup");
-                    if (popupChrome != null && !panelRoot.styleSheets.Contains(popupChrome))
-                        panelRoot.styleSheets.Add(popupChrome);
-                }
+                InstallPanelScopeSheets(root.parent);
+
+                // A second, permanent marker on the root, purely so the theme-swap guard can be
+                // written as a COMPOUND selector. `.showcase-root.ds-no-transition` scores 512, which
+                // is what lets it zero `--transition-fast` out from under a ThemeData's own token
+                // block — that block is `:root`-scoped (256) and gets added last, so a single-class
+                // guard would lose the tie on load order at exactly the wrong moment. See
+                // ShowcaseTheme.uss.
+                root.AddToClassList("showcase-root");
 
                 // Fresh-slate state: a previous scene visit may have left
                 // _activeOverride set to a palette whose VisualElement refs
                 // are stale. The new tree starts at the design-system
                 // defaults, so reset the cache here before wiring.
                 _activeOverride = null;
+                _activeThemeAsset = null;
+                _themeLight = false;
                 CodigrateThemeApplier.ResetAll();   // drop dead-tree stamp registries
                 _flatRoot = root;
                 _themeToggleLocked = false;
                 _themeDropdownValue = DEFAULT_OPTION;
                 _themeStatusText = null;
+
+                // A scene reloaded while the corridor was up would otherwise come back with the flat
+                // page believing it is still hidden, and it would never repaint again.
+                _flatVisible = true;
+                _flatStale = false;
+
+                // Scheduled against the OLD root, which is now a dead tree.
+                _restoreTransitions = null;
+
+                // Idempotent across scene reloads: the event is static and so is the handler, so a
+                // straight `+=` would stack a second subscription every visit.
+                DesignSystemEvents.DropdownPopupOpened -= OnDropdownPopupOpened;
+                DesignSystemEvents.DropdownPopupOpened += OnDropdownPopupOpened;
 
                 ApplyMobileClass(root);
                 WirePromoLinks(root);
@@ -165,6 +201,7 @@ namespace Showcase.Runtime
                 WireRandomize(root);
                 WireDrawerDemos(root);
                 WireAutoHideScroll(root);
+                UpdateThemingSection(root);   // show the default theme's USS before anything is picked
                 SetInitialFocus(root);
 
                 // Re-evaluate the mobile class whenever the panel root resizes
@@ -241,7 +278,8 @@ namespace Showcase.Runtime
                                                      () => SetMode(false), () => SetMode(true));
             screenBtn = sBtn; worldBtn = wBtn;
 
-            hud = ShowcaseModeHud.Create(hudDoc, dsUss, onExit: () => SetMode(false));
+            hud = ShowcaseModeHud.Create(hudDoc, dsUss, onExit: () => SetMode(false),
+                                         onBuilt: root => { _hudRoot = root; PaintHud(); });
 
             // Esc in the corridor calls Hide() directly; mirror it onto the UI.
             corridor.Hidden += () => Reflect(false);
@@ -325,9 +363,9 @@ namespace Showcase.Runtime
 
             // Stamp the canonical theme-control state onto the fresh clone so
             // it doesn't disagree with choices made before it was built.
-            bool light = _flatRoot != null && _flatRoot.ClassListContains("theme-light");
-            MirrorThemeControls(panelRoot, light);
-            UpdateHexLabels(panelRoot, light);
+            MirrorThemeControls(panelRoot, _themeLight);
+            UpdateHexLabels(panelRoot, _themeLight);
+            UpdateThemingSection(panelRoot);
         }
 #endif
 
@@ -473,7 +511,138 @@ namespace Showcase.Runtime
         // day/night toggle is suppressed (codigrate carries its own appearance
         // signal; randomize honours the toggle's last value at generation time
         // but doesn't re-apply on subsequent toggle flips).
+        //
+        // This stays the canonical DESCRIPTION of the palette whichever way it is painted:
+        // the hex labels in the COLORS section read it, and so does the corridor.
         static CodigrateThemeApplier.ColorMap _activeOverride;
+
+        // ── How a palette gets painted ──────────────────────────────────────
+        //
+        // There are two mechanisms, and which one runs depends on one thing: did the palette
+        // exist at BUILD time?
+        //
+        //   Baked ThemeData -> add ONE stylesheet to the root. The var() cascade repaints the
+        //                      whole tree on its own, which means every `:hover`, `:disabled`
+        //                      and `:checked` rule in the design system re-resolves for free.
+        //                      All 12 bundled codigrate palettes take this path.
+        //
+        //   ColorMap only   -> walk the tree and stamp inline styles on every element
+        //                      (CodigrateThemeApplier). Read that file's header for why it has
+        //                      to exist: Unity cannot set a `var(--…)` custom property at
+        //                      runtime, and cannot compile a StyleSheet from a string in a
+        //                      player build. Randomize invents its palette at RUNTIME, so there
+        //                      is no sheet to add and no way to make one. It stays on this path.
+        //
+        // The two must never be live at once. An inline style outranks any stylesheet, so a
+        // leftover stamp from a previous Randomize would sit on top of a freshly-applied baked
+        // theme and the theme would appear to do nothing. PaintRoot enforces that.
+        const string BAKED_THEME_RES = "Themes/";
+
+        // The baked theme currently painting the showcase, or null when there is none: the
+        // design-system default, or a Randomize palette, which can only ever be stamped inline.
+        static ThemeData _activeThemeAsset;
+
+        static ThemeData LoadBakedTheme(string paletteKey)
+        {
+            if (string.IsNullOrEmpty(paletteKey)) return null;
+
+            // Baked by Design System > Bake Showcase Themes, keyed by the palette's own metadata
+            // key. A miss is not an error — the palette just falls back to inline stamping, which
+            // is what every palette did before the themes were baked. That fallback is the reason
+            // a bake failure degrades the showcase instead of breaking it.
+            return Resources.Load<ThemeData>(BAKED_THEME_RES + paletteKey);
+        }
+
+        // ── Panel scope: where the dropdown popup lives ─────────────────────
+        //
+        // Unity parents a GenericDropdownMenu under the PANEL root — a SIBLING of the document root,
+        // not a descendant — so nothing attached to the document root can reach it. Two sheets have
+        // to be pulled up to panel scope for the popup to look like it belongs to the design system:
+        // its chrome, and the TOKENS that chrome now references.
+        //
+        // Both are safe to hoist because both are inert: DropdownPopup.uss only matches Unity's own
+        // popup classes, and DesignTokens.uss is 72 custom-property declarations and nothing else.
+        // The full DesignSystem.uss must never come up here — its component rules would start
+        // matching the popup's internals and break its layout.
+        //
+        // Every panel needs its own attach: a world-space UI is one panel PER exhibit.
+        public static void InstallPanelScopeSheets(VisualElement panelScope)
+        {
+            if (panelScope == null) return;
+
+            Add("UI/Styles/DesignSystem/DesignTokens");   // base palette, so var() resolves...
+            Add("UI/Styles/DesignSystem/DropdownPopup");  // ...for the chrome that references it
+
+            void Add(string path)
+            {
+                var sheet = Resources.Load<StyleSheet>(path);
+                if (sheet != null && !panelScope.styleSheets.Contains(sheet))
+                    panelScope.styleSheets.Add(sheet);
+            }
+        }
+
+        // Paint the CURRENT palette onto one root. ThemeRuntime remembers what each root wears, so
+        // this needs no bookkeeping from the caller and is safe to re-run on a root that was just
+        // rebuilt (which is exactly what a world exhibit hands us after a UI reload).
+        public static void PaintRoot(VisualElement root)
+        {
+            if (root == null) return;
+
+            PaintOne(root);
+
+            // ...and again at panel scope, which is the ONLY way to colour the dropdown popup. The
+            // popup is a sibling of `root`, so the theme sheet on `root` cannot reach it; but the
+            // panel root is its parent, and custom properties INHERIT. Put the token block there and
+            // the popup picks the palette up for free — every baked theme, not just dark and light.
+            //
+            // Only the CASCADE half runs here, and only the cascade half can. The inline stamper walks
+            // a tree stamping elements one at a time; pointed at the panel root it would walk the
+            // document root's whole subtree a second time and double-stamp all of it. And it would
+            // still miss, because the popup does not exist yet — Unity builds it on open and destroys
+            // it on close. A Randomize palette therefore reaches the popup from the other end
+            // entirely: OnDropdownPopupOpened, below.
+            var panelScope = root.panel?.visualTree;
+            if (panelScope == null || panelScope == root) return;
+
+            if (_activeThemeAsset) ThemeRuntime.Apply(panelScope, _activeThemeAsset);
+            else                   ThemeRuntime.Clear(panelScope);
+        }
+
+        // Randomize is the one palette that cannot reach the popup through the cascade: it is invented
+        // at runtime, and a player build cannot compile a StyleSheet from a string, so there is no token
+        // block to install at panel scope. The design system offers the only opening there is — it tells
+        // us the moment a popup exists — and we paint it by hand, exactly as the rest of the tree gets
+        // painted under Randomize. Baked themes ignore this: their tokens are already on the panel root
+        // and the popup inherited them before it was ever shown.
+        static void OnDropdownPopupOpened(DropdownField field, VisualElement menu)
+        {
+            bool cascadeHasIt = _activeThemeAsset || _activeOverride == null;
+
+            if (DesignSystemEvents.DropdownDiagnostics)
+                Debug.Log($"[dsdiag] popupOpened '{field?.name}': themeAsset={(_activeThemeAsset ? _activeThemeAsset.name : "null")} " +
+                          $"override={(_activeOverride == null ? "null" : "SET")} -> " +
+                          $"{(cascadeHasIt ? "cascade paints it (no stamp)" : "STAMPING inline")}");
+
+            if (cascadeHasIt) return;
+            CodigrateThemeApplier.StampPopup(menu, _activeOverride, field?.index ?? -1);
+        }
+
+        static void PaintOne(VisualElement root)
+        {
+            if (_activeThemeAsset)
+            {
+                // An inline style outranks any stylesheet, so a leftover stamp from an earlier
+                // Randomize would sit on top of the sheet and the theme would appear to do nothing.
+                CodigrateThemeApplier.Revert(root);
+                ThemeRuntime.Apply(root, _activeThemeAsset);
+                return;
+            }
+
+            ThemeRuntime.Clear(root);
+
+            if (_activeOverride != null) CodigrateThemeApplier.Apply(root, _activeOverride);
+            else                         CodigrateThemeApplier.Revert(root);
+        }
 
         // Canonical theme-control state, shared by the flat page and every
         // world exhibit clone. Theme mutations can originate from ANY root
@@ -485,53 +654,208 @@ namespace Showcase.Runtime
         static string _themeDropdownValue = DEFAULT_OPTION;   // provider dropdown selection
         static string _themeStatusText;                       // provider status label text
 
-        // Wire the day/night toggle in the COLORS section header. Adds /
-        // removes the `theme-light` class on .ds-root; ShowcaseTheme.uss
-        // redefines every colour token under that class, the universal
-        // transition rule animates the swap across the whole tree, and the
-        // hex labels in the COLORS section are rewritten to match.
-        //
-        // The class is ALSO applied to `panel.visualTree` because Unity's
-        // BasePopupField adds the dropdown popup as a SIBLING of root,
-        // under panel.visualTree. Without the class on that ancestor the
-        // popup never sees the .theme-light token overrides and stays dark
-        // while the rest of the showcase flips to light mode.
-        //
-        // While an override palette is active (codigrate / randomize) the
-        // toggle is `SetEnabled(false)` by WireThemeProvider, so this handler
-        // only fires for legitimate user-driven swaps between the two
-        // first-party token sets.
-        // Fan the CURRENT theme (light class + active override map) out to every
-        // surface: the flat page, the world exhibits' visuals (via the corridor),
-        // and the cloned theme CONTROLS on every root (toggle value + lock,
-        // provider dropdown selection, hex labels, status text). Theme mutations
-        // can originate from the flat page OR from a world exhibit clone —
-        // `sourceRoot` is whichever root the user interacted with; its own
-        // visuals were already written by the caller.
-        static void SyncThemeEverywhere(VisualElement sourceRoot)
-        {
-            if (sourceRoot == null) return;
-            bool light = sourceRoot.ClassListContains("theme-light");
+        // Canonical day/night state. This used to be re-read off the root's class list
+        // (`root.ClassListContains("theme-light")`), which stopped being safe the moment a
+        // class-scoped theme could add and remove that very class: the class is now an OUTPUT of
+        // the theme state, so it cannot also be the input.
+        static bool _themeLight;
 
-            if (_flatRoot != null && _flatRoot != sourceRoot)
+        // Fan the CURRENT theme state out to every surface: the flat page, the world exhibits (via
+        // the corridor), and the cloned theme CONTROLS on all of them (toggle value + lock,
+        // provider dropdown selection, hex labels, status text, the THEMING section's live USS).
+        //
+        // Every mutation funnels through here. A theme change can originate from ANY root — the
+        // flat page, the COLORS exhibit's toggle, the THEME PROVIDER exhibit's dropdown — so the
+        // callers set the canonical state and call this, rather than each painting its own root and
+        // then asking everyone else to catch up. That is why this takes no `sourceRoot` any more:
+        // there is no special case for "the root the user touched".
+        // ── Theme swaps do not animate ──────────────────────────────────────
+        //
+        // Every ds- component declares its own colour transition so that HOVER fades. A theme
+        // change moves those same properties, on every element, at once — and USS cannot tell the
+        // two apart, because a transition fires on any change to a watched property and the cascade
+        // has no idea WHY the value moved. So a theme swap silently inherited the hover animation:
+        // on the order of a thousand concurrent transitions on the flat page alone.
+        //
+        // Each running transition pins a snapshot of the element's ComputedStyle, which is a set of
+        // ref-counted native blocks from Allocator.Domain. Swap faster than they retire and the live
+        // blocks stack instead of draining, straight into Unity's 262,144 ceiling and a frozen tab.
+        //
+        // Since the stylesheet cannot make the distinction, this does: `ds-no-transition` sets
+        // `transition-property: none` on a root and all its descendants (ShowcaseTheme.uss), so the
+        // swap's colours resolve instantly, and it comes back off shortly after. Taking it off cannot
+        // retro-start anything — by then the colours have already settled and nothing is changing.
+        const string NO_TRANSITION_CLASS = "ds-no-transition";
+
+        // Long enough to outlast the style pass the swap lands in by a wide margin, short enough that
+        // a hover a moment later still fades. A burst of toggles keeps re-arming it, so transitions
+        // stay off for the whole burst — which is precisely the case that used to freeze.
+        const long TRANSITION_HOLD_MS = 120;
+
+        static IVisualElementScheduledItem _restoreTransitions;
+
+        static void HoldTransitionsOff()
+        {
+            SetNoTransition(true);
+            if (_flatRoot == null) return;
+
+            // The flat root always exists and its panel always ticks, so it hosts the timer for every
+            // root including the corridor's (removing a class needs no scheduler of its own).
+            _restoreTransitions ??= _flatRoot.schedule.Execute(() => SetNoTransition(false));
+            _restoreTransitions.ExecuteLater(TRANSITION_HOLD_MS);   // re-arm, cancelling any pending run
+        }
+
+        static void SetNoTransition(bool on)
+        {
+            Mark(_flatRoot);
+#if UNITY_6000_5_OR_NEWER
+            if (_corridor != null)
+                foreach (var exhibitRoot in _corridor.ExhibitRoots) Mark(exhibitRoot);
+#endif
+            void Mark(VisualElement root)
             {
-                ApplyThemeClass(_flatRoot, light);
-                if (_activeOverride != null) CodigrateThemeApplier.Apply(_flatRoot, _activeOverride);
-                else                         CodigrateThemeApplier.Revert(_flatRoot);
-                UpdateHexLabels(_flatRoot, light);
+                if (root == null) return;
+                if (on) root.AddToClassList(NO_TRANSITION_CLASS);
+                else    root.RemoveFromClassList(NO_TRANSITION_CLASS);
             }
-            if (_flatRoot != null) MirrorThemeControls(_flatRoot, light);
+        }
+
+        static void SyncThemeEverywhere()
+        {
+            // BEFORE anything repaints. This runs inside the toggle's event handler, so the class is
+            // on the roots before the style pass that resolves the new colours ever runs.
+            HoldTransitionsOff();
+
+            if (_flatRoot != null)
+            {
+                // Do not repaint a page nobody can see. In world mode the corridor hides the flat
+                // showcase with `display: none`, which stops it being LAID OUT and DRAWN — it does
+                // not stop it being STYLED. So every theme change was still re-resolving the flat
+                // page's ~990 elements and starting a fresh set of colour transitions on them,
+                // entirely invisibly, on top of the corridor's own ~30 panels. That was half the
+                // cost of a world-mode toggle, spent on pixels that do not exist.
+                if (_flatVisible) SyncFlatPage();
+                else              _flatStale = true;   // catch it up when it comes back
+            }
+
+            // The mode switch is NOT on the flat page in world mode — the corridor hides that whole
+            // document, chrome and all, and the switch you can still see belongs to ShowcaseModeHud,
+            // which is its own UIDocument on its own panel. It was in neither of the two lists this
+            // method paints, so it kept whatever palette it was born with: pick a theme in the
+            // corridor and everything re-themed around a Screen/World toggle that did not.
+            PaintHud();
 
 #if UNITY_6000_5_OR_NEWER
             if (_corridor == null) return;
-            _corridor.ApplyScreenTheme(light, _activeOverride);   // class + palette per exhibit
+            _corridor.ApplyScreenTheme(_themeLight);   // it reads the palette back through PaintRoot
             foreach (var exhibitRoot in _corridor.ExhibitRoots)
             {
                 if (exhibitRoot == null) continue;
-                if (exhibitRoot != sourceRoot) UpdateHexLabels(exhibitRoot, light);
-                MirrorThemeControls(exhibitRoot, light);
+                UpdateHexLabels(exhibitRoot, _themeLight);
+                UpdateThemingSection(exhibitRoot);
+                MirrorThemeControls(exhibitRoot, _themeLight);
             }
 #endif
+        }
+
+        // The world-mode HUD's document root (ShowcaseModeHud). Null until the HUD has built itself,
+        // which happens a frame or more after boot.
+        static VisualElement _hudRoot;
+
+        static void PaintHud()
+        {
+            if (_hudRoot == null) return;
+
+            PaintRoot(_hudRoot);
+            ApplyThemeClass(_hudRoot, _themeLight);
+
+            // The HUD floats OVER the corridor, so its root must never be filled. `ds-root--hud` is
+            // what normally guarantees that, but it only beats the stylesheet — and the Randomize path
+            // paints by stamping INLINE styles, which outrank any class rule. Left alone, picking
+            // Randomize in world mode drops an opaque sheet of `--color-bg` across the whole gallery.
+            // The corridor learned this on its own exhibit roots; the same applies here.
+            _hudRoot.style.backgroundColor = Color.clear;
+        }
+
+        // Is the flat showcase on screen, and does it owe itself a repaint from a theme change that
+        // landed while it was hidden?
+        static bool _flatVisible = true;
+        static bool _flatStale;
+
+        static void SyncFlatPage()
+        {
+            _flatStale = false;
+
+            PaintRoot(_flatRoot);
+
+            // AFTER PaintRoot, not before. Painting a class-scoped theme adds its class, and
+            // clearing one removes it — so the day/night class has to be re-asserted once the
+            // sheets have settled, or a swap away from a light theme would leave day mode off
+            // even though the toggle still says it is on.
+            ApplyThemeClass(_flatRoot, _themeLight);
+
+            UpdateHexLabels(_flatRoot, _themeLight);
+            UpdateThemingSection(_flatRoot);
+            MirrorThemeControls(_flatRoot, _themeLight);
+        }
+
+        // Called by the corridor as it hides and shows the flat page. Any theme changes made while
+        // the page was hidden are folded into a single repaint here, on the way back in, so the user
+        // never sees a stale page and the corridor never pays for one.
+        public static void SetFlatPageVisible(bool visible)
+        {
+            if (_flatVisible == visible) return;
+            _flatVisible = visible;
+
+            if (visible && _flatStale && _flatRoot != null) SyncFlatPage();
+        }
+
+        // ── Per-root widget cache ───────────────────────────────────────────
+        //
+        // The theme-driven widgets on one root, resolved ONCE. A theme change fans out to the flat
+        // page plus ~30 corridor exhibits, and each of those used to re-run about eighteen UQuery
+        // lookups — roughly six hundred full subtree walks per click, nearly all of them searching a
+        // panel that cannot contain what is being looked for. Only the COLORS exhibit has swatch
+        // labels, only THEME PROVIDER has the dropdown, only THEMING has the USS box; the other
+        // thirty pay thirteen whole-tree walks to rediscover that they have no swatches.
+        //
+        // The cache cannot go stale. These elements are cloned with the panel and never replaced,
+        // and when a PanelRenderer rebuilds a root it hands back a NEW VisualElement, which is a new
+        // key. Weak keys, so a discarded root's entry goes with it.
+        sealed class ThemeControls
+        {
+            public Toggle Toggle;
+            public DropdownField Dropdown;
+            public Label Status;
+            public Label ThemingActive;
+            public Label ThemingUss;
+
+            // Only the swatch labels this root actually has, so the common case is an O(1) skip.
+            public readonly Dictionary<string, Label> Hex = new Dictionary<string, Label>();
+        }
+
+        static readonly ConditionalWeakTable<VisualElement, ThemeControls> _themeControls = new();
+
+        static ThemeControls ControlsFor(VisualElement root) => _themeControls.GetValue(root, BuildThemeControls);
+
+        static ThemeControls BuildThemeControls(VisualElement root)
+        {
+            var c = new ThemeControls
+            {
+                Toggle        = root.Q<Toggle>("theme-toggle"),
+                Dropdown      = root.Q<DropdownField>("theme-provider-dropdown"),
+                Status        = root.Q<Label>("theme-provider-status"),
+                ThemingActive = root.Q<Label>("theming-active"),
+                ThemingUss    = root.Q<Label>("theming-uss"),
+            };
+
+            foreach (var name in SwatchHex.Keys)
+            {
+                var label = root.Q<Label>(name);
+                if (label != null) c.Hex[name] = label;
+            }
+
+            return c;
         }
 
         // Align the theme CONTROLS on `root` with the canonical state. Uses
@@ -539,26 +863,26 @@ namespace Showcase.Runtime
         // mutation handlers.
         static void MirrorThemeControls(VisualElement root, bool light)
         {
-            var toggle = root.Q<Toggle>("theme-toggle");
-            if (toggle != null)
+            var c = ControlsFor(root);
+
+            if (c.Toggle != null)
             {
-                toggle.SetValueWithoutNotify(light);
-                toggle.SetEnabled(!_themeToggleLocked);
+                c.Toggle.SetValueWithoutNotify(light);
+                c.Toggle.SetEnabled(!_themeToggleLocked);
             }
 
-            var dropdown = root.Q<DropdownField>("theme-provider-dropdown");
-            if (dropdown != null && _themeDropdownValue != null &&
-                dropdown.value != _themeDropdownValue &&
-                dropdown.choices != null && dropdown.choices.Contains(_themeDropdownValue))
-                dropdown.SetValueWithoutNotify(_themeDropdownValue);
+            if (c.Dropdown != null && _themeDropdownValue != null &&
+                c.Dropdown.value != _themeDropdownValue &&
+                c.Dropdown.choices != null && c.Dropdown.choices.Contains(_themeDropdownValue))
+                c.Dropdown.SetValueWithoutNotify(_themeDropdownValue);
 
-            if (_themeStatusText != null)
-            {
-                var status = root.Q<Label>("theme-provider-status");
-                if (status != null) status.text = _themeStatusText;
-            }
+            if (_themeStatusText != null && c.Status != null)
+                c.Status.text = _themeStatusText;
         }
 
+        // The day/night toggle in the COLORS section header. While an override palette is active the
+        // toggle is disabled (MirrorThemeControls does it), so this only ever fires for a genuine
+        // user swap between the two first-party moods.
         static void WireThemeToggle(VisualElement root)
         {
             if (root == null) return;
@@ -566,18 +890,29 @@ namespace Showcase.Runtime
             if (toggle == null) return;
             toggle.RegisterValueChangedCallback(evt =>
             {
-                bool light = evt.newValue;
-                ApplyThemeClass(root, light);
-                UpdateHexLabels(root, light);
-                SyncThemeEverywhere(root);
+                _themeLight = evt.newValue;
+                SyncThemeEverywhere();
             });
         }
 
+        // Put the `theme-light` class on the DOCUMENT ROOT — NOT on `.ds-root`, which is the
+        // ScrollView one level below it inside the UXML. That distinction is load-bearing: the
+        // document root is also where `DesignSystem.uss` lands and therefore where its `:root`
+        // token block resolves, so `.theme-light` and `:root` end up matching the SAME element.
+        // Unity scores them identically (both 256), which means neither wins on specificity and
+        // load order decides — ShowcaseTheme.uss is added after DesignSystem.uss, so it wins, and a
+        // theme sheet added later still wins over both. Move this class down onto `.ds-root` and
+        // that stops being true: it would then match a DESCENDANT of the element `:root` resolves
+        // on, and a rule matching an element beats a value the element merely inherited, so it
+        // would shadow any `:root` theme for the whole subtree.
         static void ApplyThemeClass(VisualElement root, bool light)
         {
             if (light) root.AddToClassList("theme-light");
             else       root.RemoveFromClassList("theme-light");
 
+            // Also on `panel.visualTree`: Unity's BasePopupField adds the dropdown popup as a
+            // SIBLING of the document root, so a class set only here never reaches it and the popup
+            // would stay dark while the rest of the page flips.
             var panelRoot = root.panel?.visualTree;
             if (panelRoot != null && panelRoot != root)
             {
@@ -588,45 +923,98 @@ namespace Showcase.Runtime
 
         static void UpdateHexLabels(VisualElement root, bool light)
         {
+            var hex = ControlsFor(root).Hex;
+            if (hex.Count == 0) return;   // not the COLORS exhibit, which is nearly every root
+
             // While an override palette is active, the swatches reflect that
             // palette's actual values rather than the design-system Dark / Light
             // dictionary. Once Revert runs and _activeOverride goes back to
             // null the dictionary path takes over again.
             if (_activeOverride != null)
             {
-                UpdateHexLabelsFromOverride(root);
+                UpdateHexLabelsFromOverride(hex);
                 return;
             }
+
             foreach (var kv in SwatchHex)
-            {
-                var label = root.Q<Label>(kv.Key);
-                if (label == null) continue;
-                label.text = light ? kv.Value.Light : kv.Value.Dark;
-            }
+                if (hex.TryGetValue(kv.Key, out var label))
+                    label.text = light ? kv.Value.Light : kv.Value.Dark;
         }
 
-        static void UpdateHexLabelsFromOverride(VisualElement root)
+        static void UpdateHexLabelsFromOverride(Dictionary<string, Label> hex)
         {
             var m = _activeOverride;
-            SetHex(root, "hex-primary",         m.Primary);
-            SetHex(root, "hex-primary-hover",   m.PrimaryHover);
-            SetHex(root, "hex-secondary",       m.Secondary);
-            SetHex(root, "hex-tertiary",        m.Tertiary);
-            SetHex(root, "hex-warning",         m.Warning);
-            SetHex(root, "hex-danger",          m.Danger);
-            SetHex(root, "hex-text-primary",    m.TextPrimary);
-            SetHex(root, "hex-text-secondary",  m.TextSecondary);
-            SetHex(root, "hex-text-disabled",   m.TextDisabled);
-            SetHex(root, "hex-bg",              m.Bg);
-            SetHex(root, "hex-surface",         m.Surface);
-            SetHex(root, "hex-surface-elev",    m.SurfaceElev);
-            SetHex(root, "hex-border",          m.Border);
+            SetHex(hex, "hex-primary",         m.Primary);
+            SetHex(hex, "hex-primary-hover",   m.PrimaryHover);
+            SetHex(hex, "hex-secondary",       m.Secondary);
+            SetHex(hex, "hex-tertiary",        m.Tertiary);
+            SetHex(hex, "hex-warning",         m.Warning);
+            SetHex(hex, "hex-danger",          m.Danger);
+            SetHex(hex, "hex-text-primary",    m.TextPrimary);
+            SetHex(hex, "hex-text-secondary",  m.TextSecondary);
+            SetHex(hex, "hex-text-disabled",   m.TextDisabled);
+            SetHex(hex, "hex-bg",              m.Bg);
+            SetHex(hex, "hex-surface",         m.Surface);
+            SetHex(hex, "hex-surface-elev",    m.SurfaceElev);
+            SetHex(hex, "hex-border",          m.Border);
         }
 
-        static void SetHex(VisualElement root, string name, Color color)
+        static void SetHex(Dictionary<string, Label> hex, string name, Color color)
         {
-            var label = root.Q<Label>(name);
-            if (label != null) label.text = CodigrateThemeApplier.ToHex(color);
+            if (hex.TryGetValue(name, out var label)) label.text = CodigrateThemeApplier.ToHex(color);
+        }
+
+        // ── THEMING section ─────────────────────────────────────────────────
+        //
+        // Shows the ACTUAL stylesheet the showcase is painting with, regenerated live from the
+        // ThemeData that is currently applied. This works at all because GenerateUssString is a
+        // RUNTIME method, not an editor one: the very call the baker makes at edit time runs again
+        // here, in the browser, on the same asset. What you read in the box is what is on the root.
+        const string DEFAULT_THEME_RES = "UI/Themes/Dark";
+        static ThemeData _defaultThemeAsset;
+
+        static ThemeData DefaultThemeAsset =>
+            _defaultThemeAsset ? _defaultThemeAsset : _defaultThemeAsset = Resources.Load<ThemeData>(DEFAULT_THEME_RES);
+
+        static void UpdateThemingSection(VisualElement root)
+        {
+            if (root == null) return;
+
+            var c = ControlsFor(root);
+            var activeLabel = c.ThemingActive;
+            var ussLabel    = c.ThemingUss;
+            if (activeLabel == null && ussLabel == null) return;   // not the THEMING exhibit
+
+            // Randomize has no asset BY CONSTRUCTION, so there is no USS to show. Saying so is more
+            // honest than showing the design system's default block and implying it is what paints.
+            if (!_activeThemeAsset && _activeOverride != null)
+            {
+                if (activeLabel != null) activeLabel.text = "Random (inline)";
+                if (ussLabel != null)
+                    ussLabel.text =
+                        "/* No stylesheet exists for this palette.\n\n" +
+                        "   It was generated a moment ago, at runtime, and a player build cannot\n" +
+                        "   compile USS from a string. So it is stamped inline onto every element\n" +
+                        "   instead, one by one, which is the thing every OTHER theme here avoids.\n\n" +
+                        "   Pick a named theme above to see the real stylesheet. */";
+                return;
+            }
+
+            var theme = _activeThemeAsset ? _activeThemeAsset : DefaultThemeAsset;
+            if (!theme)
+            {
+                if (activeLabel != null) activeLabel.text = "None";
+                if (ussLabel != null)    ussLabel.text = "";
+                return;
+            }
+
+            if (activeLabel != null)
+                activeLabel.text = _activeThemeAsset
+                    ? $"{_themeDropdownValue}   {theme.Scope}"
+                    : $"Design System Dark   {theme.Scope}";
+
+            if (ussLabel != null)
+                ussLabel.text = theme.GenerateUssString();
         }
 
         // Theme provider — fetches the codigrate theme list, lets the user
@@ -733,56 +1121,40 @@ namespace Showcase.Runtime
 
         static void ApplyCodigratePalette(VisualElement root, CodigrateThemeProvider.ThemePalette palette)
         {
-            var map = CodigrateThemeApplier.FromCodigrate(palette);
-            _activeOverride = map;
-            _themeToggleLocked = true;
+            // The ColorMap stays the canonical DESCRIPTION of the palette (the hex labels read it),
+            // and the baked asset is how it gets PAINTED. A miss on the lookup is not a failure:
+            // the palette simply falls back to inline stamping, exactly as it did before the themes
+            // were baked, so a bad bake degrades the showcase rather than breaking it.
+            _activeOverride     = CodigrateThemeApplier.FromCodigrate(palette);
+            _activeThemeAsset   = LoadBakedTheme(palette.Key);
+            _themeToggleLocked  = true;
             _themeDropdownValue = palette.Name;
-            _themeStatusText = $"{palette.Name} · {palette.Appearance}";
+            _themeStatusText    = $"{palette.Name} · {palette.Appearance}";
 
-            // Mirror the palette's reported appearance onto the day/night
-            // toggle so any leftover USS state (e.g. the `.theme-light`
-            // re-routes for the notification dot) is consistent — then
-            // disable the toggle while the override is active.
-            bool isLight = string.Equals(palette.Appearance, "light", StringComparison.OrdinalIgnoreCase);
-            var toggle = root.Q<Toggle>("theme-toggle");
-            if (toggle != null)
-            {
-                toggle.SetValueWithoutNotify(isLight);
-                toggle.SetEnabled(false);
-            }
-            ApplyThemeClass(root, isLight);
+            // The palette carries its own appearance, so it drives the day/night state rather than
+            // reading it. MirrorThemeControls pushes this onto the toggle and disables it.
+            _themeLight = string.Equals(palette.Appearance, "light", StringComparison.OrdinalIgnoreCase);
 
-            CodigrateThemeApplier.Apply(root, map);
-            UpdateHexLabels(root, isLight);
-            SyncThemeEverywhere(root);
+            SyncThemeEverywhere();
         }
 
         static void ClearOverride(VisualElement root)
         {
-            _activeOverride = null;
-            _themeToggleLocked = false;
+            _activeOverride     = null;
+            _activeThemeAsset   = null;
+            _themeToggleLocked  = false;
             _themeDropdownValue = DEFAULT_OPTION;
-            _themeStatusText = _codigrateListings != null
+            _themeStatusText    = _codigrateListings != null
                 ? $"{_codigrateListings.Count} themes by Codigrate available."
                 : null;
-            CodigrateThemeApplier.Revert(root);
 
-            var toggle = root.Q<Toggle>("theme-toggle");
-            if (toggle != null) toggle.SetEnabled(true);
+            // A codigrate palette may have left the mood in the other state. The toggle on the
+            // interacted root holds the user's last choice; the THEME PROVIDER exhibit's panel has
+            // no toggle of its own, so keep whatever we already had in that case.
+            var toggle = root?.Q<Toggle>("theme-toggle");
+            _themeLight = toggle?.value ?? _themeLight;
 
-            // The interacted root may be the THEME PROVIDER exhibit, whose
-            // panel has no theme-toggle — fall back to the flat page's toggle
-            // for the current day/night mood.
-            bool isLight = toggle != null
-                ? toggle.value
-                : _flatRoot != null && _flatRoot.ClassListContains("theme-light");
-            // Re-assert the mood class on the interacted root (a codigrate
-            // palette may have left it in the other mood), then refresh hex
-            // labels back to the design-system dictionary now that
-            // _activeOverride is null.
-            ApplyThemeClass(root, isLight);
-            UpdateHexLabels(root, isLight);
-            SyncThemeEverywhere(root);
+            SyncThemeEverywhere();
         }
 
         // Opens the public Codigrate theme catalogue. The link sits beside the
@@ -811,36 +1183,24 @@ namespace Showcase.Runtime
 
         static void DoRandomize(VisualElement root)
         {
-            var toggle = root.Q<Toggle>("theme-toggle");
-            // Randomize can be triggered from the THEME PROVIDER exhibit,
-            // whose panel carries no theme-toggle — read the mood off the
-            // flat page in that case.
-            bool isLight = toggle != null
-                ? toggle.value
-                : _flatRoot != null && _flatRoot.ClassListContains("theme-light");
-            var map = CodigrateThemeApplier.Randomize(isLight);
-            _activeOverride = map;
-            _themeToggleLocked = false;   // randomize keeps the day/night toggle usable
+            // Randomize can be triggered from the THEME PROVIDER exhibit, whose panel carries no
+            // theme-toggle — keep the current mood in that case.
+            var toggle = root?.Q<Toggle>("theme-toggle");
+            _themeLight = toggle?.value ?? _themeLight;
+
+            // THE ONE PATH THAT STILL STAMPS INLINE STYLES, and it has no choice. This palette is
+            // invented right here, at runtime, and Unity cannot compile a StyleSheet from a string
+            // in a player build — so there is no sheet to add and no way to make one. Every OTHER
+            // palette in the showcase existed at build time and is painted through the cascade
+            // instead. See the header of CodigrateThemeApplier.
+            _activeOverride     = CodigrateThemeApplier.Randomize(_themeLight);
+            _activeThemeAsset   = null;
+            _themeToggleLocked  = false;   // randomize keeps the day/night toggle usable: re-rolling
+                                           // in the same mood is the natural "try until you like it" loop
             _themeDropdownValue = RANDOM_OPTION;
-            _themeStatusText = "Random palette · click Randomize again to roll.";
+            _themeStatusText    = "Random palette · click Randomize again to roll.";
 
-            // Reflect the random state in the dropdown so the user can later
-            // pick DEFAULT_OPTION to revert via the same mechanism that
-            // reverts a codigrate palette. (MirrorThemeControls repeats this
-            // for every OTHER root.)
-            var dropdown = root.Q<DropdownField>("theme-provider-dropdown");
-            if (dropdown != null && dropdown.value != RANDOM_OPTION)
-                dropdown.SetValueWithoutNotify(RANDOM_OPTION);
-
-            // Randomize keeps the toggle enabled — re-rolling in the same mood
-            // is the most natural flow, and flipping to the other mood then
-            // re-rolling builds the "try until you like it" loop.
-            if (toggle != null) toggle.SetEnabled(true);
-
-            ApplyThemeClass(root, isLight);
-            CodigrateThemeApplier.Apply(root, map);
-            UpdateHexLabels(root, isLight);
-            SyncThemeEverywhere(root);
+            SyncThemeEverywhere();
         }
 
         // Hook the burger / close buttons in the three drawer demo sections to

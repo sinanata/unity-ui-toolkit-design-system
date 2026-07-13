@@ -1,6 +1,6 @@
 # Component reference
 
-One-line summary per component class. The showcase UXML (`Assets/DesignSystem/Resources/UI/Styles/DesignSystem/DesignSystemShowcase.uxml`) is the second source of truth — every class here appears there with its expected DOM structure and at least one rendered state.
+One-line summary per component class. The showcase UXML (`Assets/Showcase/Resources/DesignSystemShowcase.uxml`) is the second source of truth — every class here appears there with its expected DOM structure and at least one rendered state.
 
 ## Screen root
 
@@ -63,17 +63,42 @@ Set placeholders via `field.textEdition.placeholder = "..."` in C#. Unity 6's AP
 
 ### Dropdowns: the popup needs a host-side attach
 
-The open menu (`unity-base-dropdown__*`) is parented by Unity as a **sibling of `.ds-root`**, not a descendant. Stylesheets a UXML `<Style>` tag imports scope to that UXML's subtree, so **no design-system rule can reach the popup** and no markup a screen author writes will change that. Popup chrome therefore ships as its own sheet, which the **host** attaches at panel scope, once per `UIDocument`, after the first layout pass:
+The open menu (`unity-base-dropdown__*`) is parented by Unity as a **sibling of `.ds-root`**, not a descendant. Stylesheets a UXML `<Style>` tag imports scope to that UXML's subtree, so **no design-system rule can reach the popup** and no markup a screen author writes will change that. Popup chrome therefore ships as its own sheet, which the **host** attaches at panel scope, once per `UIDocument`, after the first layout pass — together with the token block its colours reference:
 
 ```csharp
 var panelScope = doc.rootVisualElement.parent
               ?? doc.rootVisualElement.panel?.visualTree;
-var popup = Resources.Load<StyleSheet>("UI/Styles/DesignSystem/DropdownPopup");
-if (panelScope != null && popup != null && !panelScope.styleSheets.Contains(popup))
-    panelScope.styleSheets.Add(popup);
+foreach (var path in new[] { "UI/Styles/DesignSystem/DesignTokens",     // so var(--color-*) resolves...
+                             "UI/Styles/DesignSystem/DropdownPopup" })  // ...for the chrome that uses it
+{
+    var sheet = Resources.Load<StyleSheet>(path);
+    if (panelScope != null && sheet != null && !panelScope.styleSheets.Contains(sheet))
+        panelScope.styleSheets.Add(sheet);
+}
 ```
 
 Every panel needs its own attach — a world-space UI is one panel **per quad**, not one for the scene. Skip it and dropdowns open Unity-grey with chunky default scrollbars. This is a host responsibility, not a screen bug.
+
+**Theming the popup.** The chrome uses `var(--color-*)`, and custom properties *inherit*, so defining the tokens at panel scope is what colours the popup — the panel root is its parent. To make it follow a theme, add that theme's stylesheet at panel scope too, exactly as you add it to the document root:
+
+```csharp
+ThemeRuntime.Apply(doc.rootVisualElement, tokyo);   // the page
+ThemeRuntime.Apply(panelScope, tokyo);              // ...and the popup, which is not inside the page
+```
+
+A `ThemeData` compiles to a pure `{scope} { --token: value }` block, which is why hoisting one is safe. Never hoist the full `DesignSystem.uss`: its component rules start matching Unity's internal popup elements and quietly break the popup's own layout.
+
+**Theming the popup when there is no stylesheet.** The above is the whole story for any palette that exists as an asset. It does not work for a palette invented at *runtime* — Unity cannot set a custom property from C#, and a player build cannot compile a `StyleSheet` from a string, so there is nothing to hoist. Such a palette has to be stamped inline, and the popup is the one element a tree-walking stamper cannot reach: Unity builds it fresh under the panel root on every open and destroys it on close, so at the moment your stamp runs it does not exist. Subscribe instead:
+
+```csharp
+DesignSystemEvents.DropdownPopupOpened += (field, menu) =>
+{
+    // Fires once per popup instance, after the design system has placed and sized it.
+    // Nothing to unregister afterwards: the popup is transient.
+};
+```
+
+Two things to know if you take this path. An inline background **outranks the stylesheet**, so the moment you stamp a row's resting colour you own its `:hover` and `:checked` too and must drive them from `PointerEnter` / `PointerLeave` yourself. And the checked row is `items[field.index]`: a `DropdownField`'s menu holds one row per choice, in `choices` order, with no separators. The showcase's Randomize button is the worked example (`CodigrateThemeApplier.StampPopup`).
 
 ## Tabs & filters
 
@@ -86,7 +111,7 @@ Every panel needs its own attach — a world-space UI is one panel **per quad**,
 | `.ds-view-toggle` | Container for grid/list view switching. |
 | `.ds-view-toggle__btn` | Square icon button inside the toggle. |
 
-A tab strip on its own is a filter row — it styles state and you drive the filtering. To switch **content**, add a `.ds-tabpanels` sibling: the Nth `.ds-tab` shows the Nth `.ds-tabpanel`, and the runtime (`DesignSystemRuntime.EnsureTabs`) wires the clicks with no C# and no ids.
+A tab strip on its own is a filter row — it styles state and you drive the filtering. To switch **content**, add a `.ds-tabpanels` sibling: the Nth `.ds-tab` shows the Nth `.ds-tabpanel`, and the runtime (`DesignSystemBehaviour.EnsureTabs`) wires the clicks with no C# and no ids.
 
 ```xml
 <ui:VisualElement class="ds-tabs">
@@ -315,7 +340,7 @@ The runtime (`DesignSystemBehaviour.EnsureDraggables`) auto-wires `.ds-draggable
 
 ## Icons
 
-`.ds-icon` is the base class. Pair with one of 63 `.ds-icon--<name>` classes from `Icons.uss`:
+`.ds-icon` is the base class. Pair with one of 120 `.ds-icon--<name>` classes from `Icons.uss`:
 
 ```
 arrow-up arrow-down arrow-left arrow-right

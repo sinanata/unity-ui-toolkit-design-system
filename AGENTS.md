@@ -4,7 +4,7 @@ Guidance for AI coding agents (Codex, Cursor, GitHub Copilot, Claude Code, Winds
 
 ## What this project is
 
-A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer, UXML and USS). It ships design tokens, 24 components, 63 SVG icons, a one-class mobile flip, and a small auto-attaching C# runtime. Everything is themed dark and editable from a single stylesheet. Package id: `com.sinanata.designsystem`. License: MIT. The same components render on flat screens and, on Unity 6000.5+, in world space. Both `UIDocument` and `PanelRenderer` can host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery, and Unity now lists `UIDocument` under UI Toolkit > Legacy while keeping it fully supported (not `[Obsolete]`, still world-space capable). Prefer `PanelRenderer` for new work.
+A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer, UXML and USS). It ships design tokens, 42 components, 120 SVG icons, a one-class mobile flip, and a small auto-attaching C# runtime. Everything is themed dark and editable from a single stylesheet. Package id: `com.sinanata.designsystem`. License: MIT. The same components render on flat screens and, on Unity 6000.5+, in world space. Both `UIDocument` and `PanelRenderer` can host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery, and Unity now lists `UIDocument` under UI Toolkit > Legacy while keeping it fully supported (not `[Obsolete]`, still world-space capable). Prefer `PanelRenderer` for new work.
 
 ## Golden rules (do not violate)
 
@@ -26,17 +26,18 @@ A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer
    ```
 3. Build screens by composing `ds-*` classes. The canonical list of every class, its DOM, and its states is `docs/COMPONENTS.md`; the showcase UXML is the second source of truth.
 4. For touch layouts, add `mobile` to the screen root (`root.AddToClassList("mobile")`). Same UXML, same classes, flipped sizing.
-5. Theme by overriding tokens in a stylesheet attached after `DesignSystem.uss`. Scope the overrides under a class (for example `.theme-light`) to switch at runtime. See `docs/ARCHITECTURE.md`.
+5. **Theme with a `ThemeData` asset, not by hand-writing a token block.** Duplicate `Resources/UI/Themes/Dark`, edit it in `Design System > Theme Configurator`, and add a `ThemeApplier` to your `UIDocument` or `PanelRenderer`. The asset bakes its tokens into a real stylesheet and the applier adds that one sheet to the root; the `var()` cascade does the rest. Set `scopeSelector` to `:root` to theme the whole panel, or to a class (`.theme-night`) to theme only a subtree — that is how the shipped `Light` theme works. A hand-written token block attached after `DesignSystem.uss` still works and is what `ShowcaseTheme.uss` does, but the asset is the supported path. See `docs/ARCHITECTURE.md`.
 6. You do not wire the runtime. `DesignSystemBehaviour` auto-attaches to every UIDocument (and every PanelRenderer on 6000.5+) and injects toggle knobs, drives spinner rotation, animates skeleton shimmer, and wires drag and drop. If you clone templates lazily and want to avoid a one-frame flat-toggle flash, call the runtime's `EnsureToggleKnobs(root)` helper after the clone (see `docs/ARCHITECTURE.md`).
 
 ## Repository layout
 
 - `Assets/DesignSystem/` is the shippable package, and the only folder a consumer copies.
   - `Resources/UI/Styles/DesignSystem/`: 14 USS files. `DesignSystem.uss` is the master that `@import`s the rest in a load-bearing order.
-  - `Resources/Textures/Icons/`: 63 white-fill SVGs.
+  - `Resources/Textures/Icons/`: 120 white-fill SVGs.
+  - `Resources/UI/Themes/`: the `Dark` and `Light` `ThemeData` assets the package ships. Regenerate with `Design System > Generate Built-in Themes`; `Dark` must stay identical to `DesignTokens.uss`.
   - `Runtime/Behaviour/`: `DesignSystemBehaviourBase<TComponent>` plus `UIDocument/` and `PanelRenderer/` backends.
-  - `Runtime/Theme/`: `ThemeData` asset, `ThemeApplierBase<T>` + two concrete backends, `ThemeConfiguratorWindow`, `ThemeDataEditor`.
-  - `Editor/EditorHelpers.cs`: a menu action that attaches the stylesheet.
+  - `Runtime/Theme/`: `ThemeData` (the token store and USS generator) and `ThemeRuntime` + `ThemeApplierBase<T>` + two concrete backends. Runtime only — no editor code lives under `Runtime/`.
+  - `Editor/`: `EditorHelpers.cs` (a menu action that attaches the stylesheet) and `Theme/` (the Theme Configurator, the baker, the preset generators).
 - `Assets/Showcase/`, `Assets/Editor/`, `Assets/WebGLTemplates/`, and `Tools/` are the **host project** that builds the live web demo. They are not part of the package. Do not copy them into a consuming project, and do not add product-specific dependencies to the package's own C#.
 - `docs/`: ARCHITECTURE.md, COMPONENTS.md, ICONS.md, MOBILE.md.
 

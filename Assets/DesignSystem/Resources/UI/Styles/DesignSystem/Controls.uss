@@ -497,7 +497,7 @@
    identically in both themes.
 
    Touch devices: there's no `:hover` on touch, so for mobile usage call
-   `DesignSystemRuntime.WireScrollAutoHide(scrollView)` from C#; the helper
+   `DesignSystemBehaviour.WireScrollAutoHide(scrollView)` from C#; the helper
    adds an `is-scrolling` class for ~700 ms after each WheelEvent /
    PointerDownEvent, which the rule below also responds to. Desktop users
    don't need that helper. */
@@ -547,13 +547,12 @@
              .ds-drawer__close              → close Button
            .ds-drawer__body                 → content slot
 
-   Compound selectors (e.g. `.ds-drawer.ds-drawer--top`) are used throughout
-   so per-component transition-property declarations win against the
-   universal `.ds-root *` rule that ShowcaseTheme.uss ships for theme swap
-   (specificity 0,2,0 vs 0,1,0). These rules live in Controls.uss instead
-   of a separate Drawers.uss file because Unity's USS asset importer caches
-   the parent stylesheet's @import resolution; new-file additions can fail
-   to load until a -ClearCache rebuild.
+   Compound selectors (e.g. `.ds-drawer.ds-drawer--top`) are used throughout so a
+   drawer's own transition-property declaration outranks anything a host layers on
+   top of the system with a single-class or universal selector. These rules live in
+   Controls.uss instead of a separate Drawers.uss file because Unity's USS asset
+   importer caches the parent stylesheet's @import resolution; new-file additions
+   can fail to load until a -ClearCache rebuild.
    ============================================================================ */
 
 .ds-drawer-wrap {
@@ -577,12 +576,13 @@
 .ds-drawer.ds-drawer--bottom,
 .ds-drawer.ds-drawer--left {
     position: absolute;
-    /* `translate` first so the slide animation runs with the rule's
-       authored 200ms duration. The color list keeps the drawer in step
-       with the universal theme-swap transition declared in
-       ShowcaseTheme.uss — without it the surface + borders snap-cut
-       while the rest of the page eases between dark/light. */
-    transition-property: translate, background-color, color, border-color, border-top-color, border-right-color, border-bottom-color, border-left-color, -unity-background-image-tint-color;
+    /* MOTION ONLY. This used to carry the eight colour properties as well, to keep
+       the drawer in step with a universal theme-swap transition the showcase used
+       to ship. That rule is gone — a theme swap now snaps, everywhere, because
+       animating every colour of every element is what drove Unity's transition
+       system into its Allocator.Domain ceiling. A drawer that colour-faded while
+       the rest of the page snapped would be the only thing out of step. */
+    transition-property: translate;
 }
 
 .ds-drawer.ds-drawer--top {
@@ -644,7 +644,7 @@
     width: 280px;
     max-width: 0;
     flex-shrink: 0;
-    transition-property: max-width, background-color, color, border-color, border-top-color, border-right-color, border-bottom-color, border-left-color, -unity-background-image-tint-color;
+    transition-property: max-width;   /* motion only — see .ds-drawer--top above */
 }
 
 .ds-drawer.ds-drawer--push.ds-drawer--top,
@@ -652,7 +652,7 @@
     height: 200px;
     max-height: 0;
     flex-shrink: 0;
-    transition-property: max-height, background-color, color, border-color, border-top-color, border-right-color, border-bottom-color, border-left-color, -unity-background-image-tint-color;
+    transition-property: max-height;   /* motion only — see .ds-drawer--top above */
 }
 
 .ds-drawer.ds-drawer--push.ds-drawer--left.ds-drawer--open,
@@ -749,7 +749,7 @@
    - .is-drag-over  : added to a drop zone while a drag hovers it
    - .is-dragging   : added to the SOURCE item while its ghost is out
    - .ds-drag-ghost : the element that follows the pointer during a drag
-   The runtime (DesignSystemRuntime.EnsureDraggables) wires `.ds-draggable` for the
+   The runtime (DesignSystemBehaviour.EnsureDraggables) wires `.ds-draggable` for the
    simple "move element between zones" case (reparents on drop). Game inventories with
    custom split / merge / transfer logic drive their own pointer handling and reuse just
    the `.ds-drag-ghost` / `.is-drag-over` visual classes for a consistent look.

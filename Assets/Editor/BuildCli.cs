@@ -77,6 +77,8 @@ namespace UIDocumentDesignSystem.BuildTools
                 report.durationSec = (float)result.summary.totalTime.TotalSeconds;
                 report.indexPath   = Path.Combine(buildDir, "index.html");
 
+                if (report.success) StampAndCacheBust(report.indexPath);
+
                 if (!report.success)
                 {
                     foreach (var step in result.steps)
@@ -100,6 +102,49 @@ namespace UIDocumentDesignSystem.BuildTools
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Append a per-build token to the loader / data / wasm URLs in the emitted index.html, and
+        /// record the build time in a global the page can read.
+        ///
+        /// Without this you cannot trust what you are looking at. A WebGL build re-emits the same four
+        /// filenames every time, and the assets are large and slow-moving, so a browser has every
+        /// reason to reuse what it already has: `python -m http.server` sends no `Cache-Control` at all
+        /// (which licenses heuristic caching), and Unity's own loader additionally keeps `.data` in
+        /// IndexedDB, which a hard refresh does not clear. Ship a genuine fix, reload, see the bug, and
+        /// you will go looking for a bug that is no longer there — which is exactly the hour this cost.
+        /// A changing query string makes each build a different URL, so there is nothing to reuse.
+        /// </summary>
+        static void StampAndCacheBust(string indexPath)
+        {
+            try
+            {
+                if (!File.Exists(indexPath)) return;
+
+                var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+                var html  = File.ReadAllText(indexPath);
+
+                // The loader <script src> is rewritten alongside the three fetched assets: a cached
+                // loader would go on requesting the un-suffixed names and undo the whole exercise.
+                html = System.Text.RegularExpressions.Regex.Replace(
+                    html,
+                    @"(Build/[\w.\-]+?\.(?:loader\.js|framework\.js|wasm|data)(?:\.unityweb|\.br|\.gz)?)(?=[""'])",
+                    "$1?v=" + stamp);
+
+                // So "am I even looking at the new build?" is answerable in two seconds instead of an
+                // hour: it prints itself, and `SHOWCASE_BUILD` is there to be typed at the console.
+                html = html.Replace("</head>",
+                    "  <script>window.SHOWCASE_BUILD=\"" + stamp +
+                    "\";console.log(\"[showcase] build \"+window.SHOWCASE_BUILD);</script>\n</head>");
+
+                File.WriteAllText(indexPath, html);
+                Debug.Log($"[BuildCli] index.html cache-busted, build stamp {stamp}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[BuildCli] cache-bust failed (build is still valid): " + ex.Message);
+            }
+        }
 
         [Serializable]
         struct BuildReportData

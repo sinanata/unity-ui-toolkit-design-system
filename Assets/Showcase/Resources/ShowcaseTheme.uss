@@ -5,17 +5,60 @@
    Apply by adding `theme-light` to `.ds-root`.
    ============================================================================ */
 
-/* Animate every property that the theme swap can change. Universal selector
-   so every descendant of the showcase root participates in the transition.
-   240 ms is long enough to read the change, short enough not to feel laggy.
-   The same rule lightly slows existing per-component hover transitions
-   from ~120 ms to 240 ms — barely perceptible and the trade-off is a
-   cohesive theme animation across the whole tree. */
-.ds-root,
-.ds-root * {
-    transition-property: background-color, color, border-color, border-top-color, border-right-color, border-bottom-color, border-left-color, -unity-background-image-tint-color, opacity;
-    transition-duration: 240ms;
-    transition-timing-function: ease-in-out;
+/* A THEME SWAP MUST NOT ANIMATE.
+   ---------------------------------------------------------------------------
+   This file used to do the exact opposite: `.ds-root *` put a 240 ms transition
+   on nine colour properties of EVERY element, so that a theme change cross-faded.
+   It read beautifully and it was the single most expensive thing in the showcase.
+
+   The design system's components already animate their own colours for HOVER —
+   `.ds-btn` fades background, colour and border over 120 ms, `.ds-icon` fades its
+   tint, and so on. A theme change moves those very same properties, on every
+   element, at once. USS cannot tell the two apart: a transition fires on any
+   change to a watched property and the cascade has no idea WHY the value moved.
+   So a theme swap silently inherited the hover animation, ~1,000 concurrent
+   transitions on the flat page and, with the universal rule, closer to 9,000.
+
+   That is not merely slow. A running transition pins a snapshot of the element's
+   ComputedStyle, and a ComputedStyle is a set of ref-counted native blocks taken
+   from Allocator.Domain. Swap themes faster than the transitions retire and the
+   live blocks stack instead of draining, until Unity starts logging
+   "Allocator.Domain has reached its limit of 262144 tracked allocations" and the
+   tab freezes. In world-space mode, with ~30 panels live at once, it took about
+   fifteen clicks.
+
+   Since USS cannot distinguish the two cases, the SHOWCASE does: it puts this
+   class on every root for the frames a theme swap lands in (see
+   ShowcaseBootstrap.HoldTransitionsOff), the new colours resolve instantly, and
+   the class comes back off. Hover fades — a real design-system feature, and one
+   worth showing — are untouched.
+
+   Scores 256, the same as any single-class component rule, and this sheet is added
+   AFTER DesignSystem.uss, so it wins those ties on load order. It does NOT outrank
+   the compound `.ds-drawer.ds-drawer--*` rules (512 and 768); those had their
+   colour lists trimmed in Controls.uss instead, since the only reason they carried
+   colours was to stay in step with the universal rule that is now gone. */
+.ds-no-transition,
+.ds-no-transition * {
+    transition-property: none;
+}
+
+/* ...and the same thing again, from the other end, because the rule above cannot reach everything.
+   Six design-system rules animate colour from a COMPOUND selector — `.ds-input .unity-text-input`
+   and `.ds-toggle .unity-toggle__checkmark` score 512, the scrollbar dragger scores 768 — and they
+   outrank `.ds-no-transition *` at 256. Escalating that into a specificity war would mean naming
+   every offender here and re-naming them each time the system grows one.
+
+   So cut it off at the source instead. All six take their duration from `var(--transition-fast)`,
+   and a custom property INHERITS: set it to zero on the root and every descendant resolves zero, no
+   matter how specific the rule that reads it. `transition-duration: 0` starts no transition.
+
+   The compound `.showcase-root.ds-no-transition` (512) is what makes this survive a theme, and it is
+   not decoration: a ThemeData's token block is `:root`-scoped (256) and gets added LAST, so it would
+   otherwise win the tie on load order and hand `--transition-fast` back its 120ms mid-swap. */
+.showcase-root.ds-no-transition {
+    --transition-fast:   0s;
+    --transition-medium: 0s;
 }
 
 /* Light theme — token cascade means every descendant component picks up

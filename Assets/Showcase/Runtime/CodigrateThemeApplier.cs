@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -71,27 +72,32 @@ namespace Showcase.Runtime
                 = new Dictionary<RadioButton, EventCallback<ChangeEvent<bool>>>();
         }
 
-        static readonly Dictionary<VisualElement, RootState> _roots
-            = new Dictionary<VisualElement, RootState>();
+        // WEAK keys, and that is a correctness fix rather than a tidy-up. A PanelRenderer hands out
+        // a BRAND NEW root VisualElement on every UI reload, and the corridor reloads ~30 of them
+        // each time the world/flat toggle is pressed. A strong Dictionary here therefore kept every
+        // root the showcase had ever built, and through each RootState's Touched map it kept every
+        // element under those roots too. Dead trees still own their ComputedStyles, which are
+        // ref-counted native blocks, so nothing ever drained and the live count climbed until Unity
+        // began logging "Allocator.Domain has reached its limit of 262144 tracked allocations".
+        // With weak keys a discarded root takes its entry, its Touched map and its callbacks with it.
+        static ConditionalWeakTable<VisualElement, RootState> _roots
+            = new ConditionalWeakTable<VisualElement, RootState>();
 
         // The state of the root currently being applied/reverted. Set at the
         // top of Apply()/Revert(); every helper below records into it.
         static RootState _current;
 
-        static RootState StateFor(VisualElement root)
-        {
-            if (!_roots.TryGetValue(root, out var s))
-            {
-                s = new RootState();
-                _roots[root] = s;
-            }
-            return s;
-        }
+        static RootState StateFor(VisualElement root) => _roots.GetOrCreateValue(root);
 
-        // Forget every root (fresh scene load — old roots are dead trees).
+        // Read WITHOUT minting an entry. The difference matters: see Revert.
+        static bool TryGetState(VisualElement root, out RootState state) =>
+            _roots.TryGetValue(root, out state);
+
+        // Forget every root (fresh scene load — old roots are dead trees). A fresh table rather
+        // than Clear(), which keeps this off the api-compatibility-level question entirely.
         public static void ResetAll()
         {
-            _roots.Clear();
+            _roots = new ConditionalWeakTable<VisualElement, RootState>();
             _current = null;
         }
 
@@ -110,7 +116,7 @@ namespace Showcase.Runtime
         {
             if (root == null || map == null) return;
             Revert(root);              // clears THIS root's previous stamps only
-            _current = StateFor(root); // Revert left it registered but empty
+            _current = StateFor(root); // Revert may have left it unregistered; mint it back
 
             // Root: bg + cascading text. `color` is inherited so every Label
             // descendant picks up the new primary text colour for free —
@@ -458,7 +464,18 @@ namespace Showcase.Runtime
         public static void Revert(VisualElement root)
         {
             if (root == null) return;
-            var st = StateFor(root);
+
+            // Nothing was ever stamped on this root, so there is nothing to un-stamp. The early-out
+            // carries more weight than it looks: PaintRoot calls Revert on EVERY root on EVERY paint
+            // (an inline stamp outranks any stylesheet, so the cascade path must clear one that
+            // MIGHT be there), and the old code went through StateFor, which MINTS an entry for any
+            // root it is handed. Every corridor root got a registry entry and a permanent strong
+            // reference even in the cascade path, where the applier never touches a single element.
+            if (!TryGetState(root, out var st))
+            {
+                _current = null;
+                return;
+            }
             _current = st;
 
             foreach (var kv in st.Touched)
@@ -857,6 +874,102 @@ namespace Showcase.Runtime
             return set;
         }
 
+        // ─── DROPDOWN POPUP ─────────────────────────────────────────────────
+
+        /// <summary>
+        /// Paint a dropdown popup from a RUNTIME palette.
+        ///
+        /// Every other theme in the showcase reaches the popup without anyone's help. A baked ThemeData
+        /// is a pure token block; the host installs it at panel scope; Unity parents the popup at panel
+        /// scope too, so it inherits the tokens and DropdownPopup.uss does the rest. Randomize has no
+        /// stylesheet to install, by construction: it invents its palette at runtime, and a player build
+        /// cannot compile USS from a string. So the popup gets what the rest of the tree gets from this
+        /// file — inline styles, stamped by hand — at the one moment it exists.
+        ///
+        /// No Revert entry: Unity throws the popup away on close, so there is nothing to un-stamp.
+        ///
+        /// IS idempotent, though, and has to be. The design system raises its popup event on every
+        /// tune rather than only the first, precisely so a reused menu element cannot silently starve
+        /// a host of the notification — so this can be called more than once on the same popup, and
+        /// twice per open is normal (a click schedules a tune on both pointer-down and pointer-up).
+        /// Restamping the inline colours is harmless; restacking the hover callbacks is not, and worse,
+        /// each captures the palette it was built with, so a stale one would repaint the row in the
+        /// PREVIOUS theme on mouse-out. Hence the callback registry.
+        /// </summary>
+        public static void StampPopup(VisualElement menu, ColorMap m, int selectedIndex)
+        {
+            if (menu == null || m == null) return;
+
+            Color transparent = new Color(0f, 0f, 0f, 0f);
+            var hooks = _popupHooks.GetOrCreateValue(menu);
+
+            void Hover(VisualElement el, Color rest, Color over)
+            {
+                if (hooks.Enter.TryGetValue(el, out var oldEnter)) el.UnregisterCallback(oldEnter);
+                if (hooks.Leave.TryGetValue(el, out var oldLeave)) el.UnregisterCallback(oldLeave);
+
+                EventCallback<PointerEnterEvent> onEnter = _ => el.style.backgroundColor = over;
+                EventCallback<PointerLeaveEvent> onLeave = _ => el.style.backgroundColor = rest;
+                el.RegisterCallback(onEnter);
+                el.RegisterCallback(onLeave);
+                hooks.Enter[el] = onEnter;
+                hooks.Leave[el] = onLeave;
+
+                el.style.backgroundColor = rest;
+            }
+
+            foreach (var outer in QueryByClass(menu, "unity-base-dropdown__container-outer"))
+            {
+                outer.style.backgroundColor  = m.SurfaceElev;
+                outer.style.borderTopColor    = m.Border;
+                outer.style.borderRightColor  = m.Border;
+                outer.style.borderBottomColor = m.Border;
+                outer.style.borderLeftColor   = m.Border;
+            }
+
+            var items = new List<VisualElement>(QueryByClass(menu, "unity-base-dropdown__item"));
+            for (int i = 0; i < items.Count; i++)
+            {
+                var item = items[i];
+
+                // An inline background outranks the stylesheet rules that paint :hover and :checked, so
+                // the moment we stamp the resting colour we own both those states too and have to drive
+                // them by hand. The checked row is items[selectedIndex]: a DropdownField's menu holds one
+                // row per choice, in choices order, with no separators between them.
+                Hover(item, i == selectedIndex ? m.PrimarySoft : transparent, m.SurfaceHover);
+
+                // The label carries the text colour, but tint every TextElement under the row: a Unity
+                // version that renames the label class should not silently leave black text on a dark
+                // popup.
+                foreach (var text in QueryDescendants<TextElement>(item))
+                    text.style.color = m.TextPrimary;
+                item.style.color = m.TextPrimary;
+
+                foreach (var check in QueryByClass(item, "unity-base-dropdown__checkmark"))
+                    check.style.unityBackgroundImageTintColor = m.Primary;
+            }
+
+            foreach (var sep in QueryByClass(menu, "unity-base-dropdown__separator"))
+                sep.style.backgroundColor = m.Border;
+
+            // A long list scrolls, and the scrollbar is part of the popup.
+            foreach (var dragger in QueryByClass(menu, "unity-base-slider__dragger"))
+                Hover(dragger, m.BorderStrong, m.TextSecondary);
+            foreach (var track in QueryByClass(menu, "unity-scroller__slider"))
+                track.style.backgroundColor = transparent;
+        }
+
+        sealed class PopupHooks
+        {
+            public readonly Dictionary<VisualElement, EventCallback<PointerEnterEvent>> Enter
+                = new Dictionary<VisualElement, EventCallback<PointerEnterEvent>>();
+            public readonly Dictionary<VisualElement, EventCallback<PointerLeaveEvent>> Leave
+                = new Dictionary<VisualElement, EventCallback<PointerLeaveEvent>>();
+        }
+
+        static readonly ConditionalWeakTable<VisualElement, PopupHooks> _popupHooks
+            = new ConditionalWeakTable<VisualElement, PopupHooks>();
+
         // ─── INTERNAL UTILITIES ─────────────────────────────────────────────
 
         static void ApplyClass(VisualElement root, string className, Action<VisualElement> fn)
@@ -1027,6 +1140,63 @@ namespace Showcase.Runtime
                 DangerPress    = Shade(t.Error, 0.24f),
                 Overlay        = new Color(0f, 0f, 0f, isLight ? 0.5f : 0.6f),
             };
+        }
+
+        // ─── PROJECTION ONTO A ThemeData ────────────────────────────────────
+
+        // Writes a ColorMap into a ThemeData's colour fields, which is what lets the EDITOR bake
+        // a bundled palette into a real stylesheet — and that, in turn, is what lets the showcase
+        // paint it through the var() cascade instead of stamping every element inline. See the
+        // note at the top of this file: the inline walk exists only because a palette that first
+        // appears at RUNTIME cannot be compiled into USS. A palette we already have at BUILD time
+        // has no such excuse.
+        //
+        // ColorMap names the 25 colours the stamper needs; ThemeData has 34. The soft and press
+        // variants the map does not carry are synthesised here exactly the way FromCodigrate
+        // synthesises the ones it does, so a baked theme and a stamped theme agree.
+        //
+        // Rarity is left at the design-system defaults on purpose, matching `.theme-light`:
+        // rarity carries meaning, and meaning does not change with the palette.
+        public static void WriteInto(ColorMap m, DesignSystem.Runtime.Theme.Data.ThemeData t)
+        {
+            if (m == null || t == null) return;
+
+            t.primaryColor        = m.Primary;
+            t.primaryHoverColor   = m.PrimaryHover;
+            t.primaryPressColor   = m.PrimaryPress;
+            t.primarySoftColor    = m.PrimarySoft;
+
+            t.secondaryColor      = m.Secondary;
+            t.secondaryHoverColor = m.SecondaryHover;
+            t.secondaryPressColor = m.SecondaryPress;
+            t.secondarySoftColor  = WithAlpha(m.Secondary, 0.16f);
+
+            t.tertiaryColor       = m.Tertiary;
+            t.tertiaryHoverColor  = m.TertiaryHover;
+            t.tertiaryPressColor  = Shade(m.Tertiary, 0.24f);
+            t.tertiarySoftColor   = WithAlpha(m.Tertiary, 0.16f);
+
+            t.warningColor        = m.Warning;
+            t.warningHoverColor   = m.WarningHover;
+            t.warningSoftColor    = WithAlpha(m.Warning, 0.16f);
+
+            t.dangerColor         = m.Danger;
+            t.dangerHoverColor    = m.DangerHover;
+            t.dangerPressColor    = m.DangerPress;
+            t.dangerSoftColor     = WithAlpha(m.Danger, 0.16f);
+
+            t.textPrimaryColor    = m.TextPrimary;
+            t.textSecondaryColor  = m.TextSecondary;
+            t.textDisabledColor   = m.TextDisabled;
+            t.textOnAccentColor   = m.TextOnAccent;
+
+            t.bgColor             = m.Bg;
+            t.surfaceColor        = m.Surface;
+            t.surfaceElevColor    = m.SurfaceElev;
+            t.surfaceHoverColor   = m.SurfaceHover;
+            t.borderColor         = m.Border;
+            t.borderStrongColor   = m.BorderStrong;
+            t.overlayColor        = m.Overlay;
         }
 
         // ─── COLOR UTILS ────────────────────────────────────────────────────

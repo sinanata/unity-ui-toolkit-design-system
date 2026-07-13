@@ -132,3 +132,15 @@ UIElementsSchema/
 # Unity .meta files for the design system are intentionally NOT ignored —
 # they carry import settings (svgType, asmdef refs, etc.) that consumers
 # should reuse rather than regenerate.
+# Design System theme bake scratch folder.
+# ThemeBaker and the Theme Configurator preview write a temp .uss here, let Unity
+# compile it, copy the result into the theme asset, and delete the file again. The
+# folder itself is disposable.
+/[Aa]ssets/_DesignSystemTemp/
+/[Aa]ssets/_DesignSystemTemp.meta
+
+# com.unity.test-framework.performance writes these into Assets/Resources on every
+# batchmode build. Build artifacts, not source, and a careless `git add -A` sweeps
+# them straight into a commit.
+/[Aa]ssets/[Rr]esources/PerformanceTestRun*.json
+/[Aa]ssets/[Rr]esources/PerformanceTestRun*.json.meta

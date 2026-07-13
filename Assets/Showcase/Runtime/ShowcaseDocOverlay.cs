@@ -207,6 +207,11 @@ namespace Showcase.Runtime
         // Showcase-only layout wrappers that exist to group / arrange the demo
         // page itself, not to ship as design-system components. Hovering them
         // should walk past, not stop.
+        //
+        // Also: runtime MARKER classes. `ds-dropdown-tuner` says "a popup tuner is watching this
+        // panel" and carries no visual meaning at all. It is listed here as well as being excluded by
+        // the panel-root guard below, because the next marker somebody adds may well land on a real
+        // element, and "ds-* means component" is only a heuristic.
         static readonly System.Collections.Generic.HashSet<string> ContainerClasses =
             new System.Collections.Generic.HashSet<string>
             {
@@ -215,6 +220,8 @@ namespace Showcase.Runtime
                 "ds-section__title",
                 "ds-row",
                 "ds-swatch-row",
+                "ds-dropdown-tuner",
+                "ds-no-transition",
             };
 
         void UpdateInspection(VisualElement leaf)
@@ -347,6 +354,13 @@ namespace Showcase.Runtime
 
         static bool IsMeaningfulComponent(VisualElement el)
         {
+            // The PANEL ROOT is never a component and never can be: it is the panel's own container, it
+            // lives outside the document, and it is where the runtime parks infrastructure markers like
+            // `ds-dropdown-tuner`. Without this guard, "is any class ds-*?" promotes it to a component
+            // the moment anything writes one there — and because it is an ancestor of everything, the
+            // walk-up from empty space lands on it and the inspector highlights the entire screen.
+            if (el.parent == null) return false;
+
             foreach (var c in el.GetClasses())
             {
                 if (!c.StartsWith("ds-")) continue;

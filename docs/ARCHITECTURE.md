@@ -12,7 +12,7 @@ DesignSystem.uss                 ← master, @imports the layers below
         │
         ├── DesignTokens.uss     ← :root variables only — no element rules
         ├── Typography.uss       ← .ds-h1 / .ds-h2 / .ds-h3 / .ds-body-1 / .ds-caption
-        ├── Icons.uss            ← .ds-icon base + 63 .ds-icon--<name> + parent-state cascade
+        ├── Icons.uss            ← .ds-icon base + 120 .ds-icon--<name> + parent-state cascade
         ├── Buttons.uss          ← .ds-btn variants, sizes, icon button
         ├── Inputs.uss           ← .ds-input, .ds-search, .ds-dropdown, .ds-textarea
         ├── TabsAndFilters.uss   ← .ds-tabs, .ds-tab, .ds-view-toggle
@@ -45,7 +45,28 @@ A consumer attaches **one stylesheet** (`DesignSystem.uss`) to their `UIDocument
 }
 ```
 
-To re-theme: override `:root` in a higher-priority stylesheet attached after the design system:
+### Theming with an asset (the supported path)
+
+A `ThemeData` asset holds every token, generates the block below for you, and stores the compiled stylesheet as a sub-asset of itself. Add a `ThemeApplier` to your `UIDocument` or `PanelRenderer`, point it at the theme, and that one sheet goes onto the root:
+
+```csharp
+applier.Theme = tokyo;                       // swap at runtime; the cascade repaints the tree
+ThemeRuntime.Apply(root, tokyo);             // or drive it directly, for panels you build in code
+```
+
+That is the whole mechanism. Because the theme arrives as a real stylesheet rather than as inline styles, every `:hover`, `:disabled` and `:checked` rule in the design system re-resolves against the new token values on its own — no per-component work, and nothing to update when you add a component.
+
+`Dark` and `Light` ship in `Resources/UI/Themes/`. Duplicate `Dark` and edit it in `Design System > Theme Configurator`, which previews live against real components.
+
+**Why the asset has to be baked at EDIT time.** Unity's public UI Toolkit API cannot set a `var(--…)` custom property at runtime, and cannot compile a `StyleSheet` from a string in a player build. So a palette that first exists at RUNTIME can only be applied by walking the tree and stamping inline styles on every element — which is exactly what the showcase's `Randomize` button still has to do, and why `CodigrateThemeApplier` is 1,100 lines. Bake the theme at edit time and the whole problem evaporates.
+
+**Scope: `:root` or a class.** `scopeSelector` decides which selector the token block is written under. `:root` themes the whole panel. A class such as `.theme-night` themes only a subtree carrying that class — so two themes can live in one panel, and a day / night PAIR is just both sheets on the root with one class toggle picking between them. That is how the shipped `Light` theme (`.theme-light`) works.
+
+> **Unity scores `:root` and a class selector identically — both 256.** Verified by reading the specificity Unity writes into a compiled `StyleSheet`. So a `:root { --token: … }` block does **not** outrank a `.theme-light { --token: … }` block; it wins only by being added later. Two consequences. First, a theme sheet must go on the **same element the base tokens resolve on** (the panel or document root, where `DesignSystem.uss` lands) — put it on an ancestor and a token block attached lower down will shadow it, because a rule matching an element beats a value the element merely inherited. Second, the applier adds its sheet **last**, which is what makes it win.
+
+### Theming by hand (the manual equivalent)
+
+The asset generates precisely this, so it is worth knowing. Override `:root` in a higher-priority stylesheet attached after the design system:
 
 ```css
 /* MyTheme.uss — attach after DesignSystem.uss on the same UIDocument */
@@ -80,18 +101,32 @@ toggle.RegisterValueChangedCallback(evt => {
 });
 ```
 
-The whole tree picks up the new values via the var() cascade. To make the swap animate (it's instant by default — children don't inherit transitions), pair the override with a universal transition rule:
+The whole tree picks up the new values via the var() cascade, instantly. This is exactly how the showcase's day / night toggle works — see `Assets/Showcase/Resources/ShowcaseTheme.uss` for the reference implementation.
+
+### Do not animate the swap
+
+It is tempting to make the change cross-fade by pairing the override with a universal transition rule (`.ds-root * { transition-property: background-color, …; transition-duration: 240ms; }`). The showcase shipped exactly that, and it had to be taken out: it is the most expensive thing you can do to a UI Toolkit panel.
+
+Every `ds-` component **already** animates its own colours so that hover fades. A theme swap moves those same properties, on every element, at the same moment — and USS cannot tell the two changes apart, because a transition fires on any change to a watched property and the cascade has no idea *why* the value moved. So the swap silently inherits the hover animation across the entire tree.
+
+That is not merely slow. A running transition pins a snapshot of the element's `ComputedStyle`, and a `ComputedStyle` is a set of ref-counted native blocks taken from `Allocator.Domain`. Swap faster than the transitions retire and the live blocks stack instead of draining, until Unity starts logging `Allocator.Domain has reached its limit of 262144 tracked allocations` and the tab freezes. On a ~1,000-element screen it took a few dozen swaps; with several panels alive at once, about fifteen.
+
+If you need the swap suppressed *and* your hover transitions intact, do what the showcase does: put a class on the root for the frames the swap lands in, and take it off afterwards.
 
 ```css
-.ds-root,
-.ds-root * {
-    transition-property: background-color, color, border-color, border-top-color, border-right-color, border-bottom-color, border-left-color, -unity-background-image-tint-color;
-    transition-duration: 240ms;
-    transition-timing-function: ease-in-out;
+.ds-no-transition,
+.ds-no-transition * {
+    transition-property: none;
 }
 ```
 
-This is exactly how the showcase's day / night toggle works — see `Assets/Showcase/Resources/ShowcaseTheme.uss` for the reference implementation.
+```csharp
+root.AddToClassList("ds-no-transition");
+ThemeRuntime.Apply(root, theme);                       // colours resolve instantly
+root.schedule.Execute(() => root.RemoveFromClassList("ds-no-transition")).ExecuteLater(120);
+```
+
+Taking the class back off cannot retro-start anything: by then the colours have already settled and nothing is changing. Re-arm the timer on every swap so a rapid burst stays suppressed for its whole duration.
 
 ### Themes that need to override colour-on-coloured-background
 
@@ -220,6 +255,18 @@ This avoids the one-frame "flat pill" flash on the very first appearance of a sc
 
 Both components host flat and world-space UI, and this runtime ships a backend for each: one for the traditional `UIDocument`, and one for `PanelRenderer` (Unity 6000.5+), Unity's newer native renderer that the showcase uses for its world-space gallery. As of 6000.5 Unity lists `UIDocument` under UI Toolkit > Legacy in the Add Component menu and recommends `PanelRenderer` for new work, but `UIDocument` is not marked `[Obsolete]`, compiles without warnings, keeps working with no removal planned, and still exposes the full world-space API (`worldSpaceSize`, `pivot`, `position`). Both backends stay first-class here: use `PanelRenderer` for new screens and world-space, and keep `UIDocument` for existing ones as long as you need it.
 
+### Geometry in a world-space panel is not what you think
+
+Two assumptions that hold everywhere else are false inside a world-space `PanelRenderer`, and code that positions anything by hand will be wrong in a way that looks like a styling bug. Both cost real time here before they were understood.
+
+**`worldBound` is in metres, not pixels.** The panel root carries a pixels-to-metres transform, so a laid-out `206x48` field reports a `worldBound` of about `2.1x0.4`. `resolvedStyle`, `layout` and everything you write to `style.*` stay in pixels. Arithmetic that mixes the two compares `0.4` against `42` and silently loses every comparison. On a screen panel the transform is identity and the bug is invisible, so it ships.
+
+**The panel root can measure 0x0.** With `WorldSpaceSizeMode.Dynamic` the panel has no viewport to fill, so `panel.visualTree` has no size while the content lays out normally as its child — an exhibit measuring `240x460` hanging inside a `0x0` root. Any "clamp this to the panel" logic gets no room, on any side, for anything.
+
+The rule that survives both: **do the geometry in the local space of the element you are writing to**, and convert anything foreign in with `WorldToLocal`, which is a pure translation on a screen panel and therefore free. When you need a bounding box and the panel root is degenerate, walk up to the element's outermost ancestor that actually has a size — in the showcase's corridor that is the exhibit's content box, which is the visible wall panel and the only meaningful boundary anyway. `TuneDropdownPopup` in `DesignSystemBehaviourBase` is the worked example.
+
+A corollary for anything that *measures* a world-space panel, including tests: a threshold like `width < 10 means it never laid out` is a pixel assumption. Against metres it is a false negative, and `PopupProbe` spent its whole life reporting `field never laid out (2.1x0.4)` and skipping every world-space check because of it.
+
 ## What lives in C# vs USS
 
 The boundary is intentional:
@@ -319,13 +366,18 @@ Assets/
 ├── Showcase/                    ← host scene + supporting scripts (host-only)
 │   ├── Showcase.unity
 │   ├── Resources/
-│   │   ├── ShowcaseTheme.uss    ← .theme-light token override + universal transition
+│   │   ├── DesignSystemShowcase.uxml  ← the living style guide
+│   │   ├── ShowcaseTheme.uss    ← .theme-light token override + the ds-no-transition swap guard
+│   │   ├── CodigrateThemes/     ← the 12 bundled palette JSONs (the source)
+│   │   ├── Themes/              ← the same 12, baked into ThemeData assets (what actually paints)
 │   │   ├── UnityDefaultRuntimeTheme.tss
 │   │   └── sinanata.jpg         ← profile photo for the AVATAR section
 │   └── Runtime/
 │       ├── ShowcaseBootstrap.cs
 │       └── ShowcaseDocOverlay.cs
-├── Editor/BuildCli.cs           ← Unity batchmode entry for WebGL builds
+├── Editor/
+│   ├── BuildCli.cs              ← Unity batchmode entry for WebGL builds
+│   └── ShowcaseThemeBaker.cs    ← turns the palette JSONs into the ThemeData assets above
 └── WebGLTemplates/ShowcaseTemplate/
     └── index.html               ← custom template (touch-action, viewport-fit, dark loading bar)
 ```
@@ -358,7 +410,7 @@ The overlay's root is `pickingMode = Ignore` so showcase events still reach the 
 
 Three things, all showcase-only:
 
-1. A universal opacity / colour transition rule on `.ds-root, .ds-root *` so theme swaps animate.
+1. `.ds-no-transition`, which the bootstrap puts on the roots for the frames a theme swap lands in so the swap does not animate (see "Do not animate the swap" above).
 2. A `.theme-light` block that redefines every colour token from `DesignTokens.uss`.
 3. Targeted overrides like `.theme-light .ds-notif-dot__count { color: var(--color-text-on-accent); }` for elements whose colour-on-coloured-background pairing breaks under a naive theme swap.
 

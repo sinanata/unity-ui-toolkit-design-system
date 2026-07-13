@@ -198,6 +198,12 @@ namespace Showcase.Runtime
             return ParsePalette(ta.text);
         }
 
+        // --- Edit-time access --------------------------------------------------
+        // The editor bakes each bundled palette into a ThemeData asset so the showcase can
+        // paint it through the USS cascade instead of stamping inline styles. That baker needs
+        // the same parse the runtime uses — parsing the JSON a second way is how the two drift.
+        public static ThemePalette ParsePaletteJson(string json) => ParsePalette(json);
+
         // --- JSON parsing ------------------------------------------------------
         // The list endpoint returns a top-level array, which JsonUtility refuses
         // to parse. Wrapping it in `{"items":[…]}` keeps us on the built-in
