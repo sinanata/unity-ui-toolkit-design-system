@@ -96,22 +96,48 @@
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 280px;">
                 <ui:Label text="TYPOGRAPHY" class="ds-section__title"/>
-                <ui:VisualElement style="flex-direction: row; align-items: flex-end; margin-bottom: 12px;">
+                <ui:VisualElement style="flex-direction: row; align-items: flex-end; margin-bottom: 4px;">
                     <ui:Label text="Aa" class="ds-h1" style="font-size: 64px; margin-right: 16px;"/>
                     <ui:Label text="Aa" class="ds-h2" style="font-size: 40px; color: rgb(161, 167, 179);"/>
                 </ui:VisualElement>
+                <ui:Label name="type-active-family" text="Noto Sans" class="ds-body-2" style="margin-bottom: 12px;"/>
                 <ui:Label text="Heading 1" class="ds-h1"/>
-                <ui:Label text="Inter Regular / 26 / Bold" class="ds-body-2" style="margin-bottom: 12px;"/>
+                <ui:Label text="26 / Bold" class="ds-body-2" style="margin-bottom: 12px;"/>
                 <ui:Label text="Heading 2" class="ds-h2"/>
-                <ui:Label text="Inter Regular / 20 / Bold" class="ds-body-2" style="margin-bottom: 12px;"/>
+                <ui:Label text="20 / Bold" class="ds-body-2" style="margin-bottom: 12px;"/>
                 <ui:Label text="Heading 3" class="ds-h3"/>
-                <ui:Label text="Inter Regular / 16 / Semibold" class="ds-body-2" style="margin-bottom: 12px;"/>
+                <ui:Label text="16 / SemiBold" class="ds-body-2" style="margin-bottom: 12px;"/>
                 <ui:Label text="Body 1" class="ds-body-1"/>
-                <ui:Label text="Inter Regular / 14 / Regular" class="ds-body-2" style="margin-bottom: 12px;"/>
+                <ui:Label text="14 / Regular" class="ds-body-2" style="margin-bottom: 12px;"/>
                 <ui:Label text="Body 2" class="ds-body-2" style="color: rgb(242, 244, 247);"/>
-                <ui:Label text="Inter Regular / 12 / Regular" class="ds-body-2" style="margin-bottom: 12px;"/>
+                <ui:Label text="12 / Regular" class="ds-body-2" style="margin-bottom: 12px;"/>
                 <ui:Label text="Caption" class="ds-caption"/>
-                <ui:Label text="Inter Regular / 11 / Medium" class="ds-body-2"/>
+                <ui:Label text="11 / Medium" class="ds-body-2"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 640px;">
+                <ui:Label text="TYPEFACE" class="ds-section__title"/>
+                <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 12px;">
+                    <ui:Label name="font-specimen" text="Aa" class="ds-h1" style="font-size: 68px; margin-bottom: 0; margin-right: 16px;"/>
+                    <ui:VisualElement style="flex-grow: 1;">
+                        <ui:Label name="font-specimen-name" text="Noto Sans" class="ds-h3" style="margin-bottom: 2px;"/>
+                        <ui:Label name="font-specimen-meta" text="" class="ds-body-2" style="white-space: normal;"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="ANY OF 2045 GOOGLE FONTS, FETCHED LIVE" class="ds-caption" style="margin-bottom: 6px; white-space: normal;"/>
+                <ui:VisualElement style="flex-direction: row; margin-bottom: 6px;">
+                    <ui:TextField name="font-fetch-input" value="Cairo" class="ds-input" style="flex-grow: 1; margin-right: 6px;"/>
+                    <ui:Button name="font-fetch-button" text="Fetch" class="ds-btn ds-btn--primary"/>
+                </ui:VisualElement>
+                <ui:Label name="font-fetch-status" text="" class="ds-body-2" style="white-space: normal; margin-bottom: 14px;"/>
+                <ui:Label text="LANGUAGE AVAILABILITY" class="ds-section-label"/>
+                <ui:VisualElement name="font-scripts" class="showcase-avail"/>
+                <ui:Label name="font-coverage-note" text="" class="ds-caption" style="margin-top: 10px; white-space: normal;"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 380px;">
+                <ui:Label text="FONT WEIGHTS" class="ds-section__title"/>
+                <ui:Label text="USS has no font-weight property. Every row below is a different FontAsset, pulled out of one variable file by its named instance. Bold is a real typeface here, not a dilated Regular." class="ds-body-2" style="white-space: normal; margin-bottom: 12px;"/>
+                <ui:VisualElement name="font-weight-ramp"/>
+                <ui:Label name="font-weight-note" text="" class="ds-caption" style="margin-top: 8px; white-space: normal;"/>
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 490px;">
                 <ui:Label text="BUTTONS" class="ds-section__title"/>

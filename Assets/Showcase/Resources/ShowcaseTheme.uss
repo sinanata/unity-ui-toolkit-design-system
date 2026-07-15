@@ -147,3 +147,40 @@
 .showcase-placeholder-icon {
     -unity-background-image-tint-color: var(--color-text-disabled);
 }
+
+/* ---------- Language availability table ----------
+   The multilingual demo, rebuilt as a proper table under the font fetch bar. Rows and header are
+   injected by ShowcaseFonts on the same column widths, so all this sheet owns is the frame: a
+   bordered, rounded surface, a set-off header, and hairline dividers between rows. Everything here
+   routes through tokens, so it follows the day/night toggle and any theme provider for free. */
+.showcase-avail {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    border-width: 1px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.showcase-avail__head {
+    background-color: var(--color-surface-elev);
+    border-bottom-color: var(--color-border);
+    border-bottom-width: 1px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+.showcase-avail__row {
+    border-bottom-color: var(--color-border);
+    border-bottom-width: 1px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 12px;
+    padding-right: 12px;
+    /* A floor under the row height so a script with tall ascenders (Devanagari, Khmer) does not
+       shove its neighbours around and leave the table looking ragged. The last row's divider is
+       cleared in code -- UI Toolkit USS has no :last-child. */
+    min-height: 30px;
+}
+.showcase-avail__row:hover {
+    background-color: var(--color-surface-hover);
+}

@@ -379,6 +379,20 @@ Tint variants: `--primary` (text-primary), `--secondary` (text-secondary), `--di
 | `.ds-text-primary` | Helper colour utility (text-primary white). |
 | `.ds-nowrap` | One line, refuses to shrink. **Use on any label sitting in a row next to a fixed-size element.** |
 | `.ds-truncate` | One line, takes the space it's given, ellipsizes the rest. For user data of unknown length. |
+| `.ds-intl` | Advanced text generator: Arabic joining forms, right-to-left reordering, Devanagari clusters. Compose on a root: `class="ds-root ds-intl"`. Costs nothing for Latin-only UI. |
+| `.ds-weight-100` … `.ds-weight-900` | One class per weight the imported family ships. Requires a font family — see below. |
+
+### Weights need a font family
+
+`.ds-h3` is *semibold* and `.ds-caption` is *medium* in the table above, but out of the box both render as plain bold. That is not an oversight: USS has **no `font-weight` property**, UI Toolkit has exactly two style slots (`normal` and `bold`), and with no font family loaded there is no semibold face to reach for. Worse, `-unity-font-style: bold` with an unwired weight table does not even give you a real bold — TextCore *synthesizes* one by dilating the Regular outline.
+
+Import a family (`Design System > Google Fonts`) and all of that resolves. The generated stylesheet declares `--ds-font-100` … `--ds-font-900`, points `.ds-root` at `var(--ds-font-body)`, adds the `.ds-weight-*` classes, wires each face's `fontWeightTable` so every existing `-unity-font-style: bold` rule lands on the family's **real** Bold, and re-points `.ds-h3` at the real 600 and `.ds-caption` at the real 500.
+
+```xml
+<ui:Label text="SemiBold" class="ds-body-1 ds-weight-600" />
+```
+
+Full detail in [FONTS.md](FONTS.md), including why a fallback chain is mandatory for multilingual text and why its order matters.
 
 ### Prose wraps. Labels do not.
 

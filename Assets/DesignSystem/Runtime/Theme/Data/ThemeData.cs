@@ -86,6 +86,11 @@ namespace DesignSystem.Runtime.Theme.Data
         public Color rarityLegendaryColor = new(0.961f, 0.620f, 0.043f);
 
         [Header("Typography")]
+        [Tooltip("The theme's typeface. Import one with Design System > Google Fonts.\n\n" +
+                 "Leave it empty and the theme changes only colours and sizes, inheriting " +
+                 "whatever face is already active. Set it and the theme is a complete look.")]
+        public DesignSystem.Runtime.Typography.DsFontFamily typeface;
+
         public float fontSizeH1      = 26f;
         public float fontSizeH2      = 20f;
         public float fontSizeH3      = 16f;
@@ -125,6 +130,20 @@ namespace DesignSystem.Runtime.Theme.Data
 
         public void SetStyleSheetReference(StyleSheet sheet) => styleSheet = sheet;
         public void ClearStyleSheetReference() => styleSheet = null;
+
+        /// <summary>
+        /// The USS value that resolves to <see cref="typeface"/>, e.g.
+        /// <c>resource("DsFonts/Inter/Inter-Regular SDF")</c>.
+        ///
+        /// Pre-rendered by the editor rather than computed on demand, because
+        /// <see cref="GenerateUssString"/> is a RUNTIME method — the showcase calls it in the
+        /// browser to display the live stylesheet — and turning an asset reference into a USS
+        /// reference needs <c>AssetDatabase</c>, which does not exist in a player.
+        /// </summary>
+        [HideInInspector, SerializeField]
+        private string typefaceUss;
+
+        public void SetTypefaceUss(string uss) => typefaceUss = uss;
 
         // ──────────────────────────────────────────────────────────────────────
         // Scope
@@ -313,7 +332,41 @@ namespace DesignSystem.Runtime.Theme.Data
             }
 
             sb.AppendLine("}");
+
+            AppendTypeface(sb);
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Emits the theme's typeface, when it has one.
+        ///
+        /// It targets <c>.ds-root</c> rather than the scope element, even though
+        /// <c>-unity-font-definition</c> is inherited and setting it on the scope would reach
+        /// the same elements. The reason is precedence: a family's own generated sheet already
+        /// declares <c>.ds-root { -unity-font-definition: … }</c>, and a rule that matches an
+        /// element directly always beats a value it merely inherited — so a theme that set the
+        /// font on <c>:root</c> would lose to any family sheet on the same panel, silently.
+        ///
+        /// A scoped theme qualifies the selector with its own class, so a <c>.theme-light</c>
+        /// theme cannot repaint the typeface of a panel that is not wearing it.
+        /// </summary>
+        private void AppendTypeface(StringBuilder sb)
+        {
+            // Empty is the normal case: most themes are palettes and inherit the active face.
+            // It must emit NOTHING rather than an empty declaration -- the bake is all or
+            // nothing, and `-unity-font-definition: ;` would fail to compile and take every
+            // colour in the theme down with it.
+            if (string.IsNullOrWhiteSpace(typefaceUss)) return;
+
+            var scopeClass = ScopeClass;
+            string selector = scopeClass == null
+                ? ".ds-root"
+                : $".{scopeClass} .ds-root, .{scopeClass}.ds-root";
+
+            sb.AppendLine();
+            sb.Append(selector).AppendLine(" {");
+            sb.Append("    -unity-font-definition: ").Append(typefaceUss).AppendLine(";");
+            sb.AppendLine("}");
         }
 
         // Every number that reaches USS goes through here, and it is InvariantCulture on

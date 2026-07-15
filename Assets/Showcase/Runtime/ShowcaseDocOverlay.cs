@@ -222,6 +222,10 @@ namespace Showcase.Runtime
                 "ds-swatch-row",
                 "ds-dropdown-tuner",
                 "ds-no-transition",
+                // Typography modifiers, not components: `ds-intl` only flips the text
+                // generator and `ds-weight-*` only swaps a FontAsset. Highlighting either as
+                // if it were a component would be noise.
+                "ds-intl",
             };
 
         void UpdateInspection(VisualElement leaf)

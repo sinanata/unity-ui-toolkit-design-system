@@ -10,6 +10,7 @@ using DesignSystem.Runtime.Behaviour;
 using DesignSystem.Runtime.Behaviour.UIDocument;
 using DesignSystem.Runtime.Theme.Applier;
 using DesignSystem.Runtime.Theme.Data;
+using DesignSystem.Runtime.Typography;
 using Object = UnityEngine.Object;
 #if UNITY_WEBGL && !UNITY_EDITOR
 using System.Runtime.InteropServices;
@@ -67,13 +68,24 @@ namespace Showcase.Runtime
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void InitDiagnostics()
         {
-            // A WebGL build is the one place a dropdown popup cannot be inspected: no inspector, no
-            // debugger, and the UI is pixels on a canvas with no DOM behind it. `?dsdebug=1` makes the
-            // popup tuner narrate itself to the browser console.
-            DesignSystemEvents.DropdownDiagnostics =
-                (Application.absoluteURL ?? string.Empty).Contains("dsdebug");
+            // A WebGL build is the one place this stuff cannot be inspected: no inspector, no
+            // debugger, and the UI is pixels on a canvas with no DOM behind it. `?dsdebug=1` makes
+            // the build narrate itself to the browser console.
+            //
+            // It points at the FONT pipeline, because that is what you cannot otherwise see: the
+            // Editor happily renders a font a build cannot. The dropdown popup tuner has its own
+            // token now (`?dsdropdown=1`), so its per-frame chatter does not bury the thing you
+            // actually opened the console to read.
+            string url = Application.absoluteURL ?? string.Empty;
+
+            DesignSystemEvents.DropdownDiagnostics = url.Contains("dsdropdown");
+            ShowcaseFonts.Diagnostics = url.Contains("dsdebug");
+
             if (DesignSystemEvents.DropdownDiagnostics)
                 Debug.Log("[dsdiag] dropdown diagnostics ON");
+
+            if (ShowcaseFonts.Diagnostics)
+                Debug.Log("[dsfont] font diagnostics ON");
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -201,6 +213,7 @@ namespace Showcase.Runtime
                 WireRandomize(root);
                 WireDrawerDemos(root);
                 WireAutoHideScroll(root);
+                ShowcaseFonts.Wire(root);
                 UpdateThemingSection(root);   // show the default theme's USS before anything is picked
                 SetInitialFocus(root);
 
@@ -360,6 +373,12 @@ namespace Showcase.Runtime
             WireRandomize(panelRoot);
             WireDrawerDemos(panelRoot);
             WireAutoHideScroll(panelRoot);
+
+            // Fonts too, or the corridor's typography exhibits render in the default face while
+            // the flat page renders in the chosen one. Wire() also stamps the CURRENT family
+            // onto this clone, which matters because an exhibit can be built long after the
+            // visitor picked a typeface.
+            ShowcaseFonts.Wire(panelRoot);
 
             // Stamp the canonical theme-control state onto the fresh clone so
             // it doesn't disagree with choices made before it was built.

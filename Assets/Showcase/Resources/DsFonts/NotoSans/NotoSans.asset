@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66b7bf73c50856d43936736d99ab98c6, type: 3}
+  m_Name: NotoSans
+  m_EditorClassIdentifier: DesignSystem.Runtime::DesignSystem.Runtime.Typography.DsFontFamily
+  familyName: Noto Sans
+  weights:
+  - {fileID: 11400000, guid: 7a4077353ea4eef4d80157bd1d9cde88, type: 2}
+  - {fileID: 11400000, guid: 3e9d21d1a78a11f4c9a8eb4aff208f30, type: 2}
+  - {fileID: 11400000, guid: 47f837e1f5680e74fa7c72341ecbd18c, type: 2}
+  - {fileID: 11400000, guid: 82071553cd0603c4780e5f6bcd252aed, type: 2}
+  - {fileID: 11400000, guid: 5b55c99c1dbdc7849b3c9c237dfdc0de, type: 2}
+  - {fileID: 11400000, guid: 750bf1f61e592784a8a7ab1ae59f9d23, type: 2}
+  - {fileID: 11400000, guid: 8dd3572dab3031c48b0ebab70667486e, type: 2}
+  - {fileID: 11400000, guid: c2fb1295f6bae3546ad8c984d18b4b13, type: 2}
+  - {fileID: 11400000, guid: 1033371aaba1e0245a3abb134a8d9482, type: 2}
+  italics:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  fallbacks:
+  - {fileID: 11400000, guid: a37e4d59c37b19b40888ba369162efd4, type: 2}
+  - {fileID: 11400000, guid: b23c453f3927c1646aa840fc70d7b20f, type: 2}
+  - {fileID: 11400000, guid: 55da581cb03bb8a44be1326a0cd8dee9, type: 2}
+  - {fileID: 11400000, guid: 735da5981542f474da7e511a33d84786, type: 2}
+  - {fileID: 11400000, guid: a7c50ff8590c0f444a4cca376ac0e123, type: 2}
+  - {fileID: 11400000, guid: bbd4c608f3e51e74985d6c573dc2adb4, type: 2}
+  - {fileID: 11400000, guid: 165ad772a481b754e9a6fccd74b01956, type: 2}

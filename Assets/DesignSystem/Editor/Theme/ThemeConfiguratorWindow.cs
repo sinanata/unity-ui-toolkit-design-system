@@ -230,6 +230,11 @@ namespace DesignSystem.Editor.Theming
             ThemeBaker.EnsureTempFolder();
             var path = PreviewUssPath;
 
+            // The typeface is an asset reference until an editor resolves it into a USS one, and
+            // GenerateUssString cannot do that itself (it also runs in the player). Without this
+            // the preview would show every colour change and silently ignore the font.
+            ThemeBaker.SyncTypeface(_theme);
+
             File.WriteAllText(path, _theme.GenerateUssString());
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
 

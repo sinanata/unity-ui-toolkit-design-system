@@ -47,6 +47,7 @@ MonoBehaviour:
   rarityRareColor: {r: 0.231, g: 0.51, b: 0.965, a: 1}
   rarityEpicColor: {r: 0.659, g: 0.333, b: 0.969, a: 1}
   rarityLegendaryColor: {r: 0.961, g: 0.62, b: 0.043, a: 1}
+  typeface: {fileID: 0}
   fontSizeH1: 26
   fontSizeH2: 20
   fontSizeH3: 16
@@ -70,6 +71,7 @@ MonoBehaviour:
   transitionFast: 120
   transitionMedium: 200
   styleSheet: {fileID: 7604927690855087141}
+  typefaceUss: 
 --- !u!114 &7604927690855087141
 MonoBehaviour:
   m_ObjectHideFlags: 0

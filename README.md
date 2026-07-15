@@ -24,6 +24,7 @@ Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap 
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [Fonts](#fonts)
 - [Mobile](#mobile)
 - [Icons](#icons)
 - [Architecture](#architecture)
@@ -55,7 +56,7 @@ git clone --recurse-submodules https://github.com/sinanata/unity-ui-toolkit-desi
 
 Serves at `http://localhost:3000`. The build flow lives in a shared [cross-platform orchestrator](https://github.com/sinanata/unity-cross-platform-local-build-orchestrator) vendored as a submodule at `Tools/.orchestrator/`. See [`Tools/Build/README.md`](Tools/Build/README.md) for daily usage — no cloud builds, no Unity license secret, entirely local.
 
-The showcase covers 29 sections: colors (with the theme provider), typography, buttons, icons, inputs, tabs & filters, animal card, animal detail, navigation, badges & labels, toggles & checks, sliders, progress, modals / panels, toasts, empty states, tooltip, drag & drop, bottom sheet, confirm dialog, quantity stepper, pagination, loading states, notification badge, avatar, drawers, scrollbars, auto-hiding scrollbar — every one of them browsable flat or hung on the world-space gallery walls.
+The showcase covers 36 sections: colors (with the theme provider), typography, typeface, font weights, multilingual, buttons, icons, inputs, tabs & filters, tabbed panels, vertical tabs, game meters, animal card, animal detail, navigation, badges & labels, toggles & checks, sliders, modals / panels, toasts, empty states, tooltip, drag & drop, bottom sheet, confirm dialog, quantity stepper, pagination, loading states, notification badge, avatar, drawers, scrollbars, auto-hiding scrollbar, theming — every one of them browsable flat or hung on the world-space gallery walls.
 
 ---
 
@@ -220,6 +221,31 @@ That's it. The runtime auto-attaches to every UIDocument; no per-screen wiring n
 ```
 
 Set `searchField.textEdition.placeholder = "Username"` from C# and you have a complete, themed, mobile-ready form in 12 lines of UXML.
+
+## Fonts
+
+**Design System > Google Fonts.** Search any of 2045 families, pick your weights, import. You get one `FontAsset` per weight, a wired weight table, and a stylesheet:
+
+```xml
+<Style src=".../DesignSystem.uss" />
+<Style src=".../DsFonts/Inter/Inter.uss" />   <!-- after DesignSystem.uss -->
+```
+
+That is the whole setup. `-unity-font-definition` is inherited, so one declaration on `.ds-root` reaches every text element under it.
+
+**Real bold, out of one file.** Point Unity's own Font Asset Creator at Inter, Roboto or any Noto family and you get *one weight* — those families ship as a single variable font, and FreeType opens one at its default instance. The importer reads the font's `fvar` table instead and pulls out every named instance, so an 850 KB file yields nine typefaces with genuinely different outlines. It wires each face's `fontWeightTable`, which means every `-unity-font-style: bold` rule already in the design system starts resolving to the family's *real* Bold instead of a synthetically dilated Regular. All 42 components, no changes.
+
+USS has no `font-weight` property, so the in-between weights get a class each — and the type ramp finally lands where it was always specified: `.ds-h3` on true SemiBold, `.ds-caption` on true Medium.
+
+```xml
+<ui:Label text="SemiBold" class="ds-body-1 ds-weight-600" />
+```
+
+**Multilingual, honestly.** Give a family a fallback chain and it covers Arabic, Hebrew, Devanagari, Thai, CJK and the rest. Scripts that must be *shaped* to be readable — Arabic letters *join*, Arabic and Hebrew lay out right-to-left, Devanagari clusters reorder — need Unity's advanced text generator, and `DsFonts` picks it per line: shaping scripts get the advanced generator, everything else (Latin, CJK) the standard one. It writes the choice inline, from the content, so you don't manage it.
+
+The trap it exists to close: with no chain, Unity quietly serves missing glyphs from an **OS font** — Arabic becomes Arial, Japanese becomes Microsoft YaHei. Your multilingual UI looks perfect in the Editor and renders as empty boxes in a WebGL build, with no warning in either place. `DsFonts.Coverage` resolves through the explicit chain only and never asks the OS, so what it reports is what a *build* does.
+
+**Fetch any of ~2000 families at runtime, in a browser** — `DsGoogleFonts.Load` downloads a family from the `google/fonts` repo and builds a live typeface, weights and all. And a downloaded font is **shaped like any other**: fetch Cairo and you get Arabic in Cairo, joined; fetch Noto Sans JP and you get kanji. Full detail — the shaping trick, Han unification, why the chain's order is load-bearing, and what to bundle vs fetch — in [docs/FONTS.md](docs/FONTS.md).
 
 ## Mobile
 

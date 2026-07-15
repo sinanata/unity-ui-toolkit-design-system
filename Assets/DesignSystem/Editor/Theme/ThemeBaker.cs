@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using DesignSystem.Editor.Typography;
 using DesignSystem.Runtime.Theme.Data;
 using UnityEditor;
 using UnityEngine;
@@ -125,6 +126,27 @@ namespace DesignSystem.Editor.Theming
                 AssetDatabase.CreateFolder("Assets", "_DesignSystemTemp");
         }
 
+        /// <summary>
+        /// Resolves the theme's typeface asset into the USS reference the theme will emit.
+        ///
+        /// This has to happen HERE, in editor code, and not inside
+        /// <c>ThemeData.GenerateUssString</c> — that method also runs in the player (the
+        /// showcase prints the live stylesheet in the browser), and turning an asset reference
+        /// into a <c>resource()</c> or <c>url()</c> needs <c>AssetDatabase</c>, which a build
+        /// does not have. So the editor pre-renders the string and the runtime just echoes it.
+        ///
+        /// Call it before any <c>GenerateUssString</c> in the editor, including the live preview.
+        /// </summary>
+        public static void SyncTypeface(ThemeData theme)
+        {
+            if (!theme) return;
+
+            var face = theme.typeface ? theme.typeface.Regular : null;
+            string reference = face ? FontUssWriter.Reference(face) : null;
+
+            theme.SetTypefaceUss(reference);
+        }
+
         private static bool BakeInternal(ThemeData theme)
         {
             if (!theme) return false;
@@ -136,6 +158,7 @@ namespace DesignSystem.Editor.Theming
                 return false;
             }
 
+            SyncTypeface(theme);
             File.WriteAllText(TempAsset, theme.GenerateUssString());
             AssetDatabase.ImportAsset(TempAsset, ImportAssetOptions.ForceSynchronousImport);
 

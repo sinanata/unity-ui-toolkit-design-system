@@ -4,7 +4,7 @@ Guidance for AI coding agents (Codex, Cursor, GitHub Copilot, Claude Code, Winds
 
 ## What this project is
 
-A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer, UXML and USS). It ships design tokens, 42 components, 120 SVG icons, a one-class mobile flip, and a small auto-attaching C# runtime. Everything is themed dark and editable from a single stylesheet. Package id: `com.sinanata.designsystem`. License: MIT. The same components render on flat screens and, on Unity 6000.5+, in world space. Both `UIDocument` and `PanelRenderer` can host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery, and Unity now lists `UIDocument` under UI Toolkit > Legacy while keeping it fully supported (not `[Obsolete]`, still world-space capable). Prefer `PanelRenderer` for new work.
+A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer, UXML and USS). It ships design tokens, 42 components, 120 SVG icons, a Google Fonts typography system, a one-class mobile flip, and a small auto-attaching C# runtime. Everything is themed dark and editable from a single stylesheet. Package id: `com.sinanata.designsystem`. License: MIT. The same components render on flat screens and, on Unity 6000.5+, in world space. Both `UIDocument` and `PanelRenderer` can host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery, and Unity now lists `UIDocument` under UI Toolkit > Legacy while keeping it fully supported (not `[Obsolete]`, still world-space capable). Prefer `PanelRenderer` for new work.
 
 ## Golden rules (do not violate)
 
@@ -13,6 +13,8 @@ A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer
 3. **Class naming is BEM with a `ds-` prefix.** Block `.ds-btn`, element `.ds-btn__icon` (double underscore), modifier `.ds-btn--primary` (double hyphen), state `.is-active` / `.is-open` / `.is-spinning` (prefixed `is-`). Do not invent a new prefix or fork an existing component under a new name.
 4. **The showcase is the test suite.** Every component, state, and variant must appear in `Assets/Showcase/Resources/DesignSystemShowcase.uxml`. A rule change that does not update the showcase is incomplete.
 5. **`.meta` files are tracked on purpose.** Do not add them to `.gitignore`. They carry `svgType: 3` for icons and the asmdef import settings consumers rely on.
+6. **A font with no fallback chain is a bug, not a default.** Unity silently serves missing glyphs from an OS font, so Arabic renders as Arial and Japanese as Microsoft YaHei *in the Editor* and as empty boxes in a WebGL build, with no warning in either. Never judge multilingual text by what the Editor shows. `DsFonts.Coverage` resolves through the explicit chain only; `Design System > Showcase > Verify Fonts` fails loudly on a gap.
+7. **A fallback chain is still not enough for CJK.** Chinese, Japanese and Korean share codepoints they *draw differently*, and a chain resolves per codepoint, not per language — so the first CJK font in it wins all the shared Han and Chinese comes out in Japanese letterforms. Nothing is missing, so coverage passes and the verifier goes green. Name the face with `DsFonts.ApplyFace` when you know the language. See `docs/FONTS.md`.
 
 ## Use the design system in your project
 
@@ -37,9 +39,10 @@ A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer
   - `Resources/UI/Themes/`: the `Dark` and `Light` `ThemeData` assets the package ships. Regenerate with `Design System > Generate Built-in Themes`; `Dark` must stay identical to `DesignTokens.uss`.
   - `Runtime/Behaviour/`: `DesignSystemBehaviourBase<TComponent>` plus `UIDocument/` and `PanelRenderer/` backends.
   - `Runtime/Theme/`: `ThemeData` (the token store and USS generator) and `ThemeRuntime` + `ThemeApplierBase<T>` + two concrete backends. Runtime only — no editor code lives under `Runtime/`.
-  - `Editor/`: `EditorHelpers.cs` (a menu action that attaches the stylesheet) and `Theme/` (the Theme Configurator, the baker, the preset generators).
+  - `Runtime/Typography/`: `OpenTypeFace` (a `name`/`OS2`/`head`/`fvar` reader — pure C#, no Unity API, because the same code runs in the editor importer AND in a player that just downloaded a font), `DsFontFamily`, `DsFonts`, and `DsGoogleFonts` (runtime download, behind the `DS_WEBREQUEST` version define).
+  - `Editor/`: `EditorHelpers.cs` (a menu action that attaches the stylesheet), `Theme/` (the Theme Configurator, the baker, the preset generators), and `Typography/` (the Google Fonts window, catalogue, importer, `FontAssetFactory`, `FontUssWriter`).
 - `Assets/Showcase/`, `Assets/Editor/`, `Assets/WebGLTemplates/`, and `Tools/` are the **host project** that builds the live web demo. They are not part of the package. Do not copy them into a consuming project, and do not add product-specific dependencies to the package's own C#.
-- `docs/`: ARCHITECTURE.md, COMPONENTS.md, ICONS.md, MOBILE.md.
+- `docs/`: ARCHITECTURE.md, COMPONENTS.md, FONTS.md, ICONS.md, MOBILE.md.
 
 ## Conventions when editing the system
 
@@ -76,6 +79,7 @@ Windows-first Unity 6 project (host editor 6000.5.2f1). There is no unit-test su
 
 - Full class reference: `docs/COMPONENTS.md`
 - Architecture and rationale: `docs/ARCHITECTURE.md`
+- Fonts and multilingual text: `docs/FONTS.md`
 - Icons: `docs/ICONS.md`. Mobile: `docs/MOBILE.md`.
 - Contribution rules: `CONTRIBUTING.md`
 - Machine-readable index: `llms.txt`

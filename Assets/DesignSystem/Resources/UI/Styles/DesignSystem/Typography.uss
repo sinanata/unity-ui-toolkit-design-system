@@ -27,7 +27,7 @@
 
 .ds-h3 {
     font-size: var(--font-size-h3);
-    -unity-font-style: bold; /* Semibold — UI Toolkit uses normal/bold; pair with a Semibold font asset for accuracy */
+    -unity-font-style: bold; /* Semibold. UI Toolkit only has normal/bold, so with no font family this is the closest we can get. Import one (Design System > Google Fonts) and the generated sheet re-points this at the real 600 face. */
     color: var(--color-text-primary);
     white-space: normal;
 }
@@ -48,10 +48,73 @@
 
 .ds-caption {
     font-size: var(--font-size-caption);
-    -unity-font-style: bold; /* Medium — pair with a Medium font asset for fidelity */
+    -unity-font-style: bold; /* Medium. Same story as .ds-h3: an imported family re-points this at the real 500 face. */
     color: var(--color-text-secondary);
     letter-spacing: 0.5px;
     white-space: normal;
+}
+
+/* ---------- Typeface ----------
+   The design system inherits Unity 6's default UI Toolkit font until you import a
+   family (Design System > Google Fonts). Importing one writes a stylesheet that
+   declares `--ds-font-100` … `--ds-font-900`, points `.ds-root` at
+   `-unity-font-definition: var(--ds-font-body)`, and adds the `.ds-weight-*`
+   classes below. Add that sheet AFTER DesignSystem.uss.
+
+   Why weights need their own classes at all: USS has no `font-weight`. UI Toolkit
+   offers exactly two style slots — `-unity-font-style: normal` and `bold` — so the
+   only way to reach Medium or SemiBold is to point `-unity-font-definition` at a
+   different FontAsset. The importer also wires each face's `fontWeightTable`, which
+   is what makes every existing `-unity-font-style: bold` rule in this file resolve
+   to the family's REAL bold rather than a synthetically dilated Regular.
+
+     .ds-weight-100 … .ds-weight-900   one class per weight the family ships
+
+   These classes live in the GENERATED sheet, not here, because they resolve font
+   tokens that do not exist until a family is imported. */
+
+/* ---------- International text ----------
+   Unity's advanced text generator: contextual shaping (Arabic letters join into their
+   initial/medial/final forms), bidirectional reordering (Arabic, Hebrew), and Indic
+   cluster reordering (Devanagari, Bengali, Tamil, Khmer). The standard generator draws
+   those scripts as disconnected letters in memory order, which is not a style choice —
+   it is wrong, and unreadable to anyone who reads the language.
+
+   `-unity-text-generator` starts out `advanced` (that is Unity 6's initial value, whatever
+   the enum's own docs claim), so on a page with no fetched fonts `.ds-intl` states intent
+   rather than changing anything.
+
+   It earns its keep the moment ONE fetched font enters the picture. The property is
+   INHERITED, and a fetched font forces its root to `standard` (see below), so every element
+   under that root inherits `standard` too — Arabic included, even when the Arabic is being
+   drawn by a bundled font that could have shaped it perfectly well. An element cannot
+   decline an inherited value by not having a class; it has to set the opposite one. That is
+   what this is: the way back up.
+
+   Note it is orthogonal to the FONT. Shaping needs the generator; the GLYPHS need a family
+   that covers the script, or a fallback chain that does. */
+.ds-intl {
+    -unity-text-generator: advanced;
+}
+
+/* The escape hatch, and you will need it for exactly one thing: a font DOWNLOADED at
+   runtime. The advanced generator builds its font face natively from a real `Font`
+   object, and a `Font` cannot be constructed from bytes — no entry point in Unity takes
+   a byte[] — so a fetched font only ever has a file path. Handed one, the advanced
+   generator says "FontAsset is invalid. Please assign a Source Font File." and then
+   draws NOTHING. Not unshaped text. Nothing.
+
+   The standard generator reads the path happily. So anything showing a fetched font
+   must wear this class. `DsFonts.NeedsStandardGenerator(face)` tells you which faces
+   those are, and the corollary is the rule the whole font system is built around: a
+   script that needs SHAPING must be bundled, because it can never be fetched.
+
+   Both classes are for text whose font is set in UXML. Set the font from C# and
+   `DsFonts.ApplyFace` / `.Apply` / `.ApplyWeight` write the property inline for you, which
+   also reaches the one place a class cannot: a dropdown popup is parented at PANEL scope, a
+   sibling of the document root, where none of these stylesheets are loaded. */
+.ds-intl--off {
+    -unity-text-generator: standard;
 }
 
 /* Color modifiers */

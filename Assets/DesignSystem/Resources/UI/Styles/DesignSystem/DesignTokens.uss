@@ -54,10 +54,19 @@
     --color-rarity-legendary: #F59E0B;
 
     /* ---------- Typography ----------
-       The design system inherits Unity 6's default UI Toolkit font (Inter
-       Regular). To swap in a custom typeface, assign your FontAsset to
-       `--unity-font-definition` on the screen root and the cascade flows
-       to every text element below. */
+       Sizes live here; the TYPEFACE is a separate token layer.
+
+       Out of the box the system inherits Unity 6's default UI Toolkit font.
+       Run `Design System > Google Fonts`, import any family, and the importer
+       writes a stylesheet declaring `--ds-font-100` … `--ds-font-900` plus
+       `--ds-font-body`, and points `.ds-root` at it. Add that sheet after
+       `DesignSystem.uss` and every text element below inherits the new face,
+       because `-unity-font-definition` is an inherited property.
+
+       That sheet also wires each face's weight table, which is what turns the
+       `-unity-font-style: bold` rules throughout this design system into a REAL
+       bold typeface instead of a synthetically fattened Regular. See
+       `Typography.uss` for `.ds-weight-*` and `.ds-intl`. */
     --font-size-h1:        26px;
     --font-size-h2:        20px;
     --font-size-h3:        16px;
