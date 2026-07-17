@@ -267,6 +267,14 @@ The rule that survives both: **do the geometry in the local space of the element
 
 A corollary for anything that *measures* a world-space panel, including tests: a threshold like `width < 10 means it never laid out` is a pixel assumption. Against metres it is a false negative, and `PopupProbe` spent its whole life reporting `field never laid out (2.1x0.4)` and skipping every world-space check because of it.
 
+### A world-space panel does not tick its scheduler, and WebGL won't draw its materials
+
+Two more world-space facts, both surfaced while getting GPU materials (the `style.unityMaterial` FX pipeline) onto the gallery walls. Full detail is in [MATERIALS.md](MATERIALS.md); the architectural shape belongs here.
+
+**`element.schedule` is per-panel, and a world-space `PanelRenderer` panel does not pump its scheduler in a player.** Anything deferred through it — a post-layout pass, a settled re-read — silently never runs on a world exhibit, while the editor (which ticks every panel) stays green and hides the bug. The corridor already knew this in two places: it drives its own spinner rotation because "nothing ticks them", and it hosts its transition-guard timer on the flat page's always-ticking root. The FX pipeline learned it the same way, and now defers through a scheduler-independent tick (`DsFxManager.RunAfter`, driven by the one global FX ticker) instead of any panel's `schedule`.
+
+**On a WebGL player, custom materials do not render on world-space panels — for two independent engine reasons, both worked around off to the side.** (1) The staged geometry updater (`GpuUpdaterStaged`, used only by the WebGL and WebGPU players) sizes its per-frame staging buffer before it finishes growing the ranges it copies, so a world UI's restyle burst overruns it — `GfxDevice::CopyBufferRanges: range reads out of bounds`, then a wasm trap. Root-caused in the decompiled module and fixed on the build machine by a one-instruction patch (`Tools/UirStagingPatch`, auto-detected by `BuildCli`). (2) Even patched, the native world-panel draw ignores per-element materials: the managed renderer records the material command lists correctly, yet the panel draws with stock chrome. So the showcase renders each world exhibit to a RenderTexture on a quad — the flat-panel pipeline, which draws materials in every player. The takeaway: FX materials on world-space UI are free in the editor and native builds; on WebGL they need the build-machine patch plus a render-to-texture host, and `DsFxManager.AllowWorldSpacePanels` gates the whole thing.
+
 ## What lives in C# vs USS
 
 The boundary is intentional:

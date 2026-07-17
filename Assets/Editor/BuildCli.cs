@@ -59,14 +59,47 @@ namespace UIDocumentDesignSystem.BuildTools
                 // this self-heals if it's deleted or on the wrong shader.
                 EnsureCorridorMaterial();
 
+                // -cliDiagnostic: a build that can TELL YOU WHAT BROKE.
+                //
+                // The shipping build runs webGLExceptionSupport = ExplicitlyThrownExceptionsOnly,
+                // which is right for size and speed and useless for diagnosis: a managed fault
+                // surfaces as a bare "RuntimeError: null function" with a native-only stack, naming
+                // nothing. FullWithStacktrace turns the same fault into a named managed exception
+                // and a managed stack in the browser console. Slower and fatter — never ship it —
+                // but it converts an afternoon of guessing into one line of fact.
+                var diagnostic = args.Has("-cliDiagnostic");
+                if (diagnostic)
+                {
+                    PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.FullWithStacktrace;
+                    PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+                    Debug.Log("[BuildCli] DIAGNOSTIC build: full exceptions + stack traces, no compression.");
+                }
+                else
+                {
+                    PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+                }
+
                 var opts = new BuildPlayerOptions
                 {
                     scenes           = new[] { SCENE_PATH },
                     locationPathName = buildDir,
                     target           = BuildTarget.WebGL,
                     targetGroup      = BuildTargetGroup.WebGL,
-                    options          = BuildOptions.None,
+                    options          = diagnostic ? BuildOptions.Development : BuildOptions.None,
                 };
+
+                // If this editor install's WebGL playback module carries the UIR staging patch
+                // (Tools/UirStagingPatch — fixes the staged updater's staging-buffer under-
+                // allocation, the CopyBufferRanges overrun), tell the player: DsFxManager then
+                // defaults world-space material panels ON, since the crash the gate guards
+                // against cannot occur in this build. extraScriptingDefines is per-build only —
+                // nothing persistent changes, and unpatched machines build the safe default.
+                if (IsUirStagingPatched())
+                {
+                    opts.extraScriptingDefines = new[] { "DS_UIR_STAGING_PATCHED" };
+                    Debug.Log("[BuildCli] UIR staging patch detected on this editor install — " +
+                              "building with DS_UIR_STAGING_PATCHED (world-space materials on by default).");
+                }
 
                 Debug.Log($"[BuildCli] Building WebGL → {buildDir}");
                 BuildReport result = BuildPipeline.BuildPlayer(opts);
@@ -102,6 +135,40 @@ namespace UIDocumentDesignSystem.BuildTools
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Is this editor install's WebGL playback module patched by Tools/UirStagingPatch? The
+        /// installer keeps the pristine module beside the target as *.orig-pre-uir-patch, so
+        /// "backup exists AND differs from the live module" is exact: it survives re-running the
+        /// patcher (idempotent) and correctly reads unpatched after Apply -Restore (restore copies
+        /// the backup back, making them equal).
+        /// </summary>
+        static bool IsUirStagingPatched()
+        {
+            try
+            {
+                var module = Path.Combine(EditorApplication.applicationContentsPath,
+                    "PlaybackEngines", "WebGLSupport", "Managed", "UnityEngine.UIElementsModule.dll");
+                var backup = module + ".orig-pre-uir-patch";
+                if (!File.Exists(module) || !File.Exists(backup))
+                    return false;
+                using (var md5 = System.Security.Cryptography.MD5.Create())
+                {
+                    byte[] a, b;
+                    using (var s = File.OpenRead(module)) a = md5.ComputeHash(s);
+                    using (var s = File.OpenRead(backup)) b = md5.ComputeHash(s);
+                    for (int i = 0; i < a.Length; i++)
+                        if (a[i] != b[i])
+                            return true;
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[BuildCli] UIR patch detection failed (building WITHOUT the define): " + ex.Message);
+                return false;
+            }
+        }
 
         /// <summary>
         /// Append a per-build token to the loader / data / wasm URLs in the emitted index.html, and
@@ -190,6 +257,14 @@ namespace UIDocumentDesignSystem.BuildTools
         {
             readonly string[] _argv;
             public CliArgs(string[] argv) { _argv = argv; }
+            /// <summary>Presence-only flag, e.g. -cliDiagnostic.</summary>
+            public bool Has(string name)
+            {
+                foreach (var a in _argv)
+                    if (a == name) return true;
+                return false;
+            }
+
             public string Get(string name, string fallback)
             {
                 for (int i = 0; i < _argv.Length - 1; i++)

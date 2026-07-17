@@ -26,7 +26,7 @@
                 </ui:VisualElement>
                 <ui:DropdownField name="theme-provider-dropdown" choices="Design System default" index="0" class="ds-dropdown" style="margin-bottom: 8px;"/>
                 <ui:Button name="theme-randomize" text="Randomize colors" class="ds-btn ds-btn--secondary" style="margin-bottom: 6px;"/>
-                <ui:Button name="theme-codigrate-link" text="Themes by Codigrate" class="ds-btn ds-btn--ghost" style="margin-bottom: 8px;"/>
+                <ui:Button name="theme-codigrate-link" text="Colour palettes by Codigrate" class="ds-btn ds-btn--ghost" style="margin-bottom: 8px;"/>
                 <ui:Label name="theme-provider-status" text="" class="ds-caption showcase-placeholder-text" style="margin-bottom: 8px; white-space: normal;"/>
                 <ui:VisualElement class="ds-swatch-row">
                     <ui:VisualElement class="ds-swatch ds-swatch--primary"/>

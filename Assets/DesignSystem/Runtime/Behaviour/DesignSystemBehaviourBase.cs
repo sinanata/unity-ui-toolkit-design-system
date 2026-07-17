@@ -486,7 +486,15 @@ namespace DesignSystem.Runtime.Behaviour
                 if (host == null) return;
 
                 ghost = MakeGhost(item);
-                host.Add(ghost);
+                // HIERARCHY child, never Add(): when the ds-root is a ScrollView (the showcase's
+                // flat page is one), Add() redirects into the SCROLLED content container, and the
+                // pointer-to-local mapping there placed the ghost thousands of points above the
+                // viewport — created, dragging fine, and fully clipped (measured: content scrolled
+                // 10k pt put the ghost at world y ≈ -9500). A hierarchy child of the ds-root
+                // element itself sits outside both the scroll transform and the viewport clip,
+                // still inside the ds-root stylesheet scope, and on a plain (world-space exhibit)
+                // root hierarchy.Add is simply Add — one path, both hosts.
+                host.hierarchy.Add(ghost);
                 item.AddToClassList(DRAGGING_CLASS);
 
                 item.CapturePointer(e.pointerId);

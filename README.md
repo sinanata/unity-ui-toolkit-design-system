@@ -25,6 +25,7 @@ Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap 
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [Fonts](#fonts)
+- [Materials](#materials)
 - [Mobile](#mobile)
 - [Icons](#icons)
 - [Architecture](#architecture)
@@ -246,6 +247,40 @@ USS has no `font-weight` property, so the in-between weights get a class each �
 The trap it exists to close: with no chain, Unity quietly serves missing glyphs from an **OS font** — Arabic becomes Arial, Japanese becomes Microsoft YaHei. Your multilingual UI looks perfect in the Editor and renders as empty boxes in a WebGL build, with no warning in either place. `DsFonts.Coverage` resolves through the explicit chain only and never asks the OS, so what it reports is what a *build* does.
 
 **Fetch any of ~2000 families at runtime, in a browser** — `DsGoogleFonts.Load` downloads a family from the `google/fonts` repo and builds a live typeface, weights and all. And a downloaded font is **shaped like any other**: fetch Cairo and you get Arabic in Cairo, joined; fetch Noto Sans JP and you get kanji. Full detail — the shaping trick, Han unification, why the chain's order is load-bearing, and what to bundle vs fetch — in [docs/FONTS.md](docs/FONTS.md).
+
+## Materials
+
+Real GPU surfaces for UI Toolkit — stock, linework, depth, engraved lettering — rendered by a custom shader per element. Needs **Unity 6000.5+** (it is built on `style.unityMaterial`); on 6000.0–6000.4 the rest of the design system is unaffected.
+
+```xml
+<ui:Button text="Get started" class="ds-btn ds-fx-blueprint ds-fx-text-carve" />
+```
+
+```csharp
+DsFx.ApplyMarkers(root);   // that button is now a blueprint plate with engraved lettering
+```
+
+Or material-theme a whole screen, which is the interesting one:
+
+```csharp
+DsFxManager.ActiveTheme = DsFxThemeColors.FromThemeData(myTheme);  // or null for native hues
+DsFxTheme.Apply(root, DsFxBlueprintFamily.Family, "cyanotype");    // post-layout
+```
+
+`DsFxTheme` knows what these components *are* — that a `ds-btn` is a board standing proud, a `ds-input`'s inner box a tray carved into the panel, a slider's rail furniture and its dragger the control. It puts every element on a four-rung tone ladder (page, panel, plate, well) and enforces the readability rules, first among them that **body text is never material**: every text element gets an ink chosen for the tone it actually rides. Semantic color survives a chroma gate, so a danger button becomes red-stained blueprint rather than losing its meaning.
+
+**The whole runtime is one float per frame.** Every animation — idle, hover, press, click, entrance — is a pure function of a global clock evaluated against tuples stamped at event time. There is no per-element update and no repaint scheduling, so a screen full of animating materials costs the CPU nothing between events. Pin the clock and rendering becomes reproducible to the byte.
+
+**One family ships — `blueprint` — plus the engine to write your own.** That is deliberate: the engine is the point. A family is a shader plus a registration:
+
+```csharp
+DsFxRegistry.Register(new DsFxFamily("moss", "Hidden/MyGame/Moss", "Shaders/Moss", variants));
+// ds-fx-moss--spring now works in UXML, and DsFxTheme.Apply themes a whole screen in it.
+```
+
+Every skinned element is one extra draw call — materials are hero treatment, not wallpaper. The abilities, the grammar, a copy-paste family skeleton, and the rules that cost a day if you skip them (the descendant contract, the FXC crash) are in [docs/MATERIALS.md](docs/MATERIALS.md).
+
+**Materials work in the world-space gallery, not just on flat screens.** Pick *Blueprint (shader)* and every wall exhibit becomes a GPU material that stays sharp at any camera distance. Getting there on WebGL took root-causing a Unity renderer buffer overrun — patched on the build machine, see [`Tools/UirStagingPatch`](Tools/UirStagingPatch/README.md) — and a RenderTexture-per-panel fallback for a native draw-path gap, both of which the showcase applies automatically. The mechanics are in [docs/MATERIALS.md](docs/MATERIALS.md).
 
 ## Mobile
 

@@ -8,6 +8,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using DesignSystem.Runtime.Behaviour;
 using DesignSystem.Runtime.Behaviour.UIDocument;
+#if UNITY_6000_5_OR_NEWER
+using DesignSystem.Runtime.Fx;
+#endif
 using DesignSystem.Runtime.Theme.Applier;
 using DesignSystem.Runtime.Theme.Data;
 using DesignSystem.Runtime.Typography;
@@ -86,6 +89,40 @@ namespace Showcase.Runtime
 
             if (ShowcaseFonts.Diagnostics)
                 Debug.Log("[dsfont] font diagnostics ON");
+
+#if UNITY_6000_5_OR_NEWER
+            // `?fxdiag=1` narrates the material pipeline (skin attachment, material resolution,
+            // theme fan-out, ticker) to the console — the tool for player-only FX failures.
+            DsFxManager.Diagnostics = url.Contains("fxdiag");
+            if (DsFxManager.Diagnostics)
+                Debug.Log("[ds fx diag] material diagnostics ON");
+
+            // `?fxrt=1` forces the corridor's RT-exhibit host outside WebGL (where it is always
+            // on) so the fallback can be exercised in the editor and native players too.
+            WorldSpaceCorridor.ForceRtExhibits = url.Contains("fxrt");
+
+            // `?fxauto=1` drives the world-space material scenario with no pointer input: boot,
+            // pick Blueprint through the real dropdown path, enter world mode, log a census.
+            // Exists so a headless browser (or anyone reproducing a report) lands in the exact
+            // scenario with patience instead of six canvas clicks.
+            if (url.Contains("fxauto"))
+                ScheduleFxAutopilot();
+
+            // `?worldfx=1` forces material skins ON for world-space panels in THIS player —
+            // meaning the WebGL player, the one host where they default OFF because Unity
+            // 6000.5 overruns its own UI geometry buffer there (GfxDevice::CopyBufferRanges
+            // out of bounds; see DsFxManager.AllowWorldSpacePanels). This is the switch for
+            // testing whether a given Unity build still has that bug. Everywhere else the
+            // flag is already true and this is a no-op.
+            if (url.Contains("worldfx=1"))
+            {
+                DsFxManager.AllowWorldSpacePanels = true;
+                Debug.LogWarning("[ds fx] ?worldfx=1 — world-space material skins FORCED ON in this player. " +
+                                 "On WebGL this deliberately walks into the engine's known geometry-buffer " +
+                                 "overrun: expect GfxDevice::CopyBufferRanges errors or a dead canvas in " +
+                                 "world mode if the bug is still present.");
+            }
+#endif
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -642,8 +679,51 @@ namespace Showcase.Runtime
                           $"override={(_activeOverride == null ? "null" : "SET")} -> " +
                           $"{(cascadeHasIt ? "cascade paints it (no stamp)" : "STAMPING inline")}");
 
-            if (cascadeHasIt) return;
-            CodigrateThemeApplier.StampPopup(menu, _activeOverride, field?.index ?? -1);
+            if (!cascadeHasIt)
+                CodigrateThemeApplier.StampPopup(menu, _activeOverride, field?.index ?? -1);
+
+            // Runs LAST and unconditionally: the Blueprint row must look like itself under every
+            // palette, including the ones whose tokens the cascade already painted. Stamping after
+            // StampPopup also means it wins where both touch the same row.
+            StampBlueprintRow(field, menu);
+        }
+
+        // The Blueprint row wears the material it applies: cyanotype stock, pale linework text, a
+        // bright rule down its leading edge. That is the whole point — the row is the only one in
+        // the list that changes the RENDERER rather than the tokens, and it should not be able to
+        // pass as another colour name. It also doubles as a preview: what you see in the row is
+        // roughly what the screen becomes.
+        static void StampBlueprintRow(DropdownField field, VisualElement menu)
+        {
+            if (!MaterialsSupported || menu == null || field?.choices == null) return;
+            var index = field.choices.IndexOf(BLUEPRINT_OPTION);
+            if (index < 0) return;
+
+            var items = menu.Query(className: "unity-base-dropdown__item").ToList();
+            if (index >= items.Count) return;
+            var row = items[index];
+
+            // Cyanotype's own colours, so the row and the material cannot drift apart.
+            Color stock    = new Color32(0x14, 0x33, 0x66, 255);
+            Color linework = new Color32(0xE8, 0xF1, 0xFF, 255);
+            Color accent   = new Color32(0x7A, 0xD8, 0xFF, 255);
+            Color hover    = new Color32(0x1D, 0x47, 0x8C, 255);
+
+            row.style.backgroundColor = stock;
+            row.style.borderLeftWidth = 3;
+            row.style.borderLeftColor = accent;
+            row.style.paddingLeft = 6;
+
+            // An inline background outranks the :hover and :checked rules, so owning the resting
+            // colour means owning those states too — same trap StampPopup documents.
+            row.RegisterCallback<PointerEnterEvent>(_ => row.style.backgroundColor = hover);
+            row.RegisterCallback<PointerLeaveEvent>(_ => row.style.backgroundColor = stock);
+
+            foreach (var label in row.Query<Label>().ToList())
+            {
+                label.style.color = linework;
+                label.style.unityFontStyleAndWeight = FontStyle.Italic;
+            }
         }
 
         static void PaintOne(VisualElement root)
@@ -654,6 +734,7 @@ namespace Showcase.Runtime
                 // Randomize would sit on top of the sheet and the theme would appear to do nothing.
                 CodigrateThemeApplier.Revert(root);
                 ThemeRuntime.Apply(root, _activeThemeAsset);
+                PaintMaterial(root);
                 return;
             }
 
@@ -661,7 +742,120 @@ namespace Showcase.Runtime
 
             if (_activeOverride != null) CodigrateThemeApplier.Apply(root, _activeOverride);
             else                         CodigrateThemeApplier.Revert(root);
+
+            PaintMaterial(root);
         }
+
+#if UNITY_6000_5_OR_NEWER
+        // The material is a LAYER over whatever the colour theme just did, not a replacement for it —
+        // it reads the palette through DsFxThemeColors.FromThemeData and stains itself accordingly.
+        // Colours resolve through USS; the material resolves in a shader; they compose.
+        //
+        // Every repaint reverts first. DsFxTheme.Apply is not "switch to X": the markers from the
+        // previous pass are still on the elements, and hand-authored markers WIN, so a second Apply
+        // over the first would be quietly ignored — and worse, would then register an EMPTY undo set
+        // over the real one, so the next Revert would restore nothing. Revert, then Apply.
+        //
+        // The two guards below are per ROOT and read state directly, deliberately. One theme change
+        // paints several roots in a row — the flat page, then the HUD, then every corridor exhibit —
+        // and an earlier version guarded the scheduled Apply with a single SHARED counter. Each
+        // root's Apply was then cancelled by the next root's increment, so only the last root ever
+        // got the material, and the last root is never the page you are looking at: selecting
+        // Blueprint appeared to do nothing at all.
+        //
+        // The replacement for that counter is IsThemed, not a per-root counter in a table. It is
+        // simpler, and it dodges an IL2CPP trap the counter walked straight into:
+        // ConditionalWeakTable.GetOrCreateValue constructs its value by REFLECTION, so no compiled
+        // call site references the value type's parameterless constructor, the managed linker strips
+        // it, and the WebGL build throws MissingMethodException at runtime while the editor — which
+        // does not strip — stays perfectly green.
+        // `?fxauto=1` — see InitDiagnostics. Chained through DsFxManager.RunAfter on purpose:
+        // if the ticker were dead in a player, the autopilot would stall right after "armed",
+        // which is itself the diagnosis.
+        static void ScheduleFxAutopilot()
+        {
+            Debug.Log("[ds fx diag] autopilot armed: select Blueprint, then world mode, then census");
+            DsFxManager.RunAfter(5f, () =>
+            {
+                var dd = _flatRoot?.Q<DropdownField>("theme-provider-dropdown");
+                if (dd == null) { Debug.LogWarning("[ds fx diag] autopilot: theme dropdown not found"); return; }
+                dd.value = "Blueprint (shader)";
+                Debug.Log("[ds fx diag] autopilot: Blueprint selected");
+                DsFxManager.RunAfter(3f, () =>
+                {
+                    var corridor = Object.FindFirstObjectByType<WorldSpaceCorridor>();
+                    if (corridor == null) { Debug.LogWarning("[ds fx diag] autopilot: no corridor in scene"); return; }
+                    corridor.Show();
+                    Debug.Log("[ds fx diag] autopilot: world mode entered");
+                    DsFxManager.RunAfter(8f, () =>
+                    {
+                        int roots = 0, sections = 0, skinned = 0;
+                        foreach (var r in corridor.ExhibitRoots)
+                        {
+                            roots++;
+                            var list = r.Query(className: "ds-section").ToList();
+                            sections += list.Count;
+                            foreach (var s in list)
+                                if (DsFx.SkinOf(s) != null)
+                                    skinned++;
+                        }
+                        Debug.Log($"[ds fx diag] autopilot census: roots={roots} sections={sections} " +
+                                  $"skinned={skinned} allow={DsFxManager.AllowWorldSpacePanels}");
+
+                        // Park the camera right in front of the first exhibit so a screenshot
+                        // taken after the census judges the MATERIAL, not a corridor vista.
+                        var cam = Camera.main;
+                        var exhibit0 = GameObject.Find("Exhibit_0");
+                        if (cam != null && exhibit0 != null)
+                        {
+                            var fpc = cam.GetComponent<FirstPersonController>();
+                            if (fpc != null) fpc.enabled = false;
+                            var a = exhibit0.transform.position;
+                            var toward = exhibit0.transform.rotation * Vector3.back;
+                            cam.transform.position = a + toward * 1.15f;
+                            cam.transform.rotation = Quaternion.LookRotation(a - cam.transform.position, Vector3.up);
+                            Debug.Log("[ds fx diag] autopilot: camera parked at Exhibit_0 close pose");
+                        }
+                    });
+                });
+            });
+        }
+
+        static void PaintMaterial(VisualElement root)
+        {
+            DsFxManager.Diag($"PaintMaterial '{root?.name}': blueprintOn={_blueprintOn} themed={DsFxTheme.IsThemed(root)}");
+            DsFxTheme.Revert(root);
+            if (!_blueprintOn) return;
+
+            // The ladder direction and the stain both come from the state the rest of this file
+            // already owns, so the day/night toggle keeps working with the material on. Both are
+            // read by Apply at APPLY time, so if two repaints race, whichever callback lands first
+            // uses the newest values and the other bails on IsThemed. Either order is correct.
+            DsFxManager.ThemeLight = _themeLight;
+            DsFxManager.ActiveTheme = _activeThemeAsset
+                ? DsFxThemeColors.FromThemeData(_activeThemeAsset, _themeLight)
+                : null;
+
+            // Post-layout: the mapper's roles read resolvedStyle. Deferred through the FX
+            // ticker, NOT root.schedule — a corridor exhibit is a world-space PanelRenderer
+            // panel, and those do not tick their per-panel schedulers in a player (the same
+            // fact that makes the corridor drive its own spinners and HoldTransitionsOff host
+            // its timer on the flat root). Scheduled on the exhibit root, this Apply silently
+            // never ran in the WebGL player: the picker themed the HUD and left every world
+            // exhibit stock. The ticker is a plain MonoBehaviour.Update and fires everywhere.
+            DsFxManager.RunAfter(0f, () =>
+            {
+                // Re-check both: the material may have been switched off, or an earlier scheduled
+                // Apply for this same root may already have themed it.
+                if (!_blueprintOn || DsFxTheme.IsThemed(root)) return;
+                DsFxTheme.Apply(root, DsFxBlueprintFamily.Family, BLUEPRINT_VARIANT);
+                DsFxManager.Diag($"Apply fired on '{root?.name}': wired={root.Query(className: DsFx.WiredClass).ToList().Count} " +
+                                 $"attached={(root.panel != null)}");
+            });
+        }
+#else
+        static void PaintMaterial(VisualElement root) { }
+#endif
 
         // Canonical theme-control state, shared by the flat page and every
         // world exhibit clone. Theme mutations can originate from ANY root
@@ -1051,7 +1245,26 @@ namespace Showcase.Runtime
         // (Random ↔ Codigrate ↔ Default) without needing extra buttons.
         const string DEFAULT_OPTION = "Design System default";
         const string RANDOM_OPTION  = "Random palette";
+
+        // The one entry in this dropdown that is not a colour palette. Everything else here swaps
+        // TOKENS; this swaps the renderer — every component becomes a GPU material via
+        // DsFxTheme (docs/MATERIALS.md). It is in the same dropdown because that is where someone
+        // looks to change how the system LOOKS, but it is styled differently in the popup because
+        // picking it is a different KIND of choice, and a row that looks like its neighbours would
+        // promise it behaves like them.
+        const string BLUEPRINT_OPTION = "Blueprint (shader)";
+        const string BLUEPRINT_VARIANT = "cyanotype";
+        static bool _blueprintOn;
+
         static List<CodigrateThemeProvider.ThemeListing> _codigrateListings;
+
+        /// <summary>Present only where the pipeline exists; below 6000.5 the row would be a lie.</summary>
+        static bool MaterialsSupported =>
+#if UNITY_6000_5_OR_NEWER
+            true;
+#else
+            false;
+#endif
 
         static void WireThemeProvider(VisualElement root)
         {
@@ -1060,10 +1273,10 @@ namespace Showcase.Runtime
             if (dropdown == null) return;
             var status = root.Q<Label>("theme-provider-status");
 
-            // Default state: two stock entries until the network fetch returns.
+            // Default state: the stock entries until the network fetch returns.
             // Selecting "Random palette" works immediately; the codigrate
             // entries land in between once the list loads.
-            dropdown.choices = new List<string> { DEFAULT_OPTION, RANDOM_OPTION };
+            dropdown.choices = StockChoices();
             dropdown.index = 0;
 
             // The list is fetched once and shared: this method now also runs
@@ -1072,23 +1285,23 @@ namespace Showcase.Runtime
             if (_codigrateListings != null)
             {
                 PopulateDropdownChoices(dropdown);
-                if (status != null) status.text = $"{_codigrateListings.Count} themes by Codigrate available.";
+                if (status != null) status.text = PalettesAvailableText();
             }
             else
             {
-                if (status != null) status.text = "Loading codigrate themes...";
+                if (status != null) status.text = "Loading colour palettes by Codigrate...";
                 CodigrateThemeProvider.FetchList((list, error) =>
                 {
                     if (error != null || list == null)
                     {
-                        if (status != null) status.text = "Codigrate themes unavailable. Random palette still works.";
+                        if (status != null) status.text = "Codigrate palettes unavailable. Random palette still works.";
                         Debug.LogWarning($"[ShowcaseBootstrap] Codigrate list fetch failed: {error}");
                         return;
                     }
 
                     _codigrateListings = list;
                     PopulateDropdownChoices(dropdown);
-                    if (status != null) status.text = $"{list.Count} themes by Codigrate available.";
+                    if (status != null) status.text = PalettesAvailableText();
                 });
             }
 
@@ -1097,6 +1310,15 @@ namespace Showcase.Runtime
                 var name = evt.newValue;
                 // Mirroring writes with SetValueWithoutNotify, so a change
                 // event here is always a real user pick on THIS dropdown.
+                //
+                // The material flag is owned by each apply-path below, not set here: the Randomize
+                // BUTTON reaches DoRandomize without passing through this callback, and a flag set
+                // only here would leave the material on while the dropdown read "Random palette".
+                if (name == BLUEPRINT_OPTION)
+                {
+                    ApplyBlueprint(root);
+                    return;
+                }
                 if (name == DEFAULT_OPTION)
                 {
                     ClearOverride(root);
@@ -1126,11 +1348,28 @@ namespace Showcase.Runtime
             });
         }
 
+        static List<string> StockChoices()
+        {
+            var choices = new List<string> { DEFAULT_OPTION };
+            if (MaterialsSupported) choices.Add(BLUEPRINT_OPTION);
+            choices.Add(RANDOM_OPTION);
+            return choices;
+        }
+
+        static string PalettesAvailableText()
+            => _codigrateListings == null
+                ? null
+                : $"{_codigrateListings.Count} colour palettes by Codigrate.";
+
         // Build the option list from the fetched listings and re-assert the
         // canonical selection (assigning `choices` can blank the field).
+        //
+        // Blueprint sits directly under the default, ABOVE the palettes: it is the odd one out and
+        // burying it among thirteen colour names is how nobody finds it.
         static void PopulateDropdownChoices(DropdownField dropdown)
         {
             var choices = new List<string> { DEFAULT_OPTION };
+            if (MaterialsSupported) choices.Add(BLUEPRINT_OPTION);
             foreach (var l in _codigrateListings) choices.Add(l.Name);
             choices.Add(RANDOM_OPTION);
             dropdown.choices = choices;
@@ -1138,8 +1377,33 @@ namespace Showcase.Runtime
                 dropdown.SetValueWithoutNotify(_themeDropdownValue);
         }
 
+        /// <summary>
+        /// Turn the material on. It layers over the CURRENT colour state rather than replacing it:
+        /// the dropdown has one value, so picking Blueprint drops the palette selection back to the
+        /// design system's own tokens — and the day/night toggle stays live, flipping the tone
+        /// ladder's direction underneath the material.
+        /// </summary>
+        static void ApplyBlueprint(VisualElement root)
+        {
+            _blueprintOn        = true;
+            _activeOverride     = null;
+            _activeThemeAsset   = null;
+            // Blueprint is a DARK theme, full stop: dark Prussian-blue stock with light linework is
+            // its whole identity, and there is no light variant of a blueprint. So — exactly like a
+            // Codigrate palette that carries a fixed appearance — it forces the mood dark and LOCKS
+            // the day/night toggle. Without the lock, flipping to day runs the tone ladder through
+            // TowardWhite and (worse) whitens the page background behind the material, which is never
+            // what this theme should look like. ClearOverride releases the lock on the way out.
+            _themeLight         = false;
+            _themeToggleLocked  = true;    // dark-locked: day mode must not whiten the shader theme
+            _themeDropdownValue = BLUEPRINT_OPTION;
+            _themeStatusText    = "GPU material via DsFxTheme — every component is a shader. docs/MATERIALS.md";
+            SyncThemeEverywhere();
+        }
+
         static void ApplyCodigratePalette(VisualElement root, CodigrateThemeProvider.ThemePalette palette)
         {
+            _blueprintOn        = false;   // a colour palette replaces the material, never layers under it
             // The ColorMap stays the canonical DESCRIPTION of the palette (the hex labels read it),
             // and the baked asset is how it gets PAINTED. A miss on the lookup is not a failure:
             // the palette simply falls back to inline stamping, exactly as it did before the themes
@@ -1159,12 +1423,13 @@ namespace Showcase.Runtime
 
         static void ClearOverride(VisualElement root)
         {
+            _blueprintOn        = false;   // a colour palette replaces the material, never layers under it
             _activeOverride     = null;
             _activeThemeAsset   = null;
             _themeToggleLocked  = false;
             _themeDropdownValue = DEFAULT_OPTION;
             _themeStatusText    = _codigrateListings != null
-                ? $"{_codigrateListings.Count} themes by Codigrate available."
+                ? PalettesAvailableText()
                 : null;
 
             // A codigrate palette may have left the mood in the other state. The toggle on the
@@ -1202,6 +1467,7 @@ namespace Showcase.Runtime
 
         static void DoRandomize(VisualElement root)
         {
+            _blueprintOn        = false;   // reachable from the BUTTON too, which never sees the dropdown callback
             // Randomize can be triggered from the THEME PROVIDER exhibit, whose panel carries no
             // theme-toggle — keep the current mood in that case.
             var toggle = root?.Q<Toggle>("theme-toggle");

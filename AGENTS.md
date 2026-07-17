@@ -15,6 +15,8 @@ A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer
 5. **`.meta` files are tracked on purpose.** Do not add them to `.gitignore`. They carry `svgType: 3` for icons and the asmdef import settings consumers rely on.
 6. **A font with no fallback chain is a bug, not a default.** Unity silently serves missing glyphs from an OS font, so Arabic renders as Arial and Japanese as Microsoft YaHei *in the Editor* and as empty boxes in a WebGL build, with no warning in either. Never judge multilingual text by what the Editor shows. `DsFonts.Coverage` resolves through the explicit chain only; `Design System > Showcase > Verify Fonts` fails loudly on a gap.
 7. **A fallback chain is still not enough for CJK.** Chinese, Japanese and Korean share codepoints they *draw differently*, and a chain resolves per codepoint, not per language — so the first CJK font in it wins all the shared Han and Chinese comes out in Japanese letterforms. Nothing is missing, so coverage passes and the verifier goes green. Name the face with `DsFonts.ApplyFace` when you know the language. See `docs/FONTS.md`.
+8. **Every material family's solid branch starts with `dsfx_ownGeometry(f)`.** Unity 6000.5 batches *descendant* quads into an ancestor's custom-material draw, so a plain solid child (a swatch, a status dot, an active-row background) arrives in your family's fragment shader; shade it and it renders as an invisible chip of your material. Everything failing the test takes `dsfx_passthrough`. This is the single easiest thing in the FX system to regress, and it fails as a rendering oddity rather than an error. Related and equally load-bearing: call `dsfx_wellShade` **unconditionally**, never from inside a profile branch — from inside one it crashes FXC with no message. See `docs/MATERIALS.md`.
+9. **Material markers are `ds-fx-` prefixed and are not styling classes.** They carry no USS rules; they are instructions read by C# (`DsFxSpec`). Rule 3's BEM grammar governs component classes — do not try to make markers obey it, and do not add USS rules for them.
 
 ## Use the design system in your project
 
@@ -40,9 +42,11 @@ A drop-in design system for **Unity 6 UI Toolkit** (UIDocument and PanelRenderer
   - `Runtime/Behaviour/`: `DesignSystemBehaviourBase<TComponent>` plus `UIDocument/` and `PanelRenderer/` backends.
   - `Runtime/Theme/`: `ThemeData` (the token store and USS generator) and `ThemeRuntime` + `ThemeApplierBase<T>` + two concrete backends. Runtime only — no editor code lives under `Runtime/`.
   - `Runtime/Typography/`: `OpenTypeFace` (a `name`/`OS2`/`head`/`fvar` reader — pure C#, no Unity API, because the same code runs in the editor importer AND in a player that just downloaded a font), `DsFontFamily`, `DsFonts`, and `DsGoogleFonts` (runtime download, behind the `DS_WEBREQUEST` version define).
-  - `Editor/`: `EditorHelpers.cs` (a menu action that attaches the stylesheet), `Theme/` (the Theme Configurator, the baker, the preset generators), and `Typography/` (the Google Fonts window, catalogue, importer, `FontAssetFactory`, `FontUssWriter`).
+  - `Runtime/Fx/`: the material FX pipeline, entirely behind `#if UNITY_6000_5_OR_NEWER` (it is built on `style.unityMaterial`). `DsFxRegistry`/`DsFxFamily` (the OPEN family table — there is no built-in list of materials to edit; a family registers itself), `DsFxSpec` (the `ds-fx-` grammar), `DsFxSkin` (translates element facts into uniforms; every push builds a FRESH `MaterialDefinition`, and that is correctness, not style — see its header), `DsFxManager` (one global float per frame is the whole runtime; also `RunAfter`, a scheduler-independent deferral used because world-space panels do not tick their per-panel scheduler in a player), `DsFxPalette` (tone ladder, enamel ink, contrast floors), `DsFxTheme` (the role mapper: what a `ds-btn` or a `ds-input` IS, plus the readability rules), `DsFxBlueprintFamily`. Materials also render on world-space panels; a WebGL player needs two engine workarounds (a geometry-buffer overrun patched by `Tools/UirStagingPatch`, and a RenderTexture-per-panel fallback in the showcase for a native draw-path gap) — `docs/MATERIALS.md` has the full account. Do not "fix" the RT fallback or the `RunAfter` deferral back onto a panel scheduler; both exist for world-space players.
+  - `Resources/Fx/Shaders/`: `DsFx.cginc` (the shader foundation every family builds on) and `DsFxBlueprint.shader` (the shipped family and the worked example — read it before writing your own). Shaders live under `Resources/` because a player build strips shaders nothing references, and a runtime-built material references none.
+  - `Editor/`: `EditorHelpers.cs` (a menu action that attaches the stylesheet), `Theme/` (the Theme Configurator, the baker, the preset generators), `Typography/` (the Google Fonts window, catalogue, importer, `FontAssetFactory`, `FontUssWriter`), and `Fx/DsFxCompileCheck.cs` (`Design System > FX > Compile Check` — use it; importing a shader only parses it, and the first real compile otherwise happens at first draw in play mode).
 - `Assets/Showcase/`, `Assets/Editor/`, `Assets/WebGLTemplates/`, and `Tools/` are the **host project** that builds the live web demo. They are not part of the package. Do not copy them into a consuming project, and do not add product-specific dependencies to the package's own C#.
-- `docs/`: ARCHITECTURE.md, COMPONENTS.md, FONTS.md, ICONS.md, MOBILE.md.
+- `docs/`: ARCHITECTURE.md, COMPONENTS.md, FONTS.md, ICONS.md, MATERIALS.md, MOBILE.md.
 
 ## Conventions when editing the system
 
@@ -80,6 +84,7 @@ Windows-first Unity 6 project (host editor 6000.5.2f1). There is no unit-test su
 - Full class reference: `docs/COMPONENTS.md`
 - Architecture and rationale: `docs/ARCHITECTURE.md`
 - Fonts and multilingual text: `docs/FONTS.md`
+- Materials (GPU surfaces, the `ds-fx-` grammar, writing a family): `docs/MATERIALS.md`
 - Icons: `docs/ICONS.md`. Mobile: `docs/MOBILE.md`.
 - Contribution rules: `CONTRIBUTING.md`
 - Machine-readable index: `llms.txt`

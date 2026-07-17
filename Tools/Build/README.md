@@ -46,6 +46,10 @@ Close the Unity editor before running — batchmode and a live editor session fi
 
 Hardening (defensive checks, Burst-AOT cache auto-retry, native-crash labelling, deploy worktree cleanup) — see [the orchestrator's README](https://github.com/sinanata/unity-cross-platform-local-build-orchestrator) for the full list.
 
+### World-space materials need an engine patch on this machine
+
+If the showcase uses GPU materials on its world-space gallery (the `Blueprint (shader)` theme in world mode), the WebGL playback engine on the **build machine** needs the one-instruction patch in [`Tools/UirStagingPatch`](../UirStagingPatch/README.md) — it fixes a Unity 6000.5 staged-updater buffer overrun that only reproduces in a WebGL player. `BuildCli.BuildWebGL` auto-detects the patch (backup present and differing from the live module) and injects the `DS_UIR_STAGING_PATCHED` define, which turns world-space materials on by default in the built player. An unpatched machine still builds fine — world-space materials just stay off (`DsFxManager.AllowWorldSpacePanels = false`) and everything else is unaffected. Re-apply the patch after upgrading or reinstalling the editor.
+
 ## GitHub Pages — one-time setup
 
 After the first `-Deploy` push:

@@ -18,6 +18,7 @@
 #if UNITY_6000_5_OR_NEWER
 using System.Collections;
 using System.Collections.Generic;
+using DesignSystem.Runtime.Fx;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
@@ -101,6 +102,34 @@ namespace Showcase.Runtime
         Material _skybox0; bool _skyboxCached;
 
         public bool IsShown => _isShown;
+
+        // ── RT exhibits (WebGL players) ─────────────────────────────────────
+        // On a WebGL player the native world-panel draw path drops per-element
+        // custom materials: skins attach, styles hold, the managed renderer
+        // records per-material command lists (verified by decompilation and a
+        // headless in-player census — 35/35 sections skinned, zero errors) and
+        // the exhibits still draw with the standard chrome. Rather than fight
+        // native code, WebGL hosts every wall exhibit on a FLAT panel rendered
+        // into a per-exhibit RenderTexture shown on an emissive quad — the
+        // exact pipeline the flat page uses, which renders materials correctly
+        // in every player. Pointer input maps through
+        // PanelSettings.SetScreenToPanelSpaceFunction with an analytic
+        // quad-plane intersection (no colliders — physics is stripped on
+        // WebGL). Everything else — theming waves, spinners, visibility — works
+        // on the panel ROOT and does not care which host carries it.
+        public static bool ForceRtExhibits; // testing override (editor probes, ?fxrt=1)
+
+        static bool UseRtExhibits
+        {
+            get
+            {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                return true;
+#else
+                return ForceRtExhibits;
+#endif
+            }
+        }
 
         // Raised at the end of Hide() (including the Esc-driven exit) so the
         // mode switch can un-highlight "World Space" without us reaching into
@@ -197,15 +226,41 @@ namespace Showcase.Runtime
         // So the 3D geometry toggles normally, while the panels toggle
         // VISIBILITY — which skips painting and picking but keeps their
         // layout alive and their size non-zero for the whole session.
+        //
+        // The reveal is a WAVE — one exhibit per frame — mirroring ThemeWave:
+        // it spreads the heaviest corridor frames and looks deliberate. As with
+        // ThemeWave, it is load-spreading, not the WebGL safety mechanism (that
+        // is Tools/UirStagingPatch — see DsFxManager.AllowWorldSpacePanels).
+        // Hiding regenerates nothing, so the way OUT stays instant.
         void SetCorridorVisible(bool on)
         {
             if (_geometry != null) _geometry.SetActive(on);
+            if (_revealWave != null) { StopCoroutine(_revealWave); _revealWave = null; }
+            if (on)
+            {
+                _revealWave = StartCoroutine(RevealWave());
+                return;
+            }
             foreach (var p in _panels)
             {
                 var root = p?.Root;
                 if (root != null)
-                    root.style.visibility = on ? Visibility.Visible : Visibility.Hidden;
+                    root.style.visibility = Visibility.Hidden;
             }
+        }
+
+        Coroutine _revealWave;
+
+        IEnumerator RevealWave()
+        {
+            foreach (var p in _panels)
+            {
+                var root = p?.Root;
+                if (root != null)
+                    root.style.visibility = Visibility.Visible;
+                yield return null;
+            }
+            _revealWave = null;
         }
 
         // The design-system spinner is C#-driven (a scheduled rotate on the
@@ -216,9 +271,81 @@ namespace Showcase.Runtime
         // are cached per panel and re-queried once a second (30 live panels ×
         // a class Query every frame is measurable on WebGL; SetSpinning class
         // flips are rare, so a 1 s stale window is invisible).
+        // ── RT sharpness (proximity supersampling) ──────────────────────────
+        // A native world panel re-rasterizes at screen resolution every frame and never
+        // softens; a fixed-size RT does, the moment the camera magnifies its texels. So the
+        // exhibit being READ — the nearest one inside reading distance — re-renders at double
+        // resolution, and drops back when the player walks on. One hi-res RT at a time keeps
+        // the memory cost a rounding error.
+        const float HIRES_DISTANCE = 3.4f;
+        const float HIRES_SCALE = 2f;
+        float _hiresCheckIn;
+
+        void UpdateRtSharpness()
+        {
+            _hiresCheckIn -= Time.deltaTime;
+            if (_hiresCheckIn > 0f || _cam == null) return;
+            _hiresCheckIn = 0.25f;
+
+            PanelBinding nearest = null;
+            float best = HIRES_DISTANCE;
+            var camPos = _cam.transform.position;
+            foreach (var p in _panels)
+            {
+                if (p?.Rt == null || p.Anchor == null) continue;
+                var d = Vector3.Distance(camPos, p.Anchor.position);
+                if (d < best) { best = d; nearest = p; }
+            }
+            foreach (var p in _panels)
+            {
+                if (p?.Rt == null) continue;
+                var want = p == nearest ? HIRES_SCALE : 1f;
+                if (!Mathf.Approximately(p.RtScale, want))
+                {
+                    SetRtScale(p, want);
+                    break;   // one swap per tick keeps the walk hitch-free
+                }
+            }
+        }
+
+        void SetRtScale(PanelBinding p, float s)
+        {
+            var ps = p.Doc != null ? p.Doc.panelSettings : null;
+            if (ps == null) return;
+            var w = Mathf.Max(64, Mathf.RoundToInt(p.PanelW * s));
+            var h = Mathf.Max(64, Mathf.RoundToInt(p.PanelH * s));
+            var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32)
+            {
+                name = ps.name + "_RT@" + s,
+                useMipMap = true,
+                autoGenerateMips = true,
+                filterMode = FilterMode.Trilinear,
+                anisoLevel = 8,
+            };
+            rt.Create();
+            var old = p.Rt;
+            // ConstantPixelSize with scale s keeps the LAYOUT in the same point space while the
+            // texture holds s× the pixels — so the crop band, the pointer mapping and every
+            // measured size stay valid unchanged.
+            ps.scale = s;
+            ps.targetTexture = rt;
+            p.Rt = rt;
+            p.RtScale = s;
+            var mr = p.Quad != null ? p.Quad.GetComponent<MeshRenderer>() : null;
+            if (mr != null && mr.sharedMaterial != null)
+                mr.sharedMaterial.mainTexture = rt;
+            if (old != null)
+            {
+                old.Release();
+                Destroy(old);
+            }
+        }
+
         void Update()
         {
             if (!_isShown || _panels.Count == 0) return;
+
+            UpdateRtSharpness();
 
             _spinAngle = (_spinAngle + SPIN_DEG_PER_SEC * Time.deltaTime) % 360f;
             _spinRescanIn -= Time.deltaTime;
@@ -243,16 +370,45 @@ namespace Showcase.Runtime
         // day/night toggle, a codigrate palette, randomize, or revert. Stores the
         // state and fans it out to every exhibit; OnReload also re-applies it so
         // panels rebuilt on a later mode-toggle come back themed.
+        //
+        // The fan-out is a WAVE — one exhibit per frame. It spreads a heavy
+        // frame (~36 full-subtree restyles) into a ~0.5s themed ripple down
+        // the corridor, which reads as intentional. Know what it is NOT: it is
+        // not what makes world materials safe on WebGL. That is the staged
+        // updater's staging-buffer under-allocation, whose danger windows sit
+        // just below EVERY size tier (the first at ~8Ki elements — one
+        // exhibit-sized burst), so no pacing policy avoids them all; the real
+        // fix is the build-machine module patch in Tools/UirStagingPatch. See
+        // DsFxManager.AllowWorldSpacePanels for the whole story.
         public void ApplyScreenTheme(bool light)
         {
             _themeLight = light;
-            foreach (var p in _panels) ApplyThemeToPanel(p);
+            if (_themeWave != null) StopCoroutine(_themeWave);
+            _themeWave = StartCoroutine(ThemeWave());
+        }
+
+        Coroutine _themeWave;
+
+        IEnumerator ThemeWave()
+        {
+            // Restarting from exhibit 0 on every theme change is correct:
+            // ApplyThemeToPanel is absolute (it re-reads the CURRENT canonical
+            // state), so a wave superseded mid-flight just repaints its first
+            // few exhibits with the newer theme.
+            foreach (var p in _panels)
+            {
+                ApplyThemeToPanel(p);
+                yield return null;
+            }
+            _themeWave = null;
         }
 
         void ApplyThemeToPanel(PanelBinding p)
         {
             var root = p?.Root;
             if (root == null) return;
+            DesignSystem.Runtime.Fx.DsFxManager.Diag(
+                $"corridor paint: {(p.Renderer != null ? p.Renderer.name : "?")} shown={_isShown}");
 
             // Paint FIRST. A class-scoped theme (every light-appearance codigrate palette bakes to
             // `.theme-light`) adds and removes that very class as it goes on and off, so the
@@ -425,7 +581,7 @@ namespace Showcase.Runtime
             _player.BoundsZ = new Vector2(-1.5f, endZ - 1.5f);
 
             BuildEntranceTitle(sections.Count);
-            BuildExhibits(sections, HarvestSectionWidths(sections.Count));
+            BuildExhibits(sections, HarvestSectionMetrics(sections.Count));
             AddWorldRaycaster();
 
             StartCoroutine(FitExhibits());
@@ -463,9 +619,9 @@ namespace Showcase.Runtime
         // LIVE flat page has the same sections already laid out — same
         // class query, same document order — so index-match their resolved
         // widths.
-        List<float> HarvestSectionWidths(int count)
+        List<Vector2> HarvestSectionMetrics(int count)
         {
-            var widths = new List<float>(count);
+            var metrics = new List<Vector2>(count);
             List<VisualElement> flat = null;
             var flatRoot = _showcaseDoc != null ? _showcaseDoc.rootVisualElement : null;
             if (flatRoot != null)
@@ -473,12 +629,17 @@ namespace Showcase.Runtime
 
             for (int i = 0; i < count; i++)
             {
-                float w = 0f;
+                float w = 0f, h = 0f;
                 if (flat != null && i < flat.Count)
+                {
                     w = flat[i].resolvedStyle.width;
-                widths.Add(w > 20f && !float.IsNaN(w) ? Mathf.Round(w) : 360f);
+                    h = flat[i].resolvedStyle.height;
+                }
+                metrics.Add(new Vector2(
+                    w > 20f && !float.IsNaN(w) ? Mathf.Round(w) : 360f,
+                    h > 20f && !float.IsNaN(h) ? Mathf.Round(h) : 480f));
             }
-            return widths;
+            return metrics;
         }
 
         // True while any world exhibit's text input has keyboard focus.
@@ -570,7 +731,7 @@ namespace Showcase.Runtime
 
         // ── Exhibits (one PanelRenderer per section) ────────────────────────
 
-        void BuildExhibits(List<VisualElement> sections, List<float> widths)
+        void BuildExhibits(List<VisualElement> sections, List<Vector2> metrics)
         {
             for (int i = 0; i < sections.Count; i++)
             {
@@ -588,8 +749,12 @@ namespace Showcase.Runtime
                 Vector3 readable = new Vector3(left ? 1f : -1f, 0f, -tan).normalized;
                 Quaternion rot = Quaternion.LookRotation(-readable, Vector3.up);
 
-                var wrapper = WrapSection(sections[i], widths[i], i + 1, sections.Count);
-                var binding = MakeWorldPanel($"Exhibit_{i}", new Vector3(x, PANEL_EYE_Y, z), rot, wrapper, widths[i] + 44f);
+                var wrapper = WrapSection(sections[i], metrics[i].x, i + 1, sections.Count);
+                var binding = UseRtExhibits
+                    ? MakeRtPanel($"Exhibit_{i}", new Vector3(x, PANEL_EYE_Y, z), rot, wrapper,
+                        metrics[i].x + 44f, metrics[i].y)
+                    : MakeWorldPanel($"Exhibit_{i}", new Vector3(x, PANEL_EYE_Y, z), rot, wrapper,
+                        metrics[i].x + 44f);
                 binding.WantsPlate = true;
                 _panels.Add(binding);
             }
@@ -736,6 +901,192 @@ namespace Showcase.Runtime
             return ps;
         }
 
+        // Build one RT-hosted exhibit: a flat panel rendering into a per-exhibit RenderTexture,
+        // shown on an emissive quad on the corridor wall. See the UseRtExhibits note for why.
+        // Dimensions come from the flat page's already-resolved layout, so the panel needs no
+        // async fit: it is born at its final size and FitExhibits skips it.
+        PanelBinding MakeRtPanel(string name, Vector3 pos, Quaternion rot, VisualElement content,
+            float contentWidth, float sectionHeight)
+        {
+            var anchor = new GameObject(name);
+            anchor.transform.SetParent(_content.transform, false);
+            anchor.transform.SetPositionAndRotation(pos, rot);
+
+            // The wrap adds a counter row plus vertical padding over the section; the estimate
+            // only has to be close — the quad shows exactly the RT, and estimation error lands
+            // as a few plate-colored pixels of margin.
+            int rtW = Mathf.Max(64, Mathf.RoundToInt(contentWidth));
+            int rtH = Mathf.Clamp(Mathf.RoundToInt(sectionHeight + 66f), 128, 2048);
+            var rt = new RenderTexture(rtW, rtH, 24, RenderTextureFormat.ARGB32)
+            {
+                name = name + "_RT",
+                useMipMap = true,
+                autoGenerateMips = true,
+                filterMode = FilterMode.Trilinear,
+                anisoLevel = 4,
+            };
+            rt.Create();
+
+            var ps = MakeWorldPanelSettings(name + "_PS");
+            ps.renderMode = PanelRenderMode.ScreenSpaceOverlay;
+            ps.targetTexture = rt;
+            ps.clearColor = true;
+            // TRANSPARENT clear: the exhibits have always floated on a transparent panel over
+            // the plate mesh, and the quad alpha-blends so the lit 3D plate shows through —
+            // an opaque clear here reads as a flat gray sheet where the plate used to be.
+            ps.colorClearValue = new Color(0f, 0f, 0f, 0f);
+
+            var go = new GameObject(name + "_Doc");
+            go.transform.SetParent(anchor.transform, false);
+            var doc = go.AddComponent<UIDocument>();
+            doc.panelSettings = ps;
+            var anchorTf = anchor.transform;
+
+            // Same fit box as the world path, computed up front from known dimensions.
+            float scale = Mathf.Min(TARGET_PANEL_HEIGHT / rtH, MAX_PANEL_WIDTH / rtW);
+            float worldW = rtW * scale;
+            float worldH = rtH * scale;
+
+            // Built by hand, NOT CreatePrimitive: the primitive path attaches a MeshCollider,
+            // and the physics module is stripped from the WebGL build — 35 red "class
+            // 'MeshCollider' doesn't exist" lines per corridor entry. The builtin quad mesh
+            // faces its local -Z; the anchor's -Z is `readable` (into the corridor), so
+            // identity local rotation shows the front to the walkway.
+            var quad = new GameObject(name + "_Screen", typeof(MeshFilter), typeof(MeshRenderer));
+            quad.transform.SetParent(anchor.transform, false);
+            quad.GetComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+            quad.transform.localScale = new Vector3(worldW, worldH, 1f);
+
+            // Unlit straight-alpha blit of the RT (Hidden/DsShowcase/RtScreen): unlit so the
+            // corridor lamps neither dim nor tint the UI, transparent so the plate mesh shows
+            // through the panel's empty regions exactly as with native world panels.
+            var mr = quad.GetComponent<MeshRenderer>();
+            var screenShader = Resources.Load<Shader>("DsRtScreen");
+            if (screenShader == null) screenShader = Shader.Find("Hidden/DsShowcase/RtScreen");
+            var mat = new Material(screenShader) { name = name + "_ScreenMat" };
+            mat.mainTexture = rt;
+            if (mr != null)
+            {
+                mr.sharedMaterial = mat;
+                mr.enabled = false;   // invisible until the first real fit (below) — no pop-in
+            }
+
+            var binding = new PanelBinding
+            {
+                Owner = this,
+                Content = content,
+                ContentWidth = contentWidth,
+                Ds = _dsUss,
+                Theme = _themeOverrideUss,
+                Focus = _focusRingUss,
+                Doc = doc,
+                Anchor = anchorTf,
+                Rt = rt,
+                Quad = quad,
+                PanelW = rtW,
+                PanelH = rtH,
+                RtScale = 1f,
+                Fitted = true,
+            };
+            ps.SetScreenToPanelSpaceFunction(p => MapScreenToPanel(binding, p));
+            binding.WireRoot(doc.rootVisualElement);
+
+            // Plate + quad join the geometry group so Hide() switches them off with the shell;
+            // the anchor (and the live panel under it) stays active for the whole session.
+            quad.transform.SetParent(_geometry.transform, true);
+
+            // No pop-in: the quad stays invisible until the exhibit's REAL layout has been
+            // measured once — usually a frame or two — so it appears at its final size instead
+            // of spawning at the estimate and visibly re-fitting a beat later. The plate is
+            // created on that same first fit so mount and panel arrive together. Fonts can
+            // still reflow a section later, so a settle pass re-fits at +5s — but only for a
+            // meaningful height change, precisely so it cannot cause another visible jump.
+            // Ticker-deferred throughout: panel schedulers are what world hosts cannot rely on.
+            GameObject plate = null;
+            var attempts = 0;
+
+            bool ApplyFit()
+            {
+                var c = binding.Content;
+                if (c == null || quad == null || mat == null)
+                    return true;                                  // host gone — stop trying
+                var contentH = c.layout.yMax + 8f;
+                if (float.IsNaN(contentH) || contentH < 32f)
+                    return false;                                 // not laid out yet
+                var ratio = Mathf.Clamp01(contentH / rtH);
+                binding.ContentH = Mathf.Min(contentH, rtH);
+                mat.SetTextureScale("_MainTex", new Vector2(1f, ratio));
+                mat.SetTextureOffset("_MainTex", new Vector2(0f, 1f - ratio));
+                var fit = Mathf.Min(TARGET_PANEL_HEIGHT / binding.ContentH, MAX_PANEL_WIDTH / rtW);
+                var w = rtW * fit;
+                var h = binding.ContentH * fit;
+                quad.transform.localScale = new Vector3(w, h, 1f);
+                if (plate == null) plate = AddPlate(anchor.transform, w, h);
+                else plate.transform.localScale = new Vector3(w + 0.26f, h + 0.26f, 0.5f);
+                if (mr != null) mr.enabled = true;
+                return true;
+            }
+
+            void TryFit()
+            {
+                if (ApplyFit()) return;
+                if (++attempts < 40) DsFxManager.RunAfter(0.1f, TryFit);
+            }
+
+            void SettleFit()
+            {
+                var c = binding.Content;
+                if (c == null) return;
+                var contentH = Mathf.Min(c.layout.yMax + 8f, rtH);
+                if (binding.ContentH > 0f && Mathf.Abs(contentH - binding.ContentH) / binding.ContentH < 0.02f)
+                    return;                                       // no meaningful reflow — no jump
+                ApplyFit();
+            }
+
+            DsFxManager.RunAfter(0.05f, TryFit);
+            DsFxManager.RunAfter(5f, SettleFit);
+            return binding;
+        }
+
+        // Pointer routing for RT exhibits: screen point → camera ray → analytic intersection
+        // with the quad's plane (no colliders — physics is stripped from WebGL builds) →
+        // panel pixels. NaN = "not this panel", per the SetScreenToPanelSpaceFunction contract.
+        Vector2 MapScreenToPanel(PanelBinding p, Vector2 screenPos)
+        {
+            var nan = new Vector2(float.NaN, float.NaN);
+            if (!_isShown || _cam == null || p?.Quad == null || !p.Quad.activeInHierarchy)
+                return nan;
+            // The event system hands panel-convention coordinates (origin top-left);
+            // ScreenPointToRay wants bottom-left.
+            screenPos.y = Screen.height - screenPos.y;
+            var t = p.Quad.transform;
+            var ray = _cam.ScreenPointToRay(screenPos);
+            var o = t.InverseTransformPoint(ray.origin);
+            var d = t.InverseTransformVector(ray.direction);
+            if (Mathf.Abs(d.z) < 1e-6f)
+                return nan;
+            var s = -o.z / d.z;
+            if (s < 0f)
+                return nan;
+            var hit = o + d * s;                       // quad local space spans [-0.5, 0.5]²
+            var u = hit.x + 0.5f;
+            var v = hit.y + 0.5f;
+            if (u < 0f || u > 1f || v < 0f || v > 1f)
+                return nan;
+            // A cropped quad (see MakeRtPanel) shows only the content band, so the quad's
+            // vertical span maps onto [0, ContentH] of the panel rather than the full RT.
+            var panelSpanY = p.ContentH > 0f ? p.ContentH : p.PanelH;
+
+            // The engine takes this return and divides by the panel's scale to reach layout
+            // POINTS: BaseRuntimePanel.ScreenToPanel(screen) => screenToPanelSpace(screen) /
+            // base.scale, and for a ConstantPixelSize panel base.scale == PanelSettings.scale,
+            // which proximity supersampling drives to RtScale (see SetRtScale). PanelW/ContentH
+            // are point-space, so hand back RT-PIXEL space — points × RtScale — and the divide
+            // lands back on points. Omitting the factor is exactly the "clicks miss when you
+            // get close" bug: a hi-res panel (scale 2) then received half-coordinates.
+            return new Vector2(u * p.PanelW, (1f - v) * panelSpanY) * p.RtScale;
+        }
+
         void AddWorldRaycaster()
         {
             if (_cam == null) return;
@@ -824,7 +1175,7 @@ namespace Showcase.Runtime
         // contrast behind dark cards, and hides the wall gap at glancing
         // angles: its depth reaches back INTO the wall, so no seam shows.
         // Built after the fit so it hugs the exhibit's real world size.
-        void AddPlate(Transform anchor, float w, float h)
+        GameObject AddPlate(Transform anchor, float w, float h)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = "ExhibitPlate";
@@ -840,6 +1191,7 @@ namespace Showcase.Runtime
             if (col != null) Destroy(col);
             var r = go.GetComponent<Renderer>();
             if (r != null) r.sharedMaterial = _plateMat;
+            return go;
         }
 
         // ── Primitive / material helpers ────────────────────────────────────
@@ -946,6 +1298,18 @@ namespace Showcase.Runtime
             public StyleSheet Focus;    // ShowcaseFocusRing — keyboard focus parity with the flat page
             public PanelEventHandler Handler;
 
+            // RT-exhibit host (UseRtExhibits): the flat panel's target texture, the wall quad
+            // showing it, and the panel's pixel size for pointer mapping. Renderer/Handler stay
+            // null in that mode.
+            public RenderTexture Rt;
+            public GameObject Quad;
+            public UIDocument Doc;
+            public Transform Anchor;
+            public float PanelW;     // layout points — RT pixels are PanelW * RtScale
+            public float PanelH;
+            public float ContentH;   // measured layout height once settled (0 = uncropped)
+            public float RtScale;    // current supersampling factor (proximity sharpening)
+
             public bool WantsPlate;
             public bool Fitted;                     // FitExhibits has sized + revealed this panel
             public bool Wired;                      // PanelReady already invoked for this exhibit
@@ -958,7 +1322,11 @@ namespace Showcase.Runtime
             // orphaned. Re-parenting the same Content element (rather than
             // cloning) both restores it and avoids the documented duplicate
             // pile-up, since a VisualElement can only live in one place.
-            public void OnReload(PanelRenderer pr, VisualElement root, int version)
+            public void OnReload(PanelRenderer pr, VisualElement root, int version) => WireRoot(root);
+
+            // Everything a fresh exhibit root needs, host-agnostic: the PanelRenderer reload
+            // callback and the RT host's direct construction both land here.
+            public void WireRoot(VisualElement root)
             {
                 if (root == null) return;
                 Root = root;

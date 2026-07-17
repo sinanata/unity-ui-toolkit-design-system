@@ -117,6 +117,7 @@ Builds the showcase to `build/WebGL/` and serves it at `http://localhost:3000`. 
 - [ ] No `Resources.Load<Texture2D>` in new C# — icons resolve via USS `resource(...)`.
 - [ ] Tested in the editor with the showcase scene; tested at desktop and `.mobile` widths.
 - [ ] Tested via `Tools\Build\Build-Showcase.ps1 -Serve` and confirmed the rendered WebGL build matches the editor (catches `var()`-in-inline-UXML crashes and mobile-breakpoint regressions).
+- [ ] Changes to **material FX or world-space rendering** are verified in a real **WebGL build**, not just the editor. Several UI Toolkit behaviours diverge only in the player — the native world-panel material draw, per-panel schedulers, the staged geometry updater — so "green in the editor" is necessary, not sufficient. See `docs/MATERIALS.md` for the specific traps and `Tools/UirStagingPatch` for the engine patch a WebGL build needs.
 
 ## Reporting bugs
 
