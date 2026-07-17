@@ -337,15 +337,35 @@ Assets/
 │   │   ├── Controls.uss                ← .ds-toggle / .ds-check / .ds-radio / .ds-slider / .ds-range / scrollbars
 │   │   ├── Overlays.uss                ← .ds-modal / .ds-dialog / .ds-toast / .ds-sheet / empty
 │   │   ├── Feedback.uss                ← .ds-progress / .ds-spinner / .ds-skeleton / .ds-pagination
-│   │   └── Mobile.uss                  ← every .mobile-prefixed responsive override (loaded LAST)
+│   │   ├── Mobile.uss                  ← every .mobile-prefixed responsive override (loaded LAST)
+│   │   └── DropdownPopup.uss           ← NOT imported: popup chrome a HOST hoists to panel scope (popups parent outside every UXML subtree)
 │   ├── Resources/UI/Themes/
 │   │   ├── Dark.asset                  ← the design system's own palette; duplicate this to start a brand theme
 │   │   └── Light.asset                 ← day mode, scoped to .theme-light
+│   ├── Resources/Fx/Shaders/
+│   │   ├── DsFx.cginc                  ← the material foundation every family builds on (context, passthrough, SDF, text kit, motion)
+│   │   └── DsFxBlueprint.shader        ← the shipped material family and the worked example — read it before writing your own
 │   ├── Runtime/
 │   │   ├── Behaviour/
 │   │   │   ├── DesignSystemBehaviourBase.cs  ← generic behaviors (knobs, spinners, shimmer, drag & drop, dropdown menus)
+│   │   │   ├── DesignSystemEvents.cs         ← host hooks (DropdownPopupOpened); one copy, both backends raise through it
 │   │   │   ├── UIDocument/                   ← auto-attaches to every UIDocument
 │   │   │   └── PanelRenderer/                ← auto-attaches to every PanelRenderer (6000.5+)
+│   │   ├── Fx/                          ← material FX pipeline (6000.5+, behind UNITY_6000_5_OR_NEWER)
+│   │   │   ├── DsFx.cs                       ← ds-fx- marker walker: Apply / Remove / Rewire
+│   │   │   ├── DsFxSkin.cs                   ← element facts → shader uniforms: geometry, states, adoption, focus
+│   │   │   ├── DsFxManager.cs                ← the one global clock, material cache, RunAfter ticker
+│   │   │   ├── DsFxSpec.cs                   ← the ds-fx- marker grammar
+│   │   │   ├── DsFxRegistry.cs               ← the open family table (families register themselves)
+│   │   │   ├── DsFxPalette.cs                ← tone ladder, enamel ink, contrast floors
+│   │   │   ├── DsFxTheme.cs                  ← the role mapper: whole-tree material theming + readability rules
+│   │   │   └── DsFxBlueprintFamily.cs        ← blueprint's registration (variants + params)
+│   │   ├── Typography/
+│   │   │   ├── OpenTypeFace.cs               ← name/OS2/head/fvar reader — pure C#, runs in editor AND player
+│   │   │   ├── DsFonts.cs                    ← runtime typeface seam: apply, weights, fallbacks, coverage, shaping
+│   │   │   ├── DsFontFamily.cs               ← ties one family's weight ramp together
+│   │   │   ├── DsGoogleFonts.cs              ← runtime family fetch (behind DS_WEBREQUEST)
+│   │   │   └── DsScripts.cs                  ← script detection driving the per-line text generator
 │   │   └── Theme/
 │   │       ├── Applier/
 │   │       │   ├── ThemeRuntime.cs           ← the mechanism: add one stylesheet, add the scope class
@@ -355,6 +375,8 @@ Assets/
 │   │       └── Data/ThemeData.cs         ← token-store ScriptableObject + USS generator; carries its baked StyleSheet as a sub-asset
 │   ├── Editor/
 │   │   ├── EditorHelpers.cs             ← attach-DesignSystem.uss menu action
+│   │   ├── Fx/DsFxCompileCheck.cs       ← force-compiles every registered material family (menu + batch)
+│   │   ├── Typography/                  ← Google Fonts window, catalogue, importer, FontAssetFactory, FontUssWriter
 │   │   └── Theme/
 │   │       ├── ThemeConfiguratorWindow.cs   ← split-pane live-preview theme editor
 │   │       ├── ThemeDataEditor.cs           ← custom inspector with save / revert
@@ -372,27 +394,36 @@ Assets/
 │   │   ├── ShowcaseFocusRing.uss       ← :focus rules for keyboard / gamepad navigation
 │   │   ├── DefaultPanelSettings.asset  ← base PanelSettings cloned per panel
 │   │   ├── CorridorLit.mat             ← Simple Lit base for the 3D gallery (pins shader variants into WebGL builds)
+│   │   ├── DsRtScreen.shader           ← unlit RT-over-plate blend for WebGL world exhibits (see Materials notes)
+│   │   ├── DsFonts/                    ← bundled Noto Sans family + shaping fallback chain
 │   │   ├── UnityDefaultRuntimeTheme.tss
 │   │   ├── sinanata.jpg                ← avatar texture (Showcase only)
 │   │   └── CodigrateThemes/            ← 13 bundled JSONs (list + 12 palettes), WebGL fallback
 │   └── Runtime/
 │       ├── ShowcaseBootstrap.cs        ← spawns docs, wires toggle, theme dropdown, promo links, world-mode switch
-│       ├── WorldSpaceCorridor.cs       ← 3D gallery: one world-space panel per section, fit + plates + theming
+│       ├── WorldSpaceCorridor.cs       ← 3D gallery: one world-space panel per section, fit + plates + theming + RT fallback
 │       ├── FirstPersonController.cs    ← walker (keyboard/mouse + WorldNavInput touch-stick bridge)
 │       ├── ShowcaseModeHud.cs          ← in-gallery chrome: mode tabs, hints, virtual sticks
 │       ├── ShowcaseDocOverlay.cs       ← selector-chain hover overlay
+│       ├── ShowcaseFonts.cs / ShowcaseFontSet.cs ← typeface sections + LANGUAGE AVAILABILITY table
+│       ├── FxProbeRunner.cs / ShowcaseBlueprintProbeRunner.cs ← play-mode halves of the FX render / showcase probes (editor-only)
 │       ├── CodigrateThemeProvider.cs   ← UnityWebRequest fetch + bundled fallback
 │       ├── CodigrateThemeApplier.cs    ← maps codigrate colours onto every .ds-* class via inline styles
 │       └── WebGLDevicePixelRatio.jslib ← exposes window.devicePixelRatio for HiDPI panel scale
 │
 ├── Settings/                           ← URP pipeline + renderer assets (the scene's actual pipeline)
-├── Editor/BuildCli.cs                  ← Unity batchmode entry for WebGL builds (+ probe utilities)
+├── Editor/                             ← host-project tooling: BuildCli (batch WebGL) + probes and bakers
+│                                         (FxRenderProbe, ShowcaseBlueprintProbe, font baker/verifier, popup/pipeline/world-layout probes)
 └── WebGLTemplates/ShowcaseTemplate/    ← custom WebGL template (mobile-friendly)
 
 Tools/Build/
 ├── Build-Showcase.ps1                  ← shim: forwards to orchestrator submodule with our title + method + URL
 ├── config.example.json                 ← copy to config.local.json (gitignored)
 └── README.md                           ← orchestrator docs
+
+Tools/UirStagingPatch/
+├── Apply-UirStagingPatch.ps1           ← patches this editor install's WebGL UIElements module (staging-buffer overrun; backup + -Restore)
+└── Program.cs / uir-patcher.csproj     ← the one-instruction Cecil patcher BuildCli auto-detects (DS_UIR_STAGING_PATCHED)
 
 Tools/.orchestrator/                    ← submodule: unity-cross-platform-local-build-orchestrator
 └── Tools/Build/
