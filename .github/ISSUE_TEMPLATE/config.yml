@@ -1,8 +1,0 @@
-blank_issues_enabled: true
-contact_links:
-  - name: Live interactive showcase
-    url: https://sinanata.github.io/unity-ui-toolkit-design-system/
-    about: Browse every component before filing. Click a component to copy its class list.
-  - name: Contributing guide
-    url: https://github.com/sinanata/unity-ui-toolkit-design-system/blob/main/CONTRIBUTING.md
-    about: Naming convention, file-load order, and the pull-request checklist.

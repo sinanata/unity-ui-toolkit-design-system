@@ -1,3 +1,0 @@
-[submodule "Tools/.orchestrator"]
-	path = Tools/.orchestrator
-	url = https://github.com/sinanata/unity-cross-platform-local-build-orchestrator.git
