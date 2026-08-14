@@ -937,7 +937,11 @@ namespace DesignSystem.Runtime.Behaviour
             if (!s_componentTypeMap.TryGetValue(typeof(TComponent), out var runtimeType))
                 return;
 
+#if UNITY_6000_5_OR_NEWER
             var docs = FindObjectsByType<TComponent>();
+#else
+            var docs = FindObjectsByType<TComponent>(FindObjectsSortMode.None);
+#endif
             foreach (var doc in docs)
             {
                 if (doc == null || doc.gameObject.GetComponent(runtimeType) != null)
