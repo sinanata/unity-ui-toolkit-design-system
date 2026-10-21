@@ -410,8 +410,9 @@ For CI: `-executeMethod DesignSystem.Editor.Fx.DsFxCompileCheck.RunBatch` exits 
 an ancestor's custom-material draw. A plain solid child — a token swatch, a status dot, an active-row
 background — arrives in *your* `isSolid` branch, and if you shade it, it renders as a chip of your
 material: invisible against the panel around it. The test *measures the emitting rect*: layout UV
-spans 0..1 across whichever rect emitted the quad, `fxData.zw` carries the same vertex's panel-space
-position in points, and the ratio of their screen derivatives recovers the rect's true size per axis
+spans 0..1 across whichever rect emitted the quad, `fxData.zw` carries the same vertex's position in
+points as the renderer hands it over (element-local on 6000.6, bone space on 6000.5), and the ratio
+of their screen derivatives recovers the rect's true size per axis
 — the camera cancels out, so the measurement holds at any distance, angle, or DPI, on screen and
 world panels alike. Only a match with the element's own size renders as material; everything else
 takes the passthrough. The one case it cannot catch is a **full-bleed** solid child exactly matching

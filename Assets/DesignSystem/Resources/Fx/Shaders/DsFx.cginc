@@ -13,7 +13,7 @@
 // A shader sitting BESIDE this file (like DsFxBlueprint) just says "DsFx.cginc"
 // and stays install-shape independent.
 //
-// Contract: Unity 6000.5 UITK custom materials (style.unityMaterial). The
+// Contract: Unity 6000.5 and 6000.6 UITK custom materials (style.unityMaterial). The
 // element's OWN geometry flows through this shader: background quads and
 // border geometry arrive as SOLID fragments, the label's glyphs arrive as
 // TEXT fragments carrying the TextCore SDF atlas. Layout UV (0..1 across the
@@ -296,7 +296,7 @@ struct DsFxVaryings
 #endif
     float4 circle : TEXCOORD4;
     float4 fxData : TEXCOORD5; // xy: layout UV (0..1 across the element, v down)
-                               // zw: panel-space position in points (dsfx_ownGeometry's ruler)
+                               // zw: the input vertex position in points (dsfx_ownGeometry's ruler)
     UNITY_VERTEX_OUTPUT_STEREO
 };
 
@@ -315,17 +315,19 @@ DsFxVaryings dsfx_vert(appdata_t v)
     // here so every material works in v-DOWN element space (0,0 = top-left),
     // which is what the border-width mapping and all the choreography assume.
     //
-    // fxData.zw: the same vertex's PANEL-SPACE position in points — exactly the
-    // point uie_std_vert projected, reproduced by applying the same dynamic
-    // (bone/group) transform to the untouched input position. Reloaded here
-    // rather than trusting call order to have left the uie_toWorldMat static
-    // populated; it is three texel loads on a UI-sized vertex stream.
-    // dsfx_ownGeometry divides this field's screen gradients by the layout-UV
-    // gradients to recover the emitting rect's true size in points, which is
-    // the discrimination measurement that survives ANY camera (see there).
-    uie_vert_load_dynamic_transform(v);
-    float2 panelPt = mul(uie_toWorldMat, v.vertex).xy;
-    o.fxData = float4(v.uv.z, 1.0 - v.uv.w, panelPt);
+    // fxData.zw: the vertex position in points exactly as the renderer hands it
+    // over, before uie_std_vert transforms it: element-local on 6000.6, bone
+    // space on 6000.5 (the renderer moves vertices from local to bone space on
+    // the CPU there). dsfx_ownGeometry divides this field's screen gradients
+    // by the layout-UV gradients to recover the emitting rect's true size in
+    // points, which is the discrimination measurement that survives ANY camera
+    // (see there). It only needs a ruler that is affine in layout UV across the
+    // rect, and both spaces are, so this reads no internal transform API:
+    // 6000.6 replaced uie_vert_load_dynamic_transform(appdata_t) and its
+    // uie_toWorldMat static, which this used to apply, and the shader stopped
+    // compiling there. On 6000.6 the ruler is the element's own local space,
+    // so an element that scales or rotates itself still measures its own size.
+    o.fxData = float4(v.uv.z, 1.0 - v.uv.w, v.vertex.xy);
     UNITY_TRANSFER_VERTEX_OUTPUT_STEREO(std, o);
     return o;
 }
@@ -343,7 +345,7 @@ struct DsFxFrag
                        // own cut of the material; geometry cues (bevels, edges,
                        // drift, env bands) stay on pt/uv.
     float2 sizePt;     // element size in points
-    float2 pp;         // panel-space position in points (fxData.zw) — only dsfx_ownGeometry
+    float2 pp;         // input vertex position in points (fxData.zw) — only dsfx_ownGeometry
                        // should need it; element-local work belongs on pt/uv/tex
     float sd;          // rounded-rect signed distance (points, negative inside), solid only
     float coverage;    // arc AA * clip-rect coverage (multiply into final alpha)
@@ -681,7 +683,8 @@ bool dsfx_disabledFx() { return _FxMode.w > 1.5; }
 // HOW IT TELLS: it MEASURES the size in points of whichever rect emitted this
 // quad, and accepts only a match with the element's own size (_FxRect.xy).
 // Layout UV spans 0..1 across the emitting rect while fxData.zw carries the
-// same vertex's panel-space position in points, so along each axis
+// same vertex's position in points (the renderer's input space, see
+// dsfx_vert), so along each axis
 //
 //     emitting size = |grad(panelPos)| / |grad(layoutUV)|
 //

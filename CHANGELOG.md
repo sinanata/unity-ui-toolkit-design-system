@@ -27,11 +27,13 @@ A ranked game needs pieces a general kit does not have: a rank you can read at 3
 - The spinner tick runs only while something spins and allocates nothing; the 250 ms rescan stops with the component instead of stacking on PanelRenderer reloads; the shimmer skips its per-frame write while hidden.
 - "Generate Built-in Themes" resolves its folder from the installed package and refuses on read-only installs instead of writing into the host project.
 - `ThemePreview.uxml` resolves when the package is installed: it loads `DesignSystem.uss` by a path relative to itself instead of a `project://` URL that only exists in the showcase, and its `.meta` moves to the version 2 format Unity 6.6 requires.
+- **Material shaders compile on Unity 6.6.** 6.6 changed the UI vertex format and replaced the internal `uie_vert_load_dynamic_transform(appdata_t)` that `DsFx.cginc` called, so every material family, the bundled Blueprint included, failed to compile there (a Linux player build caught it on Vulkan). `dsfx_ownGeometry` now measures the emitting rect from the vertex position exactly as the renderer hands it over and reads no internal transform API. On 6.6 that position is element-local, so an element that scales or rotates itself still measures its own size.
 
 ### Verified
 
 - **On screen on 6000.6.7f1.** Crests, chips, pips, the countdown ring, the queue pill, the reward track and toasts render as designed on desktop, the Android target and iOS layouts. Two of the three `var()` uses this release could only check offline are confirmed: tier colours reach every crest part through `--ds-rank-tier` (nested `var()` on non-root rules), and `DsProgressRing` reads `--ds-ring-color: var(--color-primary)` through `customStyle` (the ring draws in the primary green, not its fallback). `var()` in `transition-timing-function` is still unconfirmed; at worst a transition falls back to the default easing.
 - **Compiles** with zero errors and no new warnings: the package and the showcase on 6000.6.7f1 (nine variants) and 6000.5.2f1; the runtime assembly on 6000.3.8f1 and 6000.4.0f1.
+- **The material foundation compiles** against the built-in shader includes of 6000.3.8f1, 6000.4.0f1, 6000.5.2f1 and 6000.6.7f1 (fxc, both ends of every `multi_compile`), and in a 6000.6.7f1 player build for Vulkan, where Blueprint now produces all eight programs instead of none.
 
 ### Notes
 
