@@ -4,6 +4,39 @@ All notable changes to this project will be documented here.
 
 This project loosely follows [Semantic Versioning](https://semver.org/) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [1.6.0] - 2026-10-22
+
+A ranked game needs pieces a general kit does not have: a rank you can read at 32 px, a ready check, a queue that follows you around the menus, a scoreboard that names a leaver's AI and nobody else. This release is that kit, for 1v1, 2v2 and 3v3 play, built to the same rules as the rest: tokens all the way down, no per-frame work, and colour never the only signal. It went on real screens first, on desktop, an Android target and iOS layouts, before it came here.
+
+### Added
+
+- **A competitive kit** (`Competitive.uss`, imported by `DesignSystem.uss`):
+  - **`ds-rank-crest`**: a tier frame, an emblem slot the game fills, step pips and a label. Bronze to Legend plus unranked, 32 to 160 px, with `is-trials` and `is-locked`. Every tier has its own frame shape (eight white-fill SVGs in `Resources/Textures/Ranks/`, checked in monochrome and under three colour-vision simulations), so a tier reads without its colour.
+  - **`ds-rank-chip`**: the same frame at 16 px plus the tier letter and step ("G2") for rows and lists.
+  - **`ds-pips`**, **`ds-countdown`** (the ready check: ring, number, label; `is-urgent`, `is-done`), **`ds-queue-pill`** and **`ds-queue-sheet`**, **`ds-scoreboard`** (team bars, `is-self`, `is-disconnected`, and an AI tag that shows only on `is-ai`), **`ds-reward-track`** and **`ds-toast-stack`**.
+  - One inherited custom property, `--ds-rank-tier`, carries the tier colour to every part, so a new part never needs eight per-tier rules.
+- **`DsProgressRing`** (`[UxmlElement]`, Painter2D, repaints only when its value changes) and **`DsToast.Show` / `Dismiss`** (the panel scheduler, no MonoBehaviour), in `DesignSystem.Runtime.Controls`.
+- **Motion tokens**: `--transition-slow`, `--transition-emphasis` and four easings. `Motion.uss` adds `.ds-reduced-motion`, which zeroes every `ds-*` transition below it; spinners and countdown rings keep moving because they carry information. The drawer, backdrop, drop-zone and draggable durations are now tokens.
+- **A `touch` icon** (121 icons).
+- **`DesignSystemBehaviour.AutoAttach`** and the **`DS_NO_AUTO_ATTACH`** define, for hosts that attach the component themselves.
+
+### Fixed
+
+- Toggles no longer collapse into a circle in narrow rows: the track keeps its size and the label wraps.
+- Plain `DropdownField` and `EnumField` popups no longer open invisible on a panel that also holds a `.ds-dropdown`: the hiding class lives only while a `ds-dropdown` popup is being placed.
+- The spinner tick runs only while something spins and allocates nothing; the 250 ms rescan stops with the component instead of stacking on PanelRenderer reloads; the shimmer skips its per-frame write while hidden.
+- "Generate Built-in Themes" resolves its folder from the installed package and refuses on read-only installs instead of writing into the host project.
+- `ThemePreview.uxml` resolves when the package is installed: it loads `DesignSystem.uss` by a path relative to itself instead of a `project://` URL that only exists in the showcase, and its `.meta` moves to the version 2 format Unity 6.6 requires.
+
+### Verified
+
+- **On screen on 6000.6.7f1.** Crests, chips, pips, the countdown ring, the queue pill, the reward track and toasts render as designed on desktop, the Android target and iOS layouts. Two of the three `var()` uses this release could only check offline are confirmed: tier colours reach every crest part through `--ds-rank-tier` (nested `var()` on non-root rules), and `DsProgressRing` reads `--ds-ring-color: var(--color-primary)` through `customStyle` (the ring draws in the primary green, not its fallback). `var()` in `transition-timing-function` is still unconfirmed; at worst a transition falls back to the default easing.
+- **Compiles** with zero errors and no new warnings: the package and the showcase on 6000.6.7f1 (nine variants) and 6000.5.2f1; the runtime assembly on 6000.3.8f1 and 6000.4.0f1.
+
+### Notes
+
+- **Keep global text colours out of document stylesheets.** Unity ranks every rule from a panel theme below every rule from a document stylesheet, whatever their specificity. A host that sets `.unity-label { color }` in a document sheet therefore repaints the text of every component in this package (secondary text, disabled labels, the dark ink on primary buttons). Put such defaults at the start of the theme, before `DesignSystem.uss`, where the components override them.
+
 ## [1.5.4] — 2026-10-21
 
 The best kind of fix is the one you get to delete. In July, putting GPU materials on world-space panels kept killing the WebGL showcase, and the trail led below this package into Unity's own UI geometry updater: on platforms without mapped GPU buffers, `GpuUpdaterStaged` sized its staging buffer from a data set's dirty count and only then consolidated the ranges it copied, so a dense one-frame restyle read past its own buffer. We shipped a one-instruction patch for the build machine, and we wrote it up for Unity with the root cause, the two exact errors, and the fix we thought it needed. Unity's UI Toolkit team took it as [UUM-151098](https://issuetracker.unity.com/issues/24430/webgl-crash-when-consolidated-range-is-larger-than-the-sum-of-individual-ranges) and shipped it in **6000.6.2f1** and **6000.7.0b1**: consolidate first, then size every staging request exactly. That is the fix the [report](https://discussions.unity.com/t/webgl-6000-5-2f1-ui-toolkit-staged-updater-under-sizes-its-staging-buffer-copybufferranges-reads-out-of-bounds-on-large-single-frame-restyles/1731377) proposed, done better than a patch ever could, because the engine can see the ranges and a patch can only pad.

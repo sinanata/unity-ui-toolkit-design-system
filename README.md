@@ -84,7 +84,7 @@ What you get on day one:
 
 - **A dark-themed token palette** — primary / secondary / tertiary / warning / danger / surface stack, all referenced via `var(--color-...)`. Swap one token, the whole UI follows. The showcase ships a `.theme-light` override under `Assets/Showcase/Resources/ShowcaseTheme.uss` so you can see the cascade animate to a light palette in real time.
 - **42 ready components** — buttons (5 variants × 4 states + icon + sizes), inputs (text / textarea / search / dropdown), tabs and view toggles, toggles, checkboxes, radios, sliders + range, meters, progress, scrollbars, drag & drop, cards (plain / animal / detail), carousels, info rows, modals, dialogs, sheets, drawers, tooltips, toasts, badges, chips, tags, avatars, notification dots, navigation (side / rail / bottom / profile), pagination, steppers, empty states, skeleton loaders, spinners, icons.
-- **120 SVG icons** — the original UI set (arrows, chevrons, status glyphs, action icons, cosmetics) plus a gaming pack: hardware (gamepad, joystick, d-pad, arcade, cartridge, console, handheld, VR headset), combat and gear (sword, axe, bow, hammer, pickaxe, helmet, bomb), fantasy and adventure (castle, crown, gem, ghost, portal, potion, robot, wand, treasure, map, compass), and progression (trophy, medal, leaderboard, star, coin, dice, cards). White-fill SVGs that tint via `-unity-background-image-tint-color` so the same artwork serves passive / hover / active / muted states.
+- **121 SVG icons** — the original UI set (arrows, chevrons, status glyphs, action icons, cosmetics) plus a gaming pack: hardware (gamepad, joystick, d-pad, arcade, cartridge, console, handheld, VR headset), combat and gear (sword, axe, bow, hammer, pickaxe, helmet, bomb), fantasy and adventure (castle, crown, gem, ghost, portal, potion, robot, wand, treasure, map, compass), and progression (trophy, medal, leaderboard, star, coin, dice, cards). White-fill SVGs that tint via `-unity-background-image-tint-color` so the same artwork serves passive / hover / active / muted states.
 - **Themes are assets, not code.** A `ThemeData` holds every token, bakes them into a real stylesheet stored inside the asset, and a `ThemeApplier` adds that one sheet to your panel root. The `var()` cascade repaints the whole tree, so `:hover`, `:disabled` and `:checked` re-resolve on their own — no per-component work, and nothing to keep in sync when you add a component. `Dark` and `Light` ship ready to apply; author your own in `Design System > Theme Configurator`, which previews live against real components. Scope a theme to `:root` for the whole panel, or to a class like `.theme-night` so two themes can live side by side.
 - **One `.mobile` class** — add it to your screen root to flip every spacing token, tap target, and dropdown to touch-friendly sizes. Same UXML, same USS, two layouts.
 - **A runtime helper with two backends** — a generic `DesignSystemBehaviourBase<TComponent>` with concrete components for `UIDocument` and `PanelRenderer` (Unity 6000.5+). Both host flat or world-space UI; the showcase uses `PanelRenderer` for its world-space gallery because it is Unity's go-forward native renderer for UI Toolkit, while `UIDocument` now sits under UI Toolkit > Legacy yet stays fully supported. It auto-attaches in every scene, injects toggle knobs (Unity's `Toggle` doesn't render the iOS-style sliding pill on its own), drives spinner rotation (USS transitions can't loop), animates skeleton shimmer, and wires drag & drop.
@@ -113,7 +113,7 @@ your-unity-project/
         ├── Resources/
         │   ├── UI/Styles/DesignSystem/    ← the 14 USS files
         │   ├── UI/Themes/                 ← Dark + Light, ready to apply
-        │   └── Textures/Icons/            ← 120 SVG icons
+        │   └── Textures/Icons/            ← 121 SVG icons
         ├── Runtime/
         │   ├── Behaviour/
         │   │   ├── DesignSystemBehaviourBase.cs     ← generic behaviors (knobs, spinners, shimmer, drag & drop, dropdown menus)
@@ -485,7 +485,7 @@ Made for **[Leap of Legends](https://leapoflegends.com)**, a cross-platform phys
 
 MIT — see [LICENSE](LICENSE). Free for commercial use. No warranty.
 
-The 120 SVG icons under `Resources/Textures/Icons/` are released under the same MIT licence — use them in your own projects, ship them in commercial products, modify them freely.
+The 121 SVG icons under `Resources/Textures/Icons/` are released under the same MIT licence — use them in your own projects, ship them in commercial products, modify them freely.
 
 ---
 

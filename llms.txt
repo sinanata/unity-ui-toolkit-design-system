@@ -1,6 +1,6 @@
 # Unity UI Toolkit Design System
 
-> A drop-in design system for Unity 6 UI Toolkit (UIDocument and PanelRenderer, UXML and USS). Design tokens, 42 components, 120 SVG icons, a Google Fonts typography system with real weights and multilingual fallbacks, a GPU material-FX pipeline, a one-class mobile flip, and a small auto-attaching C# runtime, all themed dark and editable from a single stylesheet. Battle-tested in the shipping cross-platform game Leap of Legends.
+> A drop-in design system for Unity 6 UI Toolkit (UIDocument and PanelRenderer, UXML and USS). Design tokens, 42 components, 121 SVG icons, a Google Fonts typography system with real weights and multilingual fallbacks, a GPU material-FX pipeline, a one-class mobile flip, and a small auto-attaching C# runtime, all themed dark and editable from a single stylesheet. Battle-tested in the shipping cross-platform game Leap of Legends.
 
 Package id `com.sinanata.designsystem`, MIT licensed. Needs Unity 6000.0 or newer; the `PanelRenderer` backend, used for the showcase's world-space gallery, needs 6000.5+ (both `UIDocument` and `PanelRenderer` can host flat or world-space UI). You style UI by composing `ds-`-prefixed BEM classes and `var(--...)` design tokens; the C# runtime auto-attaches and needs no wiring. The canonical class list is `docs/COMPONENTS.md`.
 
