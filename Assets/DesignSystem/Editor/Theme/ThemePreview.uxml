@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Assets/DesignSystem/Resources/UI/Styles/DesignSystem/DesignSystem.uss?fileID=7433441132597879392&amp;guid=2fe121bab235f2a4f8cbc07737f87fe2&amp;type=3#DesignSystem"/>
+    <Style src="../../Resources/UI/Styles/DesignSystem/DesignSystem.uss"/>
     <ui:ScrollView mode="Vertical" class="ds-root">
         <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; padding: 12px;">
             <ui:VisualElement class="ds-section" style="width: 240px;">
