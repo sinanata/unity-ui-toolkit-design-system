@@ -145,10 +145,10 @@ namespace DesignSystem.Runtime.Fx
             if (_hasMaterial)
                 return;
 
-            // World-space panels are opted out ONLY where the engine bug lives (a WebGL player,
-            // by default) — see DsFxManager.AllowWorldSpacePanels. Bail BEFORE touching
-            // unityMaterial: a half-applied material is worse than none, and the element renders
-            // as stock instead.
+            // World-space panels are opted out ONLY where the engine bug lives: a WebGL player on
+            // an engine without Unity's fix (UUM-151098, fixed in 6000.6.2f1 and 6000.7.0b1). See
+            // DsFxManager.AllowWorldSpacePanels. Bail BEFORE touching unityMaterial: a
+            // half-applied material is worse than none, and the element renders as stock instead.
             DsFxManager.Diag($"skin begin: '{target.GetType().Name}' world={IsWorldSpace(target.panel)} " +
                              $"allow={DsFxManager.AllowWorldSpacePanels} panel={(target.panel != null)}");
 
@@ -158,11 +158,12 @@ namespace DesignSystem.Runtime.Fx
                 {
                     _warnedWorldSpace = true;
                     Debug.LogWarning(
-                        "[ds fx] Material skins are skipped on WORLD-SPACE panels in this player: Unity 6000.5 " +
-                        "overruns its own UI geometry buffer there in a WebGL player (GfxDevice::CopyBufferRanges " +
-                        "out of bounds). Those elements render as stock design system. Set " +
-                        "DsFxManager.AllowWorldSpacePanels = true to opt in anyway. Screen-space panels are " +
-                        "unaffected, and world-space panels are on by default in every other host.");
+                        $"[ds fx] Material skins are skipped on WORLD-SPACE panels in this player: Unity {Application.unityVersion} " +
+                        "predates the fix for the staged updater overrun (" + DsUirStagingFix.IssueId + ", fixed in " +
+                        "6000.6.2f1 and 6000.7.0b1), which reads past the UI geometry buffer in a WebGL player " +
+                        "(GfxDevice::CopyBufferRanges out of bounds). Those elements render as stock design system. " +
+                        "Build with 6000.6.2f1 or later, or on 6000.5 with Tools/UirStagingPatch, or set " +
+                        "DsFxManager.AllowWorldSpacePanels = true to opt in anyway. Screen-space panels are unaffected.");
                 }
                 return;
             }

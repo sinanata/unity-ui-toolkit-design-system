@@ -88,12 +88,25 @@ namespace UIDocumentDesignSystem.BuildTools
                     options          = diagnostic ? BuildOptions.Development : BuildOptions.None,
                 };
 
-                // If this editor install's WebGL playback module carries the UIR staging patch
-                // (Tools/UirStagingPatch — fixes the staged updater's staging-buffer under-
-                // allocation, the CopyBufferRanges overrun), tell the player: DsFxManager then
-                // defaults world-space material panels ON, since the crash the gate guards
-                // against cannot occur in this build. extraScriptingDefines is per-build only —
-                // nothing persistent changes, and unpatched machines build the safe default.
+                // Unity fixed the staged updater's staging-buffer under-allocation (the
+                // CopyBufferRanges overrun we reported) as UUM-151098 in 6000.6.2f1 and
+                // 6000.7.0b1. On those editors the player turns world-space materials on by
+                // itself (DsFxManager reads Application.unityVersion) and no patch is involved.
+                //
+                // On 6000.5 (Won't Fix upstream), if this editor install's WebGL playback module
+                // carries Tools/UirStagingPatch, tell the player: DsFxManager then defaults
+                // world-space material panels ON, since the crash the gate guards against cannot
+                // occur in this build. extraScriptingDefines is per-build only, so nothing
+                // persistent changes, and unpatched machines build the safe default.
+#if UNITY_6000_5_OR_NEWER
+                if (DesignSystem.Runtime.Fx.DsUirStagingFix.IsFixedIn(Application.unityVersion))
+                {
+                    Debug.Log($"[BuildCli] Unity {Application.unityVersion} carries Unity's fix for the staged updater " +
+                              $"overrun ({DesignSystem.Runtime.Fx.DsUirStagingFix.IssueId}): world-space materials are on " +
+                              "by default and Tools/UirStagingPatch is not needed.");
+                }
+                else
+#endif
                 if (IsUirStagingPatched())
                 {
                     opts.extraScriptingDefines = new[] { "DS_UIR_STAGING_PATCHED" };

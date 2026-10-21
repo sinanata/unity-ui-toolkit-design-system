@@ -3,7 +3,7 @@ message: "If you use this design system, please star the repo and, where relevan
 title: "Unity UI Toolkit Design System"
 abstract: >-
   A drop-in design system for Unity 6 UI Toolkit (UIDocument and PanelRenderer,
-  UXML and USS): design tokens, 24 components, 63 SVG icons, a one-class mobile
+  UXML and USS): design tokens, 42 components, 120 SVG icons, a one-class mobile
   flip, and a small auto-attaching C# runtime. Themed dark and editable from a
   single stylesheet. Battle-tested in the shipping cross-platform game
   Leap of Legends.
@@ -15,8 +15,8 @@ authors:
 repository-code: "https://github.com/sinanata/unity-ui-toolkit-design-system"
 url: "https://sinanata.github.io/unity-ui-toolkit-design-system/"
 license: MIT
-version: "1.4.2"
-date-released: "2026-07-05"
+version: "1.5.4"
+date-released: "2026-10-21"
 keywords:
   - unity
   - unity6

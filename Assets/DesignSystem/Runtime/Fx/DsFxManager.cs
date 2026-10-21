@@ -40,48 +40,52 @@ namespace DesignSystem.Runtime.Fx
 
         /// <summary>
         /// Materials on WORLD-SPACE panels (<c>PanelRenderMode.WorldSpace</c>). On by default
-        /// everywhere EXCEPT a WebGL player, and that one exception is a bug report, not a
-        /// preference.
+        /// everywhere, with one exception that is an engine version, not a preference: a WebGL
+        /// player running on an engine that predates Unity's fix for the staged-updater overrun.
         ///
-        /// On Unity 6000.5 a world panel carrying custom materials drives the renderer past the end
-        /// of its own geometry buffer in a WebGL player:
+        /// On Unity 6000.5 through 6000.6.1f1 a world panel carrying custom materials drives the
+        /// renderer past the end of its own geometry buffer in a WebGL (or WebGPU) player:
         ///   <c>GfxDevice::CopyBufferRanges: range reads out of bounds (srcEnd=590904 srcSize=589824)</c>
-        /// The mechanism (read out of the decompiled UIR renderer, 2026-07-17): platforms without
-        /// mapped GPU buffers — the WebGL AND WebGPU players — update UI geometry through
-        /// <c>GpuUpdaterStaged</c>, which sizes its per-frame staging buffer from a data set's
-        /// PRE-consolidation dirty count. Its padded size tiers stop at 256Ki elements; a bigger
-        /// one-frame burst gets an EXACTLY-sized buffer with zero slack, and the updater then grows
-        /// its ranges AFTER sizing (consolidation fills the gaps of a ≥90%-dense span; index ranges
-        /// align outward to even) and reads past its own staging buffer. A full-tree material
-        /// apply/revert over a large world UI is exactly such a burst: dense, gap-riddled, and far
-        /// past the last tier. Editor and native players use mapped buffers and never run this code.
+        /// <c>GpuUpdaterStaged</c>, the updater of platforms without mapped GPU buffers, sized its
+        /// per-frame staging buffer from a data set's PRE-consolidation dirty count, then grew the
+        /// ranges after sizing (consolidation fills the gaps of a 90%-dense span; index ranges align
+        /// outward to even) and read past its own buffer. A full-tree material apply over a large
+        /// world UI is exactly that kind of burst. No host-side pacing avoids it, because a danger
+        /// window sits just below every size tier.
         ///
-        /// No host-side pacing fully avoids it: the danger windows sit just below EVERY tier
-        /// (~7.4-8.2Ki elements at the first one — a single big component's restyle), so chunking
-        /// merely moves bursts between windows. The airtight fix is a one-instruction patch to the
-        /// module itself on the BUILD machine — <c>Tools/UirStagingPatch</c> pads the staging
-        /// request to 2r+64, which covers every post-sizing growth. The default stays opted out on
-        /// WebGL because an unpatched build machine still ships the crash; a project built with the
-        /// patch applied can opt in (the showcase's <c>?worldfx=1</c> does).
+        /// We root-caused it from the decompiled renderer on 2026-07-17 and reported it. Unity
+        /// fixed it as UUM-151098 in 6000.6.2f1 and 6000.7.0b1 by consolidating first and sizing
+        /// every staging request exactly (<see cref="DsUirStagingFix"/>). 6000.5 is Won't Fix, so
+        /// <c>Tools/UirStagingPatch</c> remains the build-machine fix for that line.
+        ///
+        /// So the default is decided per engine, at first read: <c>true</c> in the editor, in
+        /// native players, in a WebGL player whose engine carries Unity's fix, and in one built on
+        /// a machine with the patch (<c>BuildCli</c> detects it and defines
+        /// <c>DS_UIR_STAGING_PATCHED</c>); <c>false</c> only in a WebGL player on an unfixed,
+        /// unpatched engine. Assigning the property overrides the default for the session, which
+        /// is what the showcase's <c>?worldfx=1</c> does.
         ///
         /// The rendering itself is host-independent: dsfx_ownGeometry measures the emitting rect's
-        /// size from the geometry, so a material holds at any camera distance or angle. When the
-        /// engine bug is fixed, deleting the #if below is the whole change.
-        ///
-        /// Where it is false, a skin on a world panel simply does not attach and the element renders
-        /// as stock design system — no crash, no half-applied material.
+        /// size from the geometry, so a material holds at any camera distance or angle. Where this
+        /// is false, a skin on a world panel simply does not attach and the element renders as
+        /// stock design system: no crash, no half-applied material.
         /// </summary>
-        /// <remarks>
-        /// DS_UIR_STAGING_PATCHED is injected per-build by the showcase's BuildCli when it detects
-        /// that the build machine's WebGL playback module carries the Tools/UirStagingPatch fix —
-        /// such a player has no overrun left to guard against, so world panels default ON there
-        /// too. An unpatched build keeps the gate and the <c>?worldfx=1</c> escape hatch.
-        /// </remarks>
+        public static bool AllowWorldSpacePanels
+        {
+            get => _allowWorldSpacePanels ??= DefaultAllowWorldSpacePanels();
+            set => _allowWorldSpacePanels = value;
+        }
+
+        private static bool? _allowWorldSpacePanels;
+
+        private static bool DefaultAllowWorldSpacePanels()
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR && !DS_UIR_STAGING_PATCHED
-        public static bool AllowWorldSpacePanels;
+            return DsUirStagingFix.EngineHasFix;
 #else
-        public static bool AllowWorldSpacePanels = true;
+            return true;
 #endif
+        }
 
         /// <summary>
         /// Narrate the material pipeline to the console: skin attachment decisions, material

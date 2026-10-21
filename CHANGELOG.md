@@ -4,6 +4,31 @@ All notable changes to this project will be documented here.
 
 This project loosely follows [Semantic Versioning](https://semver.org/) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [1.5.4] — 2026-10-21
+
+The best kind of fix is the one you get to delete. In July, putting GPU materials on world-space panels kept killing the WebGL showcase, and the trail led below this package into Unity's own UI geometry updater: on platforms without mapped GPU buffers, `GpuUpdaterStaged` sized its staging buffer from a data set's dirty count and only then consolidated the ranges it copied, so a dense one-frame restyle read past its own buffer. We shipped a one-instruction patch for the build machine, and we wrote it up for Unity with the root cause, the two exact errors, and the fix we thought it needed. Unity's UI Toolkit team took it as [UUM-151098](https://issuetracker.unity.com/issues/24430/webgl-crash-when-consolidated-range-is-larger-than-the-sum-of-individual-ranges) and shipped it in **6000.6.2f1** and **6000.7.0b1**: consolidate first, then size every staging request exactly. That is the fix the [report](https://discussions.unity.com/t/webgl-6000-5-2f1-ui-toolkit-staged-updater-under-sizes-its-staging-buffer-copybufferranges-reads-out-of-bounds-on-large-single-frame-restyles/1731377) proposed, done better than a patch ever could, because the engine can see the ranges and a patch can only pad.
+
+This release is the package catching up with that. It verifies the fix, lets a fixed engine turn the feature on by itself, and puts the patch in the box labelled 6000.5, where it still belongs. A community report becoming an engine fix is the open-source loop working the way it should. Thank you, Unity, for closing it.
+
+### Changed
+
+- **World-space materials turn themselves on in WebGL players on a fixed engine.** `DsFxManager.AllowWorldSpacePanels` used to be a compile-time gate: off in every WebGL player unless the build machine carried `Tools/UirStagingPatch` (`DS_UIR_STAGING_PATCHED`). It is now a property whose default is decided per engine at first read, through the new `DsUirStagingFix`: on in the editor, in native players, in WebGL players running 6000.6.2f1 or later (or 6000.7.0b1 or later), and in patched 6000.5 builds; off only in a WebGL player on an unfixed, unpatched engine. Reads and assignments compile unchanged (the showcase's `?worldfx=1` still assigns it), and assigning still overrides the default for the session. The warning a skipped skin logs now names the engine version and the fix.
+- **`Tools/UirStagingPatch` is scoped to the editors that need it.** Its README opens with the upstream fix and a version table: 6000.0 to 6000.4 never had the staged updater, 6000.5 is Won't Fix upstream and still needs the patch, 6000.6.0f1 and 6000.6.1f1 should update, and 6000.6.2f1+ and 6000.7.0b1+ need nothing. `Apply-UirStagingPatch.ps1` reads the editor version first and exits without building anything or asking for elevation on a fixed or pre-6000.5 editor. The patcher exits `3` when the module already carries Unity's fix and `4` when it has no staged updater, and on 6000.5.2f1 it still produces a module byte-identical to the one it produced in July.
+- **`BuildCli` names the fix.** On a fixed editor it logs that Unity's fix is present and builds as is; on 6000.5 it keeps detecting the patch and injecting `DS_UIR_STAGING_PATCHED`.
+- **The host project moves to Unity 6000.6.7f1** (URP 17.6.0, Input System 1.20.1, uGUI 2.6.0, Test Framework 1.8.0, Timeline 6.6.0, and the editor's other minimum versions), so the live showcase is built on a fixed engine. The package floor stays `6000.0`. The package and the showcase compile with zero errors and no new warnings on both 6000.5.2f1 and 6000.6.7f1, in the editor and for the WebGL player.
+
+### Added
+
+- **`DsUirStagingFix`** (`DesignSystem.Runtime.Fx`, 6000.5+): `IsFixedIn(unityVersion)`, `EngineHasFix`, and the issue id and link. Hand-parsed rather than a regex, because it ships in WebGL players, where every managed dependency is download size.
+
+### Verified
+
+- **Unity's fix, three ways.** (1) The decompiled `GpuUpdaterStaged` from the 6000.5.2f1 and 6000.6.7f1 WebGL modules, side by side: consolidation moved ahead of sizing, sizing goes through a new `GetRequiredStagingLength` (the exact consolidated count for vertices, the exact sum of even-aligned ranges for indices, `count + 2 per range` past 16 ranges), and `PrepareCopyRanges` now asserts `usedCount <= capacity`. (2) Both versions' sizing logic replayed outside Unity against a stand-in that applies GfxDevice's bounds check: 6000.5.2f1 reproduces the two errors from the original report to the byte (`srcEnd=590904 srcSize=589824` and `srcEnd=17352 srcSize=16384`), and 6000.6.7f1 handles the same input cleanly. (3) 12 million fuzzed frames aimed at the danger windows: 2,571,357 out-of-bounds reads on 6000.5.2f1 and none on 6000.6.7f1, at the same staging memory. The `2r+64` patch also reached zero, at about 1.9 times the memory.
+
+### Notes
+
+- The second WebGL limitation from [1.5.0], a native world-panel draw that ignores per-element materials, is a separate issue, observed on 6000.5.2f1. The RenderTexture-per-exhibit fallback stays until a 6000.6 WebGL player shows it is gone.
+
 ## [1.5.3] — 2026-08-19
 
 One line, and the floor under it. The manifest promises `"unity": "6000.0"`; the code, since July, required 6000.4. Nothing in a 6000.5 project ever compiles the editors the manifest still names, so the newest editor hid the break from the person developing on it and served it to everyone below. Thanks to [@slimshader](https://github.com/slimshader) for the report and [@FlowingFrost](https://github.com/FlowingFrost) for the report and the fix.

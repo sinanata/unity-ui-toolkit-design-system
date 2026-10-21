@@ -27,6 +27,12 @@
 //
 // Usage:  uir-patcher <input.dll> <output.dll>
 // Idempotent: re-running on a patched assembly is a no-op.
+//
+// Version limitation: Unity fixed this upstream as UUM-151098 in 6000.6.2f1 and 6000.7.0b1
+// (consolidate first, then size each staging request exactly). 6000.5 is Won't Fix, so this
+// patch is for 6000.5.x only. Exit codes: 0 patched or already patched, 1 failure, 2 usage,
+// 3 not needed (the module already carries Unity's fix), 4 not applicable (no staged updater,
+// i.e. an editor before 6000.5).
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -45,10 +51,28 @@ resolver.AddSearchDirectory(Path.GetDirectoryName(Path.GetFullPath(input)));
 var readerParams = new ReaderParameters { ReadWrite = false, InMemory = true, AssemblyResolver = resolver };
 using var module = ModuleDefinition.ReadModule(input, readerParams);
 
+// 6000.6.2f1+ ships Unity's own fix: a non-generic GpuUpdaterStaged whose CompleteUpdate
+// consolidates every dirty data set first and sizes staging through GetRequiredStagingLength.
+var fixedType = module.GetType("UnityEngine.UIElements.UIR.GpuUpdaterStaged");
+if (fixedType != null && fixedType.Methods.Any(m => m.Name == "GetRequiredStagingLength"))
+{
+    Console.WriteLine("NOT NEEDED: this module already carries Unity's fix (UUM-151098, " +
+                      "Unity 6000.6.2f1 and 6000.7.0b1). Nothing to patch.");
+    return 3;
+}
+
 var type = module.GetType("UnityEngine.UIElements.UIR.GpuUpdaterStaged`1");
 if (type == null)
 {
-    Console.Error.WriteLine("FAIL: GpuUpdaterStaged`1 not found in " + input);
+    if (fixedType == null)
+    {
+        Console.WriteLine("NOT APPLICABLE: no staged geometry updater in " + input +
+                          ". It first ships in Unity 6000.5; earlier editors were never affected.");
+        return 4;
+    }
+    Console.Error.WriteLine("FAIL: this module has GpuUpdaterStaged without Unity's fix but not in the " +
+                            "6000.5 shape this patch knows (6000.6.0f1 or 6000.6.1f1?). Update the editor " +
+                            "to 6000.6.2f1 or later instead, which carries the fix (UUM-151098).");
     return 1;
 }
 

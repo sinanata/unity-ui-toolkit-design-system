@@ -108,12 +108,12 @@ namespace Showcase.Runtime
             if (url.Contains("fxauto"))
                 ScheduleFxAutopilot();
 
-            // `?worldfx=1` forces material skins ON for world-space panels in THIS player —
-            // meaning the WebGL player, the one host where they default OFF because Unity
-            // 6000.5 overruns its own UI geometry buffer there (GfxDevice::CopyBufferRanges
-            // out of bounds; see DsFxManager.AllowWorldSpacePanels). This is the switch for
-            // testing whether a given Unity build still has that bug. Everywhere else the
-            // flag is already true and this is a no-op.
+            // `?worldfx=1` forces material skins ON for world-space panels in THIS player.
+            // That only matters in a WebGL player built on an engine without Unity's fix for
+            // the staged updater overrun (UUM-151098; 6000.5, 6000.6.0f1, 6000.6.1f1), the one
+            // host where they default OFF (GfxDevice::CopyBufferRanges out of bounds; see
+            // DsFxManager.AllowWorldSpacePanels). It is the switch for reproducing that bug on
+            // an old engine. On 6000.6.2f1 and later the flag is already true and this is a no-op.
             if (url.Contains("worldfx=1"))
             {
                 DsFxManager.AllowWorldSpacePanels = true;

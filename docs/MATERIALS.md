@@ -418,9 +418,10 @@ takes the passthrough. The one case it cannot catch is a **full-bleed** solid ch
 its skinned parent — the rects are identical, so they measure identical. Give that child a white
 background-image and tint it so it rides the texture path instead.
 
-**World-space panels are on by default everywhere EXCEPT a WebGL player — and that exception is an
-engine bug, not a policy.** On Unity 6000.5, a `PanelRenderMode.WorldSpace` panel carrying custom
-materials drives the renderer past the end of its own UI geometry buffer in a WebGL player:
+**World-space panels are on by default everywhere, except a WebGL player on an engine that still
+has the staged-updater bug, and that exception is an engine version, not a policy.** On Unity 6000.5
+through 6000.6.1f1, a `PanelRenderMode.WorldSpace` panel carrying custom materials drives the
+renderer past the end of its own UI geometry buffer in a WebGL player:
 
 ```
 GfxDevice::CopyBufferRanges: range reads out of bounds (srcEnd=590904 srcSize=589824)
@@ -436,25 +437,40 @@ host-side pacing can fully dodge it and why the skipped copies leave panels rend
 geometry (a restyled world UI that keeps its old look) before the eventual fatal wasm `bounds`
 exception.
 
-The actual fix is `Tools/UirStagingPatch`: a one-instruction Cecil patch to the WebGL playback
+**Unity has fixed it.** We reported the root cause with a suggested fix, and Unity shipped it as
+[UUM-151098](https://issuetracker.unity.com/issues/24430/webgl-crash-when-consolidated-range-is-larger-than-the-sum-of-individual-ranges)
+in **6000.6.2f1** and **6000.7.0b1**: `CompleteUpdate` now consolidates every dirty data set first and
+sizes each staging request exactly through a new `GetRequiredStagingLength` (the exact consolidated
+count for vertices; the exact sum of even-aligned ranges for indices, or `count + 2 per range` past 16
+ranges), and asserts `usedCount <= capacity`. Verified on 6000.6.7f1 by diffing the decompiled
+updater and by replaying both versions' sizing logic: 6000.5.2f1 reproduces the errors above to the
+byte, and 12 million fuzzed frames produce 2.57 million out-of-bounds reads on 6000.5.2f1 and none
+on 6000.6.7f1, at the same staging memory. Unity 6000.5 is Won't Fix.
+
+**On 6000.5, the fix is `Tools/UirStagingPatch`:** a one-instruction Cecil patch to the WebGL playback
 engine's managed module on the **build machine**, padding the staging request to `2r+64` so capacity
-always covers the growth. Apply it once per editor install (`Apply-UirStagingPatch.ps1`, UAC prompt,
-backup + `-Restore` included); it takes effect on the next WebGL build. The corridor additionally
-paces its restyles (`ThemeWave`/`RevealWave`, one exhibit per frame) — that spreads load and reads
+always covers the growth (at up to twice the staging memory, which Unity's exact sizing avoids).
+Apply it once per editor install (`Apply-UirStagingPatch.ps1`, UAC prompt, backup + `-Restore`
+included); it takes effect on the next WebGL build. The script and the patcher both refuse on a fixed
+editor or on one older than 6000.5, which never had the staged updater. The corridor additionally
+paces its restyles (`ThemeWave`/`RevealWave`, one exhibit per frame); that spreads load and reads
 nicely, but it is not the safety mechanism.
 
-`DsFxManager.AllowWorldSpacePanels` defaults to `false` only in a WebGL player built on an
-**unpatched** machine — the showcase's `BuildCli` detects the patch and injects the per-build define
-`DS_UIR_STAGING_PATCHED`, which turns the default `true` there too, so a patched build needs no flag
-at all. Everywhere else it is already `true`. Where it is false, `DsFxSkin` does not attach on a
-world panel: those elements render as stock design system (one console warning says so), and the
-screen ↔ world toggle stays clean. Screen-space panels are mostly fine in practice but ride the same
-defective updater, so patched builds are safer across the board. The showcase's `?worldfx=1` remains
-as a manual override for unpatched test builds; when Unity fixes the updater, deleting the `#if`
-around the default is the whole change.
+`DsFxManager.AllowWorldSpacePanels` decides its default per engine, at first read: `true` in the
+editor, in native players, in a WebGL player whose engine carries Unity's fix (`DsUirStagingFix`
+reads `Application.unityVersion`), and in a WebGL player built on a patched 6000.5 machine (the
+showcase's `BuildCli` detects the patch and injects the per-build define `DS_UIR_STAGING_PATCHED`).
+It is `false` only in a WebGL player on an unfixed, unpatched engine. Where it is false, `DsFxSkin`
+does not attach on a world panel: those elements render as stock design system (one console warning
+says so and names the fix), and the screen-to-world toggle stays clean. Screen-space panels are mostly
+fine in practice but rode the same defective updater, so a fixed or patched engine is safer across
+the board. The showcase's `?worldfx=1` remains as a manual override for reproducing the bug on an
+old, unpatched engine.
 
-**Even with the overrun patched, a WebGL player's *native* world-panel draw silently ignores
-per-element custom materials.** Skins attach, inline styles hold, and the managed renderer records
+**Even with the overrun out of the way (fixed or patched), a WebGL player's *native* world-panel draw
+silently ignores per-element custom materials.** This one is separate from UUM-151098: it was
+observed on 6000.5.2f1 and has not yet been re-checked on 6000.6, so keep the fallback below until a
+6000.6 WebGL player shows otherwise. Skins attach, inline styles hold, and the managed renderer records
 the per-material command lists correctly — verified by decompiling the draw path and by an in-player
 census (35/35 sections skinned, zero errors) — yet the panel draws with stock chrome. That is below
 the design-system layer, not fixable from a shader or a manipulator. So a host that wants materials

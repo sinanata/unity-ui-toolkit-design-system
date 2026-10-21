@@ -1,8 +1,8 @@
 {
     "_comment": "Copy to config.local.json (same folder) and fill in values. config.local.json is gitignored.",
     "unity": {
-        "version": "6000.3.8f1",
-        "windowsEditorPath": "C:\\Program Files\\Unity\\Hub\\Editor\\6000.3.8f1\\Editor\\Unity.exe",
+        "version": "6000.6.7f1",
+        "windowsEditorPath": "C:\\Program Files\\Unity\\Hub\\Editor\\6000.6.7f1\\Editor\\Unity.exe",
         "clearCacheBeforeBuild": false
     },
     "paths": {

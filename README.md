@@ -13,6 +13,8 @@ A drop-in **design system for Unity 6 UI Toolkit** (UIDocument/PanelRenderer + U
 Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap of Legends</a></strong>, a cross-platform multiplayer game now live with full cross-play across Steam, iOS, and Android. Every menu, HUD, lobby, and store screen in the game is built on this design system. Play now on <a href="https://store.steampowered.com/app/2269500/">Steam</a>, the <a href="https://apps.apple.com/us/app/leap-of-legends/id6761757484">App Store</a>, and <a href="https://play.google.com/store/apps/details?id=com.exceptionly.leapoflegends">Google Play</a>.
 </blockquote>
 
+> **🎉 Our bug report became a Unity engine fix.** While putting GPU materials on world-space panels we traced a WebGL crash (`GfxDevice::CopyBufferRanges: range reads out of bounds`) to one line in Unity's UI geometry updater, [reported it with the root cause and a suggested fix](https://discussions.unity.com/t/webgl-6000-5-2f1-ui-toolkit-staged-updater-under-sizes-its-staging-buffer-copybufferranges-reads-out-of-bounds-on-large-single-frame-restyles/1731377), and shipped a build-machine patch in the meantime. Unity's UI Toolkit team took it as [**UUM-151098**](https://issuetracker.unity.com/issues/24430/webgl-crash-when-consolidated-range-is-larger-than-the-sum-of-individual-ranges) and fixed it in **Unity 6000.6.2f1** and **6000.7.0b1**, the way the report proposed. On those editors world-space materials just work in WebGL, no patch and no flag; on 6000.5 (Won't Fix upstream) [`Tools/UirStagingPatch`](Tools/UirStagingPatch/README.md) still has you covered. Thank you, Unity.
+
 > **Using an AI coding assistant?** This repo ships an [`AGENTS.md`](AGENTS.md) and an [`llms.txt`](llms.txt) so Copilot, Cursor, Codex, and Claude Code use the `ds-` classes and tokens correctly instead of guessing.
 
 > **Using Unreal?** There is an Unreal version of the same approach from the same author: [unreal-umg-design-system](https://github.com/sinanata/unreal-umg-design-system)
@@ -93,7 +95,7 @@ What you get on day one:
 | Requirement | Notes |
 | --- | --- |
 | **Unity 6** (6000.x or newer) | Uses Unity 6 USS additions (`@import`, `background-size`, `-unity-background-image-tint-color`, parent-state cascades). Earlier versions partially work but components like the checkbox icon shrink rule rely on Unity 6 `background-size`. |
-| **Unity 6000.5+** (optional) | Only for the `PanelRenderer` backend and the showcase's world-space gallery: both compile out on older editors behind `UNITY_6000_5_OR_NEWER`, so the flat-screen path still works everywhere. This repo's host project sits on 6000.5.2f1. |
+| **Unity 6000.5+** (optional) | Only for the `PanelRenderer` backend and the showcase's world-space gallery: both compile out on older editors behind `UNITY_6000_5_OR_NEWER`, so the flat-screen path still works everywhere. This repo's host project sits on 6000.6.7f1. |
 | `com.unity.ui` (UI Toolkit) | Built-in module — already enabled by default in Unity 6. |
 | `com.unity.modules.vectorgraphics` | Built-in module in Unity 6 — already enabled by default. The standalone `com.unity.vectorgraphics` *package* is not required; Unity 6's engine ships the SVG ScriptedImporter (`fileID: 12408`) directly. The repo ships `.meta` files for every icon preset to `svgType: 3` (Texture) so they import correctly on first open. |
 
@@ -282,7 +284,7 @@ DsFxRegistry.Register(new DsFxFamily("moss", "Hidden/MyGame/Moss", "Shaders/Moss
 
 Every skinned element is one extra draw call — materials are hero treatment, not wallpaper. The abilities, the grammar, a copy-paste family skeleton, and the rules that cost a day if you skip them (the descendant contract, the FXC crash) are in [docs/MATERIALS.md](docs/MATERIALS.md).
 
-**Materials work in the world-space gallery, not just on flat screens.** Pick *Blueprint (shader)* and every wall exhibit becomes a GPU material that stays sharp at any camera distance. Getting there on WebGL took root-causing a Unity renderer buffer overrun — patched on the build machine, see [`Tools/UirStagingPatch`](Tools/UirStagingPatch/README.md) — and a RenderTexture-per-panel fallback for a native draw-path gap, both of which the showcase applies automatically. The mechanics are in [docs/MATERIALS.md](docs/MATERIALS.md).
+**Materials work in the world-space gallery, not just on flat screens.** Pick *Blueprint (shader)* and every wall exhibit becomes a GPU material that stays sharp at any camera distance. Getting there on WebGL took two things. The first was root-causing a Unity renderer buffer overrun, which Unity has since fixed upstream from our report ([UUM-151098](https://issuetracker.unity.com/issues/24430/webgl-crash-when-consolidated-range-is-larger-than-the-sum-of-individual-ranges), in 6000.6.2f1 and 6000.7.0b1; on 6000.5 the build-machine patch in [`Tools/UirStagingPatch`](Tools/UirStagingPatch/README.md) covers it). The second is a RenderTexture-per-panel fallback for a native draw-path gap, which the showcase applies automatically. The mechanics are in [docs/MATERIALS.md](docs/MATERIALS.md).
 
 ## Mobile
 
@@ -424,8 +426,8 @@ Tools/Build/
 └── README.md                           ← orchestrator docs
 
 Tools/UirStagingPatch/
-├── Apply-UirStagingPatch.ps1           ← patches this editor install's WebGL UIElements module (staging-buffer overrun; backup + -Restore)
-└── Program.cs / uir-patcher.csproj     ← the one-instruction Cecil patcher BuildCli auto-detects (DS_UIR_STAGING_PATCHED)
+├── Apply-UirStagingPatch.ps1           ← 6000.5 only: patches the editor's WebGL UIElements module (fixed upstream in 6000.6.2f1+ as UUM-151098; backup + -Restore)
+└── Program.cs / uir-patcher.csproj     ← the one-instruction Cecil patcher BuildCli auto-detects (DS_UIR_STAGING_PATCHED); refuses on fixed editors
 
 Tools/.orchestrator/                    ← submodule: unity-cross-platform-local-build-orchestrator
 └── Tools/Build/

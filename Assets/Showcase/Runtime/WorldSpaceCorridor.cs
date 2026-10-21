@@ -230,7 +230,8 @@ namespace Showcase.Runtime
         // The reveal is a WAVE — one exhibit per frame — mirroring ThemeWave:
         // it spreads the heaviest corridor frames and looks deliberate. As with
         // ThemeWave, it is load-spreading, not the WebGL safety mechanism (that
-        // is Tools/UirStagingPatch — see DsFxManager.AllowWorldSpacePanels).
+        // is Unity's own fix, UUM-151098 in 6000.6.2f1+, or Tools/UirStagingPatch
+        // on 6000.5; see DsFxManager.AllowWorldSpacePanels).
         // Hiding regenerates nothing, so the way OUT stays instant.
         void SetCorridorVisible(bool on)
         {
@@ -377,8 +378,10 @@ namespace Showcase.Runtime
         // not what makes world materials safe on WebGL. That is the staged
         // updater's staging-buffer under-allocation, whose danger windows sit
         // just below EVERY size tier (the first at ~8Ki elements — one
-        // exhibit-sized burst), so no pacing policy avoids them all; the real
-        // fix is the build-machine module patch in Tools/UirStagingPatch. See
+        // exhibit-sized burst), so no pacing policy avoids them all. The real
+        // fix is the engine's: Unity shipped it as UUM-151098 in 6000.6.2f1 and
+        // 6000.7.0b1, and on 6000.5 the build-machine patch in
+        // Tools/UirStagingPatch stands in for it. See
         // DsFxManager.AllowWorldSpacePanels for the whole story.
         public void ApplyScreenTheme(bool light)
         {
