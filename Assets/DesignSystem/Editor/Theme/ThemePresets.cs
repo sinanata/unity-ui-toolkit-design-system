@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using DesignSystem.Runtime.Theme.Data;
 using UnityEditor;
+using UnityEditor.Compilation;
 using UnityEngine;
+using PackageInfo = UnityEditor.PackageManager.PackageInfo;
+using PackageSource = UnityEditor.PackageManager.PackageSource;
 
 namespace DesignSystem.Editor.Theming
 {
@@ -27,9 +30,58 @@ namespace DesignSystem.Editor.Theming
     /// </summary>
     public static class ThemePresets
     {
-        public const string ThemesFolder = "Assets/DesignSystem/Resources/UI/Themes";
-        public const string DarkPath     = ThemesFolder + "/Dark.asset";
-        public const string LightPath    = ThemesFolder + "/Light.asset";
+        // The editor assembly's own asmdef sits at <package root>/Editor/ in every install shape, so it
+        // is the one asset whose path always says where the package is.
+        private const string EditorAssemblyName = "DesignSystem.Editor";
+        private const string FallbackRoot       = "Assets/DesignSystem";
+
+        /// <summary>
+        /// The package's root as an asset path, resolved from where it is actually installed:
+        /// <c>Assets/DesignSystem</c> for a copy or a junction,
+        /// <c>Packages/com.sinanata.designsystem</c> for a <c>file:</c>, git-URL or registry install.
+        ///
+        /// This used to be hard-coded to <c>Assets/DesignSystem</c>, so running "Generate Built-in
+        /// Themes" in a project that installed the package any other way quietly CREATED
+        /// <c>Assets/DesignSystem/Resources/UI/Themes/{Dark,Light}.asset</c> in the host project: a
+        /// second copy of <c>Resources/UI/Themes/Dark</c> that makes every
+        /// <c>Resources.Load("UI/Themes/Dark")</c> ambiguous.
+        /// </summary>
+        public static string PackageRoot
+        {
+            get
+            {
+                var asmdef = CompilationPipeline.GetAssemblyDefinitionFilePathFromAssemblyName(EditorAssemblyName);
+                if (!string.IsNullOrEmpty(asmdef))
+                {
+                    var editorDir = Path.GetDirectoryName(asmdef.Replace('\\', '/'));
+                    var root = string.IsNullOrEmpty(editorDir) ? null : Path.GetDirectoryName(editorDir);
+                    if (!string.IsNullOrEmpty(root)) return root.Replace('\\', '/');
+                }
+
+                var info = PackageInfo.FindForAssembly(typeof(ThemePresets).Assembly);
+                return info != null ? info.assetPath : FallbackRoot;
+            }
+        }
+
+        /// <summary>
+        /// True when the package is installed somewhere Unity will not let it be edited (a git-URL,
+        /// registry or tarball install, served from the package cache). Its Dark and Light themes ship
+        /// baked, so there is nothing to regenerate and nowhere to write.
+        /// </summary>
+        public static bool PackageIsReadOnly
+        {
+            get
+            {
+                var info = PackageInfo.FindForAssetPath(PackageRoot);
+                if (info == null) return false;   // under Assets/: a copy or a junction, always writable
+                return info.source != PackageSource.Embedded && info.source != PackageSource.Local;
+            }
+        }
+
+        /// <summary>Where the built-in themes live: <c>Resources/UI/Themes</c> inside <see cref="PackageRoot"/>.</summary>
+        public static string ThemesFolder => PackageRoot + "/Resources/UI/Themes";
+        public static string DarkPath     => ThemesFolder + "/Dark.asset";
+        public static string LightPath    => ThemesFolder + "/Light.asset";
 
         /// <summary>Resources path for <c>Resources.Load&lt;ThemeData&gt;</c>.</summary>
         public const string DarkResource  = "UI/Themes/Dark";
@@ -39,7 +91,8 @@ namespace DesignSystem.Editor.Theming
         public static void GenerateMenu()
         {
             var made = Generate();
-            Debug.Log($"[ThemePresets] Generated and baked {made} built-in theme(s) into {ThemesFolder}.");
+            if (made > 0)
+                Debug.Log($"[ThemePresets] Generated and baked {made} built-in theme(s) into {ThemesFolder}.");
         }
 
         /// <summary>
@@ -57,6 +110,14 @@ namespace DesignSystem.Editor.Theming
 
         public static int Generate()
         {
+            if (PackageIsReadOnly)
+            {
+                Debug.LogWarning($"[ThemePresets] The design system is installed read-only at {PackageRoot}, so its " +
+                                 "built-in themes cannot be regenerated there (they ship baked). To make your own, " +
+                                 "duplicate one into your Assets folder and edit it in Design System > Theme Configurator.");
+                return 0;
+            }
+
             var themes = new List<ThemeData>
             {
                 Upsert(DarkPath,  ThemeData.RootScope, ApplyDark),

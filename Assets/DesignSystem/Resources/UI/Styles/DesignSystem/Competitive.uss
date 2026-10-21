@@ -1,0 +1,888 @@
+/* ============================================================================
+   COMPETITIVE (1.6.0)
+   The pieces a ranked 1v1 / 2v2 / 3v3 ladder needs on top of the general
+   system:
+   - Rank crest      : .ds-rank-crest      tier frame + emblem slot + step pips + label
+   - Rank chip       : .ds-rank-chip       compact tier pill for rows ("G2", "L")
+   - Step pips       : .ds-pips            1..N step markers
+   - Progress ring   : .ds-progress-ring   the DsProgressRing control's colours
+   - Countdown       : .ds-countdown       ready check: ring + big number + label
+   - Queue pill      : .ds-queue-pill      floating "searching" pill, and
+                       .ds-queue-sheet     the panel it expands into
+   - Scoreboard      : .ds-scoreboard      header + team rows
+   - Reward track    : .ds-reward-track    season track: line, fill, nodes
+   - Toast stack     : .ds-toast-stack     where DsToast.Show stacks .ds-toast
+
+   Colour is flavour, never the only signal. Every tier has its own frame
+   SHAPE (Resources/Textures/Ranks: lily-pad ring, rounded shield, shield with
+   laurels, shield with wings, faceted gem, crowned ring, starburst, dashed
+   ring), a chip prints the tier letter, a team row carries an accent bar.
+
+   The tier colour reaches every part through ONE inherited custom property,
+   --ds-rank-tier, which the tier modifier sets on the block. Parts read it
+   with var(), so a new part never needs eight per-tier rules. The frame
+   IMAGE is the one thing still set per tier, with plain resource() rules.
+
+   Everything here is static styling or USS transitions: no part needs a
+   per-frame update. The only runtime pieces are DsProgressRing (repaints when
+   its value changes) and DsToast (one scheduled removal per toast).
+   ============================================================================ */
+
+
+/* ---------- Rank crest ----------
+   <ui:VisualElement class="ds-rank-crest ds-rank-crest--gold ds-rank-crest--lg">
+       <ui:VisualElement class="ds-rank-crest__frame">
+           <ui:VisualElement class="ds-rank-crest__emblem"/>      game fills it
+       </ui:VisualElement>
+       <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+           <ui:VisualElement class="ds-pips__pip is-filled"/> ...
+       </ui:VisualElement>
+       <ui:Label class="ds-rank-crest__label" text="Gold II"/>
+   </ui:VisualElement>
+
+   The emblem is a CHILD of the frame, so it centres on the frame's box with
+   no per-size offsets, and paints after (on top of) the frame. Every frame
+   keeps its inner area centred on that box, sized for the 55% emblem. */
+.ds-rank-crest {
+    --ds-rank-tier: var(--color-tier-unranked);
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.ds-rank-crest--bronze   { --ds-rank-tier: var(--color-tier-bronze); }
+.ds-rank-crest--silver   { --ds-rank-tier: var(--color-tier-silver); }
+.ds-rank-crest--gold     { --ds-rank-tier: var(--color-tier-gold); }
+.ds-rank-crest--platinum { --ds-rank-tier: var(--color-tier-platinum); }
+.ds-rank-crest--diamond  { --ds-rank-tier: var(--color-tier-diamond); }
+.ds-rank-crest--champion { --ds-rank-tier: var(--color-tier-champion); }
+.ds-rank-crest--legend   { --ds-rank-tier: var(--color-tier-legend); }
+.ds-rank-crest--unranked { --ds-rank-tier: var(--color-tier-unranked); }
+
+/* 48px is the md (default) crest: a list row's leading visual. The frame SVGs
+   are white, so the tint IS the tier colour (multiplied onto white). */
+.ds-rank-crest__frame {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    background-image: resource("Textures/Ranks/rank_frame_unranked");
+    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-image-tint-color: var(--ds-rank-tier);
+}
+
+.ds-rank-crest--bronze .ds-rank-crest__frame   { background-image: resource("Textures/Ranks/rank_frame_bronze"); }
+.ds-rank-crest--silver .ds-rank-crest__frame   { background-image: resource("Textures/Ranks/rank_frame_silver"); }
+.ds-rank-crest--gold .ds-rank-crest__frame     { background-image: resource("Textures/Ranks/rank_frame_gold"); }
+.ds-rank-crest--platinum .ds-rank-crest__frame { background-image: resource("Textures/Ranks/rank_frame_platinum"); }
+.ds-rank-crest--diamond .ds-rank-crest__frame  { background-image: resource("Textures/Ranks/rank_frame_diamond"); }
+.ds-rank-crest--champion .ds-rank-crest__frame { background-image: resource("Textures/Ranks/rank_frame_champion"); }
+.ds-rank-crest--legend .ds-rank-crest__frame   { background-image: resource("Textures/Ranks/rank_frame_legend"); }
+.ds-rank-crest--unranked .ds-rank-crest__frame { background-image: resource("Textures/Ranks/rank_frame_unranked"); }
+
+/* The slot the game fills (style.backgroundImage from C#, or a class of its
+   own). 55% of the frame: large enough to recognise a silhouette at 32px,
+   small enough to sit inside every frame's rim. Tinted near-white, so a white
+   silhouette reads on the frame's translucent inner plate; a full-colour image
+   is barely affected (the tint multiplies by 0.95). */
+.ds-rank-crest__emblem {
+    width: 55%;
+    height: 55%;
+    flex-shrink: 0;
+    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-image-tint-color: var(--color-text-primary);
+}
+
+.ds-rank-crest__pips {
+    flex-direction: row;
+    justify-content: center;
+    margin-top: var(--space-1);
+}
+
+.ds-rank-crest__label {
+    margin: 0;
+    margin-top: var(--space-1);
+    padding: 0;
+    font-size: var(--font-size-caption);
+    -unity-font-style: bold;
+    color: var(--color-text-primary);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+}
+
+/* Sizes. The pip grows with the crest so a 160px hero crest does not wear
+   6px dots, and a 32px one does not wear 14px ones. */
+.ds-rank-crest--sm .ds-rank-crest__frame   { width: 32px;  height: 32px; }
+.ds-rank-crest--md .ds-rank-crest__frame   { width: 48px;  height: 48px; }
+.ds-rank-crest--lg .ds-rank-crest__frame   { width: 64px;  height: 64px; }
+.ds-rank-crest--xl .ds-rank-crest__frame   { width: 96px;  height: 96px; }
+.ds-rank-crest--hero .ds-rank-crest__frame { width: 160px; height: 160px; }
+
+.ds-rank-crest--sm .ds-rank-crest__pips   { margin-top: var(--space-half); }
+.ds-rank-crest--xl .ds-rank-crest__pips   { margin-top: var(--space-2); }
+.ds-rank-crest--hero .ds-rank-crest__pips { margin-top: var(--space-3); }
+
+.ds-rank-crest--lg .ds-rank-crest__label   { font-size: var(--font-size-body-2); }
+.ds-rank-crest--xl .ds-rank-crest__label   { font-size: var(--font-size-body-1); margin-top: var(--space-2); }
+.ds-rank-crest--hero .ds-rank-crest__label { font-size: var(--font-size-h2); margin-top: var(--space-3); }
+
+
+/* ---------- Rank chip ----------
+   <ui:VisualElement class="ds-rank-chip ds-rank-chip--gold">
+       <ui:VisualElement class="ds-rank-chip__shape"/>
+       <ui:Label class="ds-rank-chip__text" text="G2"/>
+   </ui:VisualElement>
+
+   The shape is the crest frame at 16px (12px on --sm): the same silhouettes,
+   so a chip says "gold" by shape as well as by colour. --ds-rank-ink is the
+   text colour: the tier colour (each clears 4.5:1 on the chip's surface), or
+   text-secondary when unranked, whose grey is too dim for text. */
+.ds-rank-chip {
+    --ds-rank-tier: var(--color-tier-unranked);
+    --ds-rank-ink: var(--color-text-secondary);
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 22px;
+    padding-left: var(--space-1);
+    padding-right: var(--space-2);
+    border-radius: var(--radius-pill-11);   /* 22px tall */
+    border-width: var(--border-thin);
+    border-color: var(--ds-rank-tier);
+    background-color: var(--color-surface-elev);
+}
+
+.ds-rank-chip--bronze   { --ds-rank-tier: var(--color-tier-bronze);   --ds-rank-ink: var(--color-tier-bronze); }
+.ds-rank-chip--silver   { --ds-rank-tier: var(--color-tier-silver);   --ds-rank-ink: var(--color-tier-silver); }
+.ds-rank-chip--gold     { --ds-rank-tier: var(--color-tier-gold);     --ds-rank-ink: var(--color-tier-gold); }
+.ds-rank-chip--platinum { --ds-rank-tier: var(--color-tier-platinum); --ds-rank-ink: var(--color-tier-platinum); }
+.ds-rank-chip--diamond  { --ds-rank-tier: var(--color-tier-diamond);  --ds-rank-ink: var(--color-tier-diamond); }
+.ds-rank-chip--champion { --ds-rank-tier: var(--color-tier-champion); --ds-rank-ink: var(--color-tier-champion); }
+.ds-rank-chip--legend   { --ds-rank-tier: var(--color-tier-legend);   --ds-rank-ink: var(--color-tier-legend); }
+.ds-rank-chip--unranked { --ds-rank-tier: var(--color-tier-unranked); --ds-rank-ink: var(--color-text-secondary); }
+
+.ds-rank-chip__shape {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-right: var(--space-1);
+    background-image: resource("Textures/Ranks/rank_frame_unranked");
+    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-image-tint-color: var(--ds-rank-tier);
+}
+
+.ds-rank-chip--bronze .ds-rank-chip__shape   { background-image: resource("Textures/Ranks/rank_frame_bronze"); }
+.ds-rank-chip--silver .ds-rank-chip__shape   { background-image: resource("Textures/Ranks/rank_frame_silver"); }
+.ds-rank-chip--gold .ds-rank-chip__shape     { background-image: resource("Textures/Ranks/rank_frame_gold"); }
+.ds-rank-chip--platinum .ds-rank-chip__shape { background-image: resource("Textures/Ranks/rank_frame_platinum"); }
+.ds-rank-chip--diamond .ds-rank-chip__shape  { background-image: resource("Textures/Ranks/rank_frame_diamond"); }
+.ds-rank-chip--champion .ds-rank-chip__shape { background-image: resource("Textures/Ranks/rank_frame_champion"); }
+.ds-rank-chip--legend .ds-rank-chip__shape   { background-image: resource("Textures/Ranks/rank_frame_legend"); }
+.ds-rank-chip--unranked .ds-rank-chip__shape { background-image: resource("Textures/Ranks/rank_frame_unranked"); }
+
+/* Same reason as `.ds-chip > .unity-label`: Unity's Label margin and its tall
+   line box push the glyphs off the pill's centre line. */
+.ds-rank-chip__text,
+.ds-rank-chip > .unity-label {
+    margin: 0;
+    padding: 0;
+    font-size: var(--font-size-body-2);
+    -unity-font-style: bold;
+    color: var(--ds-rank-ink);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+}
+
+.ds-rank-chip--sm {
+    height: 18px;
+    padding-left: var(--space-half);
+    padding-right: var(--space-1);
+    border-radius: var(--radius-pill-9);    /* 18px tall */
+}
+.ds-rank-chip--sm .ds-rank-chip__shape {
+    width: 12px;
+    height: 12px;
+    margin-right: var(--space-half);
+}
+.ds-rank-chip--sm .ds-rank-chip__text,
+.ds-rank-chip--sm > .unity-label {
+    font-size: var(--font-size-caption);
+}
+
+
+/* ---------- Step pips ----------
+   <ui:VisualElement class="ds-pips">
+       <ui:VisualElement class="ds-pips__pip is-filled"/>
+       <ui:VisualElement class="ds-pips__pip is-current"/>
+       <ui:VisualElement class="ds-pips__pip"/>
+   </ui:VisualElement>
+
+   The count is just the number of children. is-filled = done, is-current = the
+   step under way (a ring, readable without colour), plain = still to come. */
+.ds-pips {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.ds-pips__pip {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    /* Half a step on each side: 4px between pips, and the group stays
+       centred (a one-sided margin would push it off by a gap). */
+    margin-left: var(--space-half);
+    margin-right: var(--space-half);
+    border-radius: var(--radius-pill-4);
+    border-width: 0;
+    border-color: var(--color-primary);
+    background-color: var(--color-border-strong);
+    transition-property: background-color, border-color;
+    transition-duration: var(--transition-medium);
+    transition-timing-function: var(--ease-standard);
+}
+
+.ds-pips__pip.is-filled {
+    background-color: var(--color-primary);
+}
+
+.ds-pips__pip.is-current {
+    background-color: var(--color-surface-elev);
+    border-width: var(--border-thin);
+}
+
+.ds-pips--sm .ds-pips__pip { width: 6px;  height: 6px;  border-radius: var(--radius-pill-3); }
+.ds-pips--md .ds-pips__pip { width: 8px;  height: 8px;  border-radius: var(--radius-pill-4); }
+.ds-pips--lg .ds-pips__pip { width: 12px; height: 12px; border-radius: var(--radius-pill-6); }
+.ds-pips--lg .ds-pips__pip.is-current { border-width: var(--border-regular); }
+
+/* Inside a crest the pips wear the tier colour and the crest's scale. Declared
+   after the --sm/--md/--lg rules on purpose: same specificity, so the crest
+   wins, and a crest's pips always match its size. */
+.ds-rank-crest .ds-pips__pip            { width: 6px;  height: 6px;  border-radius: var(--radius-pill-3); }
+.ds-rank-crest--sm .ds-pips__pip        { width: 4px;  height: 4px;  border-radius: var(--radius-pill-2); }
+.ds-rank-crest--lg .ds-pips__pip        { width: 8px;  height: 8px;  border-radius: var(--radius-pill-4); }
+.ds-rank-crest--xl .ds-pips__pip        { width: 10px; height: 10px; border-radius: var(--radius-pill-5); }
+.ds-rank-crest--hero .ds-pips__pip      { width: 14px; height: 14px; border-radius: var(--radius-pill-7); }
+
+.ds-rank-crest .ds-pips__pip.is-filled  { background-color: var(--ds-rank-tier); }
+.ds-rank-crest .ds-pips__pip.is-current { border-color: var(--ds-rank-tier); }
+.ds-rank-crest--hero .ds-pips__pip.is-current,
+.ds-rank-crest--xl .ds-pips__pip.is-current { border-width: var(--border-regular); }
+
+
+/* ---------- Rank crest states ----------
+   Declared after the tier modifiers and the pip colours so they win every tie.
+   is-trials : placement matches. The crest wears the unranked look whatever
+               tier class it carries; the game puts its own "?" in the emblem.
+               Filled pips (matches played) brighten so they read on grey.
+   is-locked : a crest the player has not reached (a season reward, a tier
+               preview). The tint drops to the unranked grey, which for
+               single-colour art IS desaturation, and the whole crest dims. The
+               frame keeps its tier SHAPE, so a locked Gold still says Gold. */
+.ds-rank-crest.is-trials {
+    --ds-rank-tier: var(--color-tier-unranked);
+}
+.ds-rank-crest.is-trials .ds-rank-crest__frame {
+    background-image: resource("Textures/Ranks/rank_frame_unranked");
+}
+.ds-rank-crest.is-trials .ds-pips__pip.is-filled  { background-color: var(--color-text-secondary); }
+.ds-rank-crest.is-trials .ds-pips__pip.is-current { border-color: var(--color-text-primary); }
+
+.ds-rank-crest.is-locked {
+    --ds-rank-tier: var(--color-tier-unranked);
+    opacity: 0.55;
+}
+.ds-rank-crest.is-locked .ds-rank-crest__emblem {
+    -unity-background-image-tint-color: var(--color-text-disabled);
+}
+.ds-rank-crest.is-locked .ds-rank-crest__label {
+    color: var(--color-text-disabled);
+}
+
+
+/* ---------- Progress ring ----------
+   The DsProgressRing control (Runtime/Controls) adds this class itself and
+   reads the two custom properties below through customStyle, so a modifier or
+   a state class recolours it with no code. 48px is a default for a bare ring;
+   the countdown sizes its own. */
+.ds-progress-ring {
+    --ds-ring-color: var(--color-primary);
+    --ds-ring-track-color: var(--color-surface-elev);
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.ds-progress-ring--warning { --ds-ring-color: var(--color-warning); }
+.ds-progress-ring--danger  { --ds-ring-color: var(--color-danger); }
+
+.ds-progress-ring--tier-bronze   { --ds-ring-color: var(--color-tier-bronze); }
+.ds-progress-ring--tier-silver   { --ds-ring-color: var(--color-tier-silver); }
+.ds-progress-ring--tier-gold     { --ds-ring-color: var(--color-tier-gold); }
+.ds-progress-ring--tier-platinum { --ds-ring-color: var(--color-tier-platinum); }
+.ds-progress-ring--tier-diamond  { --ds-ring-color: var(--color-tier-diamond); }
+.ds-progress-ring--tier-champion { --ds-ring-color: var(--color-tier-champion); }
+.ds-progress-ring--tier-legend   { --ds-ring-color: var(--color-tier-legend); }
+.ds-progress-ring--tier-unranked { --ds-ring-color: var(--color-tier-unranked); }
+
+
+/* ---------- Countdown (ready check) ----------
+   <ui:VisualElement class="ds-countdown">
+       <DesignSystem.Runtime.Controls.DsProgressRing value="0.7" thickness="6" class="ds-countdown__ring">
+           <ui:Label class="ds-countdown__value" text="7"/>
+       </DesignSystem.Runtime.Controls.DsProgressRing>
+       <ui:Label class="ds-countdown__label" text="Accept match"/>
+   </ui:VisualElement>
+
+   The value sits INSIDE the ring (the ring centres its children). Drive the
+   ring's value from the remaining time and change the number only when the
+   displayed second changes. is-urgent: the last seconds, in danger red.
+   is-done: time is up or the answer is in; it greys out. */
+.ds-countdown {
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.ds-countdown__ring {
+    width: 80px;
+    height: 80px;
+}
+
+.ds-countdown__value {
+    margin: 0;
+    padding: 0;
+    font-size: var(--font-size-display);
+    -unity-font-style: bold;
+    color: var(--color-text-primary);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+}
+
+.ds-countdown__label {
+    margin: 0;
+    margin-top: var(--space-2);
+    padding: 0;
+    font-size: var(--font-size-body-2);
+    color: var(--color-text-secondary);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.ds-countdown--sm .ds-countdown__ring  { width: 48px; height: 48px; }
+.ds-countdown--sm .ds-countdown__value { font-size: var(--font-size-h3); }
+
+.ds-countdown.is-urgent .ds-countdown__ring  { --ds-ring-color: var(--color-danger); }
+.ds-countdown.is-urgent .ds-countdown__value { color: var(--color-danger); }
+
+.ds-countdown.is-done .ds-countdown__ring  { --ds-ring-color: var(--color-text-disabled); }
+.ds-countdown.is-done .ds-countdown__value { color: var(--color-text-disabled); }
+.ds-countdown.is-done .ds-countdown__label { color: var(--color-text-disabled); }
+
+
+/* ---------- Queue pill ----------
+   <ui:VisualElement class="ds-queue-pill">
+       <ui:VisualElement class="ds-spinner ds-queue-pill__spinner is-spinning"/>
+       <ui:Label class="ds-queue-pill__label" text="Searching"/>
+       <ui:Label class="ds-queue-pill__time" text="1:24"/>
+       <ui:VisualElement class="ds-queue-pill__chips">
+           <ui:VisualElement class="ds-chip ds-chip--event"><ui:Label text="2v2"/></ui:VisualElement>
+       </ui:VisualElement>
+       <ui:Button class="ds-btn ds-btn--icon ds-queue-pill__cancel">
+           <ui:VisualElement class="ds-icon ds-icon--close"/>
+       </ui:Button>
+   </ui:VisualElement>
+
+   Floats over the menu while the player browses; the HOST positions it (it
+   sizes to its content and sets no position of its own). is-found: a match
+   is ready, a one-off pop of the border and scale (no loop). is-expanded: the
+   pill is showing its .ds-queue-sheet, so it drops the playlist chips the
+   sheet lists in full. USS cannot select a sibling, so the host shows and
+   hides the sheet itself; is-expanded is the pill's own pressed look. */
+.ds-queue-pill {
+    flex-direction: row;
+    align-items: center;
+    align-self: center;
+    flex-shrink: 0;
+    height: 40px;
+    padding-left: var(--space-3);
+    padding-right: var(--space-1);
+    border-radius: var(--radius-pill-20);   /* 40px tall */
+    border-width: var(--border-regular);
+    border-color: var(--color-border-strong);
+    /* Opaque on purpose: the pill floats over arbitrary content. */
+    background-color: var(--color-surface-elev);
+    scale: 1 1;
+    transition-property: border-color, background-color, scale;
+    transition-duration: var(--transition-emphasis);
+    transition-timing-function: var(--ease-emphasized);
+}
+
+/* The stock ds-spinner is 32px; inside a 40px pill it would touch the border. */
+.ds-queue-pill__spinner {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border-width: var(--border-regular);
+    border-radius: var(--radius-pill-10);
+    margin-right: var(--space-2);
+}
+
+.ds-queue-pill__label {
+    margin: 0;
+    padding: 0;
+    font-size: var(--font-size-body-2);
+    -unity-font-style: bold;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+/* min-width holds "12:34" in body-2: proportional digits change width every
+   second, and without a floor the whole pill would shuffle sideways as it ticks. */
+.ds-queue-pill__time {
+    margin: 0;
+    margin-left: var(--space-2);
+    padding: 0;
+    min-width: 34px;
+    font-size: var(--font-size-body-2);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.ds-queue-pill__chips {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: var(--space-1);
+}
+
+.ds-queue-pill__chips > .ds-chip {
+    height: 20px;
+    margin-left: var(--space-1);
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+    border-radius: var(--radius-pill-10);   /* 20px tall */
+}
+
+/* A round icon button that fits the pill: 40 - 2 x 2px border leaves 36, so
+   32 keeps a 2px ring of pill around it. */
+.ds-queue-pill__cancel {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    margin-left: var(--space-2);
+    border-radius: var(--radius-pill-16);
+}
+
+.ds-queue-pill.is-found {
+    border-color: var(--color-primary);
+    background-color: var(--color-surface-hover);
+    scale: 1.04 1.04;
+}
+.ds-queue-pill.is-found .ds-queue-pill__label {
+    color: var(--color-primary);
+}
+
+.ds-queue-pill.is-expanded {
+    border-color: var(--color-text-secondary);
+    background-color: var(--color-surface-hover);
+}
+.ds-queue-pill.is-expanded .ds-queue-pill__chips {
+    display: none;
+}
+
+/* The expanded panel: playlists, party eligibility, the cancel action. */
+.ds-queue-sheet {
+    width: 320px;
+    max-width: 100%;
+    padding: var(--space-4);
+    border-radius: var(--radius-xl);
+    border-width: var(--border-thin);
+    border-color: var(--color-border-strong);
+    background-color: var(--color-surface);
+}
+
+.ds-queue-sheet__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+}
+
+.ds-queue-sheet__body {
+    flex-direction: column;
+}
+
+.ds-queue-sheet__footer {
+    flex-direction: row;
+    margin-top: var(--space-4);
+}
+
+.ds-queue-sheet__footer > .ds-btn {
+    flex-grow: 1;
+}
+
+
+/* ---------- Scoreboard ----------
+   <ui:VisualElement class="ds-scoreboard">
+       <ui:VisualElement class="ds-scoreboard__header">
+           <ui:Label class="ds-scoreboard__cell ds-scoreboard__rank" text="Rank"/>
+           <ui:Label class="ds-scoreboard__cell ds-scoreboard__name" text="Player"/>
+           <ui:Label class="ds-scoreboard__cell ds-scoreboard__platform" text=""/>
+           <ui:Label class="ds-scoreboard__cell ds-scoreboard__score" text="Score"/>
+       </ui:VisualElement>
+       <ui:VisualElement class="ds-scoreboard__row ds-scoreboard__row--team-a is-self">
+           <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__rank">  (a ds-rank-chip ds-rank-chip--sm)
+           <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__name">
+               <ui:Label class="ds-scoreboard__name-text" text="Mika"/>
+               <ui:Label class="ds-scoreboard__ai-tag" text="AI"/>
+           </ui:VisualElement>
+           <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__platform">  (a ds-icon)
+           <ui:Label class="ds-scoreboard__cell ds-scoreboard__score" text="1200"/>
+       </ui:VisualElement>
+   </ui:VisualElement>
+
+   Header and rows share the cell classes, so columns line up by construction.
+   The name cell takes the slack and ellipsizes; every other cell is fixed.
+   The header carries the same transparent accent border as a row, for the same
+   reason. The AI tag exists in every row and shows only on is-ai (the one seat
+   the game names: a leaver's labelled AI). */
+.ds-scoreboard {
+    flex-direction: column;
+    padding: var(--space-2);
+    border-radius: var(--radius-lg);
+    border-width: var(--border-thin);
+    border-color: var(--color-border);
+    background-color: var(--color-surface);
+}
+
+.ds-scoreboard__header,
+.ds-scoreboard__row {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    padding-left: var(--space-1);
+    padding-right: var(--space-2);
+    border-left-width: var(--border-thick);
+    border-left-color: transparent;
+}
+
+.ds-scoreboard__header {
+    height: 24px;
+    margin-bottom: var(--space-1);
+    border-bottom-width: var(--border-thin);
+    border-bottom-color: var(--color-border);
+}
+
+/* Square on the accent side, so the team bar stays a straight bar. */
+.ds-scoreboard__row {
+    height: 36px;
+    margin-bottom: var(--space-half);
+    border-top-right-radius: var(--radius-sm);
+    border-bottom-right-radius: var(--radius-sm);
+}
+
+.ds-scoreboard__row--team-a { border-left-color: var(--color-team-a); }
+.ds-scoreboard__row--team-b { border-left-color: var(--color-team-b); }
+
+.ds-scoreboard__cell {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    padding-left: var(--space-1);
+    padding-right: var(--space-1);
+    font-size: var(--font-size-body-2);
+    color: var(--color-text-secondary);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+}
+
+.ds-scoreboard__header .ds-scoreboard__cell {
+    font-size: var(--font-size-caption);
+    -unity-font-style: bold;
+}
+
+.ds-scoreboard__rank {
+    width: 48px;
+    justify-content: flex-start;
+    -unity-text-align: middle-left;
+}
+
+.ds-scoreboard__name {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    justify-content: flex-start;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+    text-overflow: ellipsis;
+    font-size: var(--font-size-body-1);
+    color: var(--color-text-primary);
+}
+
+/* When the name cell holds the AI tag, the text is its own Label. It shrinks
+   (and ellipsizes) before the tag does. */
+.ds-scoreboard__name-text {
+    flex-shrink: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}
+
+.ds-scoreboard__ai-tag {
+    display: none;
+    flex-shrink: 0;
+    height: 18px;
+    margin: 0;
+    margin-left: var(--space-1);
+    padding: 0;
+    padding-left: var(--space-1);
+    padding-right: var(--space-1);
+    border-radius: var(--radius-xs);
+    border-width: var(--border-thin);
+    border-color: var(--color-border-strong);
+    background-color: var(--color-surface-elev);
+    font-size: var(--font-size-caption);
+    -unity-font-style: bold;
+    color: var(--color-text-primary);
+    -unity-text-align: middle-center;
+}
+
+.ds-scoreboard__platform {
+    width: 28px;
+}
+
+.ds-scoreboard__platform .ds-icon {
+    width: 16px;
+    height: 16px;
+    -unity-background-image-tint-color: var(--color-text-secondary);
+}
+
+.ds-scoreboard__score {
+    width: 48px;
+    justify-content: flex-end;
+    -unity-text-align: middle-right;
+    font-size: var(--font-size-body-1);
+    -unity-font-style: bold;
+    color: var(--color-text-primary);
+}
+
+.ds-scoreboard__header .ds-scoreboard__name,
+.ds-scoreboard__header .ds-scoreboard__score {
+    font-size: var(--font-size-caption);
+    color: var(--color-text-secondary);
+}
+
+.ds-scoreboard__row.is-self {
+    background-color: var(--color-surface-hover);
+}
+.ds-scoreboard__row.is-self .ds-scoreboard__name {
+    -unity-font-style: bold;
+}
+
+.ds-scoreboard__row.is-ai .ds-scoreboard__ai-tag {
+    display: flex;
+}
+
+/* Disconnected (inside the rejoin grace window): faded and italic, so it reads
+   as "still here, not playing" rather than as gone. */
+.ds-scoreboard__row.is-disconnected {
+    opacity: 0.5;
+}
+.ds-scoreboard__row.is-disconnected .ds-scoreboard__name {
+    -unity-font-style: italic;
+    color: var(--color-text-disabled);
+}
+
+
+/* ---------- Reward track ----------
+   <ui:ScrollView mode="Horizontal">               (optional: long tracks scroll)
+       <ui:VisualElement class="ds-reward-track">
+           <ui:VisualElement class="ds-reward-track__line">
+               <ui:VisualElement class="ds-reward-track__fill"/>   width % from C#
+           </ui:VisualElement>
+           <ui:VisualElement class="ds-reward-track__node is-claimed">
+               <ui:VisualElement class="ds-reward-track__node-icon ds-icon--gift"/>
+               <ui:Label class="ds-reward-track__node-label" text="Bronze"/>
+           </ui:VisualElement>
+           ...
+       </ui:VisualElement>
+   </ui:ScrollView>
+
+   Nodes are a fixed 72px wide and the line runs from the first node's centre
+   to the last one's, so the fill's percentage maps straight onto nodes: with N
+   nodes, node k sits at k / (N - 1). The line is FIRST in the DOM so it paints
+   under the badges, which are opaque for the same reason. The track takes its
+   content's width and never shrinks, so inside a horizontal ScrollView it
+   scrolls instead of squeezing.
+
+   The badge carries its glyph as a background image (a .ds-icon--<name> class
+   or style.backgroundImage), drawn at 20px in its centre. Leave .ds-icon off
+   it: that class would resize and retint the badge. */
+.ds-reward-track {
+    flex-direction: row;
+    align-items: flex-start;
+    align-self: flex-start;
+    flex-shrink: 0;
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+}
+
+/* top = the 4px padding + half the 40px badge - half the 4px line. */
+.ds-reward-track__line {
+    position: absolute;
+    top: 22px;
+    left: 36px;
+    right: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill-2);
+    background-color: var(--color-border-strong);
+}
+
+/* The fill rounds itself instead of leaning on a clip: a world-space panel
+   clips to the rectangle and ignores the radius (see .ds-meter__fill). */
+.ds-reward-track__fill {
+    width: 0%;
+    height: 100%;
+    border-radius: var(--radius-pill-2);
+    background-color: var(--color-primary);
+    transition-property: width;
+    transition-duration: var(--transition-slow);
+    transition-timing-function: var(--ease-standard);
+}
+
+.ds-reward-track__node {
+    width: 72px;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.ds-reward-track__node-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-pill-20);
+    border-width: var(--border-regular);
+    border-color: var(--color-border-strong);
+    background-color: var(--color-surface-elev);
+    background-size: 20px 20px;
+    background-position: center;
+    -unity-background-image-tint-color: var(--color-text-disabled);
+    scale: 1 1;
+    transition-property: background-color, border-color, scale;
+    transition-duration: var(--transition-medium);
+    transition-timing-function: var(--ease-standard);
+}
+
+.ds-reward-track__node-label {
+    max-width: 100%;
+    margin: 0;
+    margin-top: var(--space-2);
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-size-caption);
+    color: var(--color-text-secondary);
+    -unity-text-align: upper-center;
+}
+
+/* is-locked is the resting look above; the class exists so the game can say
+   so explicitly. is-unlocked: earned, not yet claimed (the one that wants a
+   tap). is-claimed: taken. is-current: the next one to earn, where the fill
+   ends; it combines with is-locked. */
+.ds-reward-track__node.is-locked .ds-reward-track__node-label {
+    color: var(--color-text-disabled);
+}
+
+.ds-reward-track__node.is-unlocked .ds-reward-track__node-icon {
+    border-color: var(--color-primary);
+    -unity-background-image-tint-color: var(--color-primary);
+}
+.ds-reward-track__node.is-unlocked .ds-reward-track__node-label {
+    color: var(--color-primary);
+    -unity-font-style: bold;
+}
+
+.ds-reward-track__node.is-claimed .ds-reward-track__node-icon {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary);
+    -unity-background-image-tint-color: var(--color-text-on-accent);
+}
+
+.ds-reward-track__node.is-current .ds-reward-track__node-icon {
+    border-color: var(--color-text-primary);
+    scale: 1.12 1.12;
+}
+.ds-reward-track__node.is-current .ds-reward-track__node-label {
+    color: var(--color-text-primary);
+    -unity-font-style: bold;
+}
+
+
+/* ---------- Toast stack ----------
+   DsToast.Show(host, text, kind, durationMs) creates one of these under the
+   host when there is none (anchored top) and fills it. Author one in UXML for
+   the bottom edge:
+       <ui:VisualElement class="ds-toast-stack ds-toast-stack--bottom" picking-mode="Ignore"/>
+
+   The stack is absolute and full width, so it must not catch the pointer:
+   DsToast sets picking-mode Ignore on any stack it uses.
+   is-entering / is-leaving are set by DsToast: in from a half-height offset
+   toward the anchored edge, out the same way, faster, accelerating. */
+.ds-toast-stack {
+    position: absolute;
+    left: 0;
+    right: 0;
+    align-items: center;
+    padding: var(--space-3);
+}
+
+.ds-toast-stack--top    { top: 0; }
+.ds-toast-stack--bottom { bottom: 0; justify-content: flex-end; }
+
+.ds-toast-stack > .ds-toast {
+    width: 100%;
+    max-width: 360px;
+    margin-top: var(--space-1);
+    margin-bottom: var(--space-1);
+    opacity: 1;
+    translate: 0% 0%;
+    transition-property: opacity, translate;
+    transition-duration: var(--transition-medium);
+    transition-timing-function: var(--ease-standard);
+}
+
+.ds-toast-stack > .ds-toast.is-entering {
+    opacity: 0;
+}
+
+.ds-toast-stack > .ds-toast.is-leaving {
+    opacity: 0;
+    transition-duration: var(--transition-fast);
+    transition-timing-function: var(--ease-exit);
+}
+
+/* Percent on both ends of the move: a transition between a % and a px length
+   does not interpolate, it jumps. */
+.ds-toast-stack--top > .ds-toast.is-entering,
+.ds-toast-stack--top > .ds-toast.is-leaving {
+    translate: 0% -50%;
+}
+
+.ds-toast-stack--bottom > .ds-toast.is-entering,
+.ds-toast-stack--bottom > .ds-toast.is-leaving {
+    translate: 0% 50%;
+}

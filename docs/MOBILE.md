@@ -44,6 +44,13 @@ When `.mobile` is **absent**, the prefixed rules don't match anything — the de
 | `.ds-modal`, `.ds-dialog` | Auto width | Wider, with mobile padding |
 | `.ds-side-rail` | Visible alongside content | Compacted; bottom-nav usually replaces it |
 | `.ds-avatar--xl` | 72 × 72 | 64 × 64 |
+| `.ds-queue-pill` | 40 px tall, 32 px cancel | 56 px tall, 48 px cancel (a thumb-zone control), body-1 text |
+| `.ds-queue-sheet` | 320 px wide | full width up to 420 px |
+| `.ds-scoreboard__row` | 36 px; rank 48, platform 28, score 48 | 32 px; rank 44 (an sm chip is 36 px), platform 24, score 44, so a 3v3 board fits the 360 px-tall reference and a half-width board keeps its names |
+| `.ds-reward-track__node` | 72 px node, 40 px badge | 80 px node, 48 px badge (a claimable reward is a tap target) |
+| `.ds-toast-stack` | 12 px gutter | 8 px gutter |
+
+The rank crest, rank chip, pips, progress ring and countdown keep their size: they are sized in their own size modifiers, which already cover the phone cases (a 160 px hero crest, an 80 px countdown).
 
 The full list lives in `Mobile.uss`, with comments on each section explaining *why* the value changed (typically: 48 px touch-target minimum from Apple HIG / Material).
 

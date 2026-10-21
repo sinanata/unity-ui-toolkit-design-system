@@ -24,6 +24,10 @@
 .ds-toggle .unity-toggle__checkmark {
     width: 44px;
     height: 24px;
+    /* The track is a fixed shape, not content. In a narrow column a row with a long label
+       squeezes every flex child, and a shrunk 44x24 track keeps its 12px radius, so it
+       collapses into a circle with the knob hanging off it. The label wraps instead. */
+    flex-shrink: 0;
     border-radius: var(--radius-pill-12); /* = height/2 → pill, not ellipse */
     background-color: var(--color-surface-elev);
     border-width: var(--border-thin);
@@ -567,7 +571,8 @@
     flex-direction: column;
     overflow: hidden;
     transition-timing-function: ease-in-out;
-    transition-duration: 200ms;
+    /* A token, so a theme's motion values and `.ds-reduced-motion` reach drawers too. */
+    transition-duration: var(--transition-medium);
 }
 
 /* ---------- Overlay mode (default) ---------- */
@@ -701,7 +706,7 @@
     margin: 0;
     border-radius: 6px;
     transition-property: background-color;
-    transition-duration: 120ms;
+    transition-duration: var(--transition-fast);
 }
 
 .ds-drawer__close:hover {
@@ -733,7 +738,7 @@
     background-color: var(--color-overlay);
     opacity: 0;
     transition-property: opacity;
-    transition-duration: 200ms;
+    transition-duration: var(--transition-medium);   /* in step with the drawer it dims for */
     transition-timing-function: ease-in-out;
 }
 
@@ -761,7 +766,7 @@
     border-radius: var(--radius-md);
     padding: var(--space-3);
     transition-property: background-color, border-color;
-    transition-duration: 120ms;
+    transition-duration: var(--transition-fast);
 }
 
 .ds-drop-zone.is-drag-over {
@@ -773,7 +778,7 @@
     /* Visual styling stays on whatever component class the item already carries; this
        just adds the lift affordance + a transition so the runtime's drag feels alive. */
     transition-property: scale, opacity;
-    transition-duration: 120ms;
+    transition-duration: var(--transition-fast);
 }
 
 .ds-draggable:hover {

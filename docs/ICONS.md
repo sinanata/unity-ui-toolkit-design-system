@@ -1,6 +1,6 @@
 # Icons
 
-The design system ships **120 SVG icons** under `Assets/DesignSystem/Resources/Textures/Icons/`. Every icon is rendered via the same class system: a base `.ds-icon` for sizing + tint cascade, plus a per-glyph `.ds-icon--<name>` that resolves the SVG.
+The design system ships **121 SVG icons** under `Assets/DesignSystem/Resources/Textures/Icons/`. Every icon is rendered via the same class system: a base `.ds-icon` for sizing + tint cascade, plus a per-glyph `.ds-icon--<name>` that resolves the SVG.
 
 ## Anatomy
 
@@ -87,7 +87,7 @@ Some interactive containers — `.ds-nav-item.is-active`, `.ds-rail-item.is-acti
 
 ## The set
 
-All 120 glyphs, by the group they are declared in inside `Icons.uss`. The class is the file name with underscores hyphenated (`vr_headset.svg` is `.ds-icon--vr-headset`).
+All 121 glyphs, by the group they are declared in inside `Icons.uss`. The class is the file name with underscores hyphenated (`vr_headset.svg` is `.ds-icon--vr-headset`).
 
 | Group | Icons |
 | --- | --- |
@@ -97,12 +97,20 @@ All 120 glyphs, by the group they are declared in inside `Icons.uss`. The class 
 | **Game / cosmetics** | `paw`, `shirt`, `hats`, `store`, `cart`, `bag`, `gift`, `heart`, `shield`, `sword`, `bolt`, `fire`, `flame`, `sparkle`, `sun` |
 | **Nature / habitat** | `leaf`, `tree`, `mountain`, `droplet` |
 | **Voice / audio** | `mic`, `sound`, `speak`, `nametag` |
-| **Gaming hardware** | `arcade`, `cartridge`, `console`, `handheld`, `gamepad`, `joystick`, `dpad`, `keyboard`, `mouse`, `monitor`, `headset`, `vr-headset`, `disc` |
+| **Gaming hardware** | `arcade`, `cartridge`, `console`, `handheld`, `gamepad`, `joystick`, `dpad`, `keyboard`, `mouse`, `touch` (1.6.0), `monitor`, `headset`, `vr-headset`, `disc` |
 | **System & connectivity** | `power`, `battery`, `wifi`, `bug`, `save` |
 | **Combat & gear** | `axe`, `bow`, `hammer`, `pickaxe`, `swords`, `helmet`, `bomb`, `crosshair`, `skull` |
 | **Fantasy & adventure** | `alien`, `castle`, `crown`, `gem`, `ghost`, `mushroom`, `portal`, `potion`, `robot`, `wand`, `treasure`, `key`, `map`, `compass` |
 | **Progression & rewards** | `trophy`, `medal`, `leaderboard`, `star`, `coin`, `cards`, `dice`, `puzzle` |
 | **Media & transport** | `play`, `pause`, `music`, `book`, `flag`, `flag-checkered`, `rocket`, `snowflake` |
+
+### Platform and input glyphs
+
+A scoreboard row or a team reveal shows where a player plays and with what. The set covers both: platform `monitor` (desktop), `handheld`, `console`; input `keyboard`, `mouse`, `gamepad`, `touch`.
+
+### Rank frames are not icons
+
+`Resources/Textures/Ranks/rank_frame_<tier>.svg` (bronze, silver, gold, platinum, diamond, champion, legend, unranked) are the frames of `.ds-rank-crest` and `.ds-rank-chip` (see [COMPONENTS.md](COMPONENTS.md), Competitive). They follow the same white-fill rule and import settings, but use a 64 × 64 viewBox, keep a translucent inner plate (`fill-opacity`) for the crest's emblem to sit on, and have no `.ds-icon--*` class: the crest and chip tier modifiers bind them.
 
 ## Adding a new icon
 

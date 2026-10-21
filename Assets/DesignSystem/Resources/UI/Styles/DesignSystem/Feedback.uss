@@ -94,8 +94,9 @@
 }
 
 /* ---------- Spinner (C#-driven rotation) ----------
-   Rotation is driven from DesignSystemBehaviour.StartSpinners, which ticks
-   `el.style.rotate` every 16 ms on every element carrying `is-spinning`.
+   Rotation is driven by the runtime's spinner tick (DesignSystemBehaviour),
+   which writes `el.style.rotate` every 16 ms on every element carrying
+   `is-spinning`, and runs only while at least one does.
    We deliberately do NOT pair this with `transition-property: rotate` —
    when the runtime writes a new angle each frame, an active transition
    tries to ease between consecutive values and the spinner visibly

@@ -1,0 +1,100 @@
+/* ============================================================================
+   MOTION (1.6.0): the reduced-motion convention
+   Put `ds-reduced-motion` on any ancestor (normally the screen root, from a
+   Settings toggle or the platform's reduce-motion preference) and below it:
+   1. every ds-* transition runs in zero time, so state changes snap;
+   2. decorative loops are hidden (the skeleton shimmer);
+   3. DsToast.Show skips its enter and exit animation.
+   Functional motion stays: a spinner still turns (it is how "working" is
+   said) and a countdown ring still empties (it IS the information).
+
+   Two layers, on purpose:
+   - The motion TOKENS are zeroed on the element. Every rule that times itself
+     with var(--transition-*) then resolves 0s, including a host's own rules
+     and any family added later.
+   - Every animated family is ALSO listed below with a literal 0s, because the
+     token layer can lose: a ThemeData sheet re-declares --transition-fast and
+     --transition-medium in a `:root` block, and when `ds-reduced-motion` sits
+     on the same element as that scope the two tie, and the theme (added last)
+     wins. ShowcaseTheme.uss documents the same tie for its swap guard.
+
+   Every selector below outranks the rule it neutralises (one class more), or
+   ties it and wins on order: this file loads after every family it lists.
+   A family that adds a transition must add a line here, and to the list in
+   docs/COMPONENTS.md (Motion).
+   ============================================================================ */
+
+.ds-reduced-motion {
+    --transition-fast: 0s;
+    --transition-medium: 0s;
+    --transition-slow: 0s;
+    --transition-emphasis: 0s;
+}
+
+/* Buttons, icons, cards: Buttons.uss, Icons.uss, Cards.uss */
+.ds-reduced-motion .ds-btn,
+.ds-reduced-motion .ds-icon,
+.ds-reduced-motion .ds-animal-card {
+    transition-duration: 0s;
+}
+
+/* Inputs: Inputs.uss */
+.ds-reduced-motion .ds-input .unity-text-input,
+.ds-reduced-motion .ds-input .unity-text-field__input,
+.ds-reduced-motion .ds-input .unity-base-text-field__input,
+.ds-reduced-motion .ds-input .unity-base-field__input,
+.ds-reduced-motion .ds-search,
+.ds-reduced-motion .ds-dropdown .unity-popup-field__input,
+.ds-reduced-motion .ds-dropdown .unity-base-popup-field__input,
+.ds-reduced-motion .ds-dropdown .unity-base-field__input {
+    transition-duration: 0s;
+}
+
+/* Tabs and navigation: TabsAndFilters.uss, Navigation.uss */
+.ds-reduced-motion .ds-tab,
+.ds-reduced-motion .ds-view-toggle__btn,
+.ds-reduced-motion .ds-nav-item,
+.ds-reduced-motion .ds-rail-item,
+.ds-reduced-motion .ds-bottom-nav__item {
+    transition-duration: 0s;
+}
+
+/* Controls: Controls.uss (switches, meters, scrollbars, drawers, drag and drop) */
+.ds-reduced-motion .ds-toggle .unity-toggle__checkmark,
+.ds-reduced-motion .ds-toggle__knob,
+.ds-reduced-motion .ds-check .unity-toggle__checkmark,
+.ds-reduced-motion .ds-radio .unity-radio-button__checkmark,
+.ds-reduced-motion .ds-meter__fill,
+.ds-reduced-motion .unity-scroll-view__vertical-scroller .unity-base-slider__dragger,
+.ds-reduced-motion .unity-scroll-view__horizontal-scroller .unity-base-slider__dragger,
+.ds-reduced-motion .ds-scroll--auto-hide .unity-scroll-view__vertical-scroller,
+.ds-reduced-motion .ds-scroll--auto-hide .unity-scroll-view__horizontal-scroller,
+.ds-reduced-motion .ds-drawer,
+.ds-reduced-motion .ds-drawer__close,
+.ds-reduced-motion .ds-drawer__backdrop,
+.ds-reduced-motion .ds-drop-zone,
+.ds-reduced-motion .ds-draggable {
+    transition-duration: 0s;
+}
+
+/* Feedback: Feedback.uss */
+.ds-reduced-motion .ds-pagination__btn,
+.ds-reduced-motion .ds-stepper__btn {
+    transition-duration: 0s;
+}
+
+/* Competitive: Competitive.uss */
+.ds-reduced-motion .ds-pips__pip,
+.ds-reduced-motion .ds-queue-pill,
+.ds-reduced-motion .ds-reward-track__fill,
+.ds-reduced-motion .ds-reward-track__node-icon,
+.ds-reduced-motion .ds-toast-stack > .ds-toast,
+.ds-reduced-motion .ds-toast-stack > .ds-toast.is-leaving {
+    transition-duration: 0s;
+}
+
+/* Decorative loops: hidden, not frozen mid-sweep. The runtime's shimmer tick
+   stops writing to a hidden shimmer, so this costs nothing per frame either. */
+.ds-reduced-motion .ds-skeleton__shimmer {
+    display: none;
+}

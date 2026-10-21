@@ -19,9 +19,17 @@ namespace DesignSystem.Runtime.Behaviour
     /// Authoring tip: hand-author the toggle knob in UXML when you can — it
     /// avoids a one-frame "no knob" flash during template clone. The runtime
     /// is the safety net for screens that didn't.
+    ///
+    /// Opting out of the automatic attach (a host that adds the component itself,
+    /// for example from the one place it creates every document):
+    ///   - at runtime, set <see cref="AutoAttach"/> to false before the first scene
+    ///     finishes loading (a [RuntimeInitializeOnLoadMethod(BeforeSceneLoad)] method);
+    ///   - at compile time, add the scripting define DS_NO_AUTO_ATTACH, which compiles
+    ///     the scene-load hook out entirely.
+    /// Either way <see cref="AttachToAll"/> still works when called explicitly.
     /// </summary>
     [DisallowMultipleComponent]
-    public abstract class DesignSystemBehaviourBase<TComponent> : MonoBehaviour where TComponent : Component
+    public abstract class DesignSystemBehaviourBase<TComponent> : MonoBehaviour, IDsSpinnerHost where TComponent : Component
     {
         private static readonly Dictionary<System.Type, System.Type> s_componentTypeMap = new();
         private const string SPINNER_CLASS         = "ds-spinner";
@@ -66,11 +74,41 @@ namespace DesignSystem.Runtime.Behaviour
         private const float DROPDOWN_POPUP_EDGE_MARGIN = 8f;   // popup edge -> panel edge breathing room
         private const float DROPDOWN_POPUP_ROW_HEIGHT  = 28f;  // fallback row height before the list has laid out
         private const int   DROPDOWN_TUNE_MAX_TICKS    = 30;   // frames to wait for the popup to attach before giving up
-        private const string PANEL_TUNER_CLASS = "ds-dropdown-tuner";   // on the PANEL ROOT: "a tuner is watching, safe to hide the popup until it is placed"
-        
+        private const string PANEL_TUNER_CLASS = "ds-dropdown-tuner";   // on the PANEL ROOT, only while a ds-dropdown popup is being placed
+
+        private const long  SPIN_INTERVAL_MS   = 16;
+        private const float SPIN_STEP_DEGREES  = 6f;
+        private const long  RESCAN_INTERVAL_MS = 250;
+
+        private VisualElement _root;
         private IVisualElementScheduledItem _spinTask;
+        private IVisualElementScheduledItem _rescanTask;
         private float _spinAngle;
-        
+        // The `.is-spinning` elements under _root. The 16 ms tick walks THIS list, never the
+        // document: the list is rebuilt by the 250 ms rescan (which walks the document anyway) and
+        // topped up the moment SetSpinning starts one, so the per-frame cost is one style write per
+        // spinner and nothing at all while none is spinning.
+        private readonly List<VisualElement> _spinners = new();
+        private System.Action _spinTick;
+        private System.Action _rescan;
+
+        /// <summary>
+        /// Whether loading a scene attaches this behaviour to every <typeparamref name="TComponent"/>
+        /// that does not have it yet. Default true.
+        ///
+        /// Set it to false before the first scene finishes loading if the host adds the component
+        /// itself: from a <c>[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]</c>
+        /// method, or the Awake of an object in the first scene (Unity raises sceneLoaded after Awake
+        /// and OnEnable, before Start). Set it through the backend class, which is also the only
+        /// place the value lives: <c>UIDocument.DesignSystemBehaviour.AutoAttach = false</c> leaves
+        /// the PanelRenderer backend's own flag alone. It is never reset by the package, so with
+        /// domain reload disabled it keeps whatever the host last set.
+        ///
+        /// Only the scene-load hook reads it; an explicit <see cref="AttachToAll"/> always runs. The
+        /// scripting define <c>DS_NO_AUTO_ATTACH</c> removes the hook at compile time instead.
+        /// </summary>
+        public static bool AutoAttach { get; set; } = true;
+
         protected abstract void OnEnable();
 
         /// <summary>
@@ -85,8 +123,9 @@ namespace DesignSystem.Runtime.Behaviour
         /// tab panels and scroll auto-hide shipped dead in world space. Add new behaviors HERE and
         /// every host gets them.
         ///
-        /// Spinners are deliberately NOT here: <see cref="StartSpinners"/> owns a per-instance
-        /// schedule handle, so it belongs to the MonoBehaviour lifecycle, not to a root sweep.
+        /// Spinners are deliberately NOT here: the spinner tick owns a per-instance schedule handle
+        /// (see <see cref="InitFor"/>), so it belongs to the MonoBehaviour lifecycle, not to a root
+        /// sweep. A host without the MonoBehaviour drives `.is-spinning` itself, as the corridor does.
         /// </summary>
         public static void EnsureAll(VisualElement root)
         {
@@ -103,8 +142,14 @@ namespace DesignSystem.Runtime.Behaviour
         protected void InitFor(VisualElement root)
         {
             if (root == null) return;
+
+            // A PanelRenderer reload hands over a FRESH root while this component lives on: stop the
+            // previous root's loops first, or every reload would leave another rescan running.
+            StopLoops();
+            _root = root;
             EnsureAll(root);
-            StartSpinners(root);
+            DsRuntimeShared.SpinnerHosts.Add(this);
+            RefreshSpinners();
 
             // Periodic re-scan: ScreenBase and similar consumers clone screen
             // templates lazily when the user navigates to them. The first
@@ -115,32 +160,94 @@ namespace DesignSystem.Runtime.Behaviour
             // after a screen transition, and cheap enough to ignore (a Query
             // with an existence check on already-knobbed toggles is O(N) over
             // the small number of ds-toggle elements). Idempotent — every
-            // helper no-ops if its work is already done.
-            root.schedule.Execute(() => EnsureAll(root)).Every(250);
+            // helper no-ops if its work is already done. The handle is kept so
+            // the rescan stops with the component (it used to run forever).
+            _rescan ??= Rescan;
+            _rescanTask = root.schedule.Execute(_rescan).Every(RESCAN_INTERVAL_MS);
         }
 
         protected virtual void OnDisable()
         {
-            _spinTask?.Pause();
-            _spinTask = null;
+            StopLoops();
             CancelInvoke();
         }
 
-        private void StartSpinners(VisualElement root)
+        private void StopLoops()
         {
-            // Rotate every element carrying `.is-spinning`, regardless of whether
-            // it's a `.ds-spinner` ring, a `.ds-icon` glyph (e.g. a refresh icon
-            // turning into a loading indicator on a button), or any other
-            // element a screen wants to spin. The class is purely behavioral —
-            // visual styling stays on whatever class the element already has.
-            _spinTask = root.schedule.Execute(() =>
+            _spinTask?.Pause();
+            _spinTask = null;
+            _rescanTask?.Pause();
+            _rescanTask = null;
+            _spinners.Clear();
+            _root = null;
+            DsRuntimeShared.SpinnerHosts.Remove(this);
+        }
+
+        private void Rescan()
+        {
+            if (_root == null) return;
+            EnsureAll(_root);
+            RefreshSpinners();
+        }
+
+        // Rotate every element carrying `.is-spinning`, regardless of whether
+        // it's a `.ds-spinner` ring, a `.ds-icon` glyph (e.g. a refresh icon
+        // turning into a loading indicator on a button), or any other
+        // element a screen wants to spin. The class is purely behavioral:
+        // visual styling stays on whatever class the element already has.
+        private void RefreshSpinners()
+        {
+            _spinners.Clear();
+            _root?.Query(className: SPINNER_ACTIVE_CLASS).ToList(_spinners);
+            UpdateSpinTask();
+        }
+
+        // The 16 ms tick exists only while something spins. A document with no spinner used to pay a
+        // full-tree query every frame for nothing; now it pays nothing until one appears.
+        private void UpdateSpinTask()
+        {
+            if (_spinners.Count == 0 || _root == null)
             {
-                _spinAngle = (_spinAngle + 6f) % 360f;
-                root.Query(className: SPINNER_ACTIVE_CLASS).ForEach(el =>
+                _spinTask?.Pause();
+                return;
+            }
+            if (_spinTask == null)
+            {
+                _spinTick ??= SpinTick;
+                _spinTask = _root.schedule.Execute(_spinTick).Every(SPIN_INTERVAL_MS);
+            }
+            else if (!_spinTask.isActive)
+            {
+                _spinTask.Resume();
+            }
+        }
+
+        private void SpinTick()
+        {
+            _spinAngle = (_spinAngle + SPIN_STEP_DEGREES) % 360f;
+            var rotate = new StyleRotate(new Rotate(_spinAngle));
+            for (var i = _spinners.Count - 1; i >= 0; i--)
+            {
+                var el = _spinners[i];
+                // Stopped, or gone from the panel: drop it. The next rescan finds it again if it
+                // comes back spinning.
+                if (el.panel == null || !el.ClassListContains(SPINNER_ACTIVE_CLASS))
                 {
-                    el.style.rotate = new StyleRotate(new Rotate(_spinAngle));
-                });
-            }).Every(16);
+                    _spinners.RemoveAt(i);
+                    continue;
+                }
+                el.style.rotate = rotate;
+            }
+            if (_spinners.Count == 0) _spinTask?.Pause();
+        }
+
+        // SetSpinning(el, true) reaches every live behaviour, so a spinner started from code turns on
+        // the next tick rather than waiting up to 250 ms for the rescan to notice it.
+        void IDsSpinnerHost.TrackSpinner(VisualElement el)
+        {
+            if (_root == null || el.panel == null || el.panel != _root.panel || !_root.Contains(el)) return;
+            if (!_spinners.Contains(el)) _spinners.Add(el);
+            UpdateSpinTask();
         }
 
         /// <summary>
@@ -156,6 +263,9 @@ namespace DesignSystem.Runtime.Behaviour
             {
                 if (!el.ClassListContains(SPINNER_ACTIVE_CLASS))
                     el.AddToClassList(SPINNER_ACTIVE_CLASS);
+                var hosts = DsRuntimeShared.SpinnerHosts;
+                for (var i = 0; i < hosts.Count; i++)
+                    hosts[i].TrackSpinner(el);
             }
             else
             {
@@ -445,6 +555,9 @@ namespace DesignSystem.Runtime.Behaviour
 
                 el.schedule.Execute(() =>
                 {
+                    // `.ds-reduced-motion` hides the shimmer (Motion.uss). A hidden overlay needs no
+                    // new position every frame, and skipping the write skips its style invalidation.
+                    if (shimmer.resolvedStyle.display == DisplayStyle.None) return;
                     float t = (Time.realtimeSinceStartup % 1.4f) / 1.4f;
                     shimmer.style.translate = new StyleTranslate(
                         new Translate(new Length(t * 200f - 100f, LengthUnit.Percent), 0));
@@ -634,22 +747,20 @@ namespace DesignSystem.Runtime.Behaviour
         public static void EnsureDropdownMenus(VisualElement root)
         {
             if (root == null) return;
-            int found = 0, wired = 0;
+            int wired = 0;
             root.Query<DropdownField>(className: DS_DROPDOWN_CLASS).ForEach(dd =>
             {
-                found++;
                 if (dd.ClassListContains(DROPDOWN_WIRED_CLASS)) return;
                 dd.AddToClassList(DROPDOWN_WIRED_CLASS);
                 WireDropdownMenu(dd);
                 wired++;
             });
 
-            // Tell the panel that a tuner is watching it. DropdownPopup.uss keys the popup's
-            // hide-until-placed rule off this class and NOTHING else, so a project that takes the
-            // stylesheet without the runtime still gets a visible dropdown. Set on every pass, not just
-            // when something was newly wired: a PanelRenderer hands out a fresh root on reload, and the
-            // second pass through here finds every field already wired.
-            if (found > 0) root.panel?.visualTree.AddToClassList(PANEL_TUNER_CLASS);
+            // This used to put `ds-dropdown-tuner` on the panel root here, for good, as soon as the
+            // panel held one `.ds-dropdown`. DropdownPopup.uss hides every popup under that class until
+            // it is placed, and only ds-dropdown popups are ever placed, so EVERY OTHER dropdown on a
+            // shared panel (a plain DropdownField, an EnumField) opened invisible. The class now lives
+            // on the panel only while a ds-dropdown's popup is being placed: see DropdownTune.
 
             // Only when something actually happened. This runs on a rescan loop, and logging every
             // no-op pass buries the interesting lines under a hundred "wired 0".
@@ -659,6 +770,7 @@ namespace DesignSystem.Runtime.Behaviour
 
         public static void WireDropdownMenu(DropdownField dd)
         {
+            if (dd == null) return;
             // The popup doesn't exist until BasePopupField's own handler runs,
             // so tune one tick later, from every gesture that can open it.
             // TrickleDown: the field stops propagation once it opens the menu,
@@ -666,13 +778,17 @@ namespace DesignSystem.Runtime.Behaviour
             // up are both registered because the open gesture differs across
             // input paths (and Unity versions); a tune that finds no popup —
             // or one already tuned — is a no-op.
-            dd.RegisterCallback<PointerDownEvent>(_ => ScheduleDropdownTune(dd), TrickleDown.TrickleDown);
-            dd.RegisterCallback<PointerUpEvent>(_ => ScheduleDropdownTune(dd), TrickleDown.TrickleDown);
-            dd.RegisterCallback<NavigationSubmitEvent>(_ => ScheduleDropdownTune(dd), TrickleDown.TrickleDown);
+            //
+            // TrickleDown also means these run BEFORE the field opens its menu, which is what lets
+            // DropdownTune.Begin put the hide class on the panel before the popup's first frame.
+            var tune = new DropdownTune(dd);
+            dd.RegisterCallback<PointerDownEvent>(_ => tune.Begin(), TrickleDown.TrickleDown);
+            dd.RegisterCallback<PointerUpEvent>(_ => tune.Begin(), TrickleDown.TrickleDown);
+            dd.RegisterCallback<NavigationSubmitEvent>(_ => tune.Begin(), TrickleDown.TrickleDown);
         }
 
         /// <summary>
-        /// Tune the popup as soon as it exists — POLLING, not once.
+        /// Tune the popup as soon as it exists: POLLING, not once. One per wired field.
         ///
         /// This used to be a single `schedule.Execute`, i.e. "look for the popup on the next tick".
         /// That is a race, Unity raises no event when the menu attaches, and losing the race is SILENT:
@@ -684,19 +800,74 @@ namespace DesignSystem.Runtime.Behaviour
         ///
         /// So: try every frame until it is there, then stop. The cap keeps a dropdown that never opens
         /// (a click that turned into a drag) from polling forever.
+        ///
+        /// It also owns the panel's hide-until-placed class (`ds-dropdown-tuner`, read by
+        /// DropdownPopup.uss): on from the gesture, before the popup exists, and off again the moment
+        /// this field's popup is placed or the poll gives up. A popup that is not a ds-dropdown's opens
+        /// while no ds-dropdown is mid-placement, so it is never hidden. The poll runs on the PANEL
+        /// ROOT's scheduler, not the field's, so a field removed mid-poll still finishes and still takes
+        /// the class off, and a second field placing a popup on the same panel keeps it on until both
+        /// are done. One limit carries over unchanged from 1.5.4: a panel whose scheduler never ticks (a
+        /// world-space PanelRenderer in a player) can neither place nor reveal a popup.
         /// </summary>
-        private static void ScheduleDropdownTune(DropdownField dd)
+        private sealed class DropdownTune
         {
-            int tries = 0;
-            IVisualElementScheduledItem tick = null;
-            tick = dd.schedule.Execute(() =>
-            {
-                if (TuneDropdownPopup(dd)) { tick.Pause(); return; }
-                if (++tries < DROPDOWN_TUNE_MAX_TICKS) return;
+            private readonly DropdownField _field;
+            private readonly System.Action _tick;
+            private VisualElement _panelRoot;
+            private IVisualElementScheduledItem _item;
+            private int _tries;
+            private bool _pending;
 
-                tick.Pause();
-                if (DesignSystemEvents.DropdownDiagnostics) DumpPanelScope(dd);
-            }).Every(0);   // 0 = every frame
+            internal DropdownTune(DropdownField field)
+            {
+                _field = field;
+                _tick = Tick;
+            }
+
+            internal void Begin()
+            {
+                var root = _field.panel?.visualTree;
+                if (root == null) return;
+                if (_pending && root != _panelRoot) Finish();    // the field changed panels mid-poll
+                if (root != _panelRoot)
+                {
+                    _item?.Pause();
+                    _item = null;
+                    _panelRoot = root;
+                }
+
+                _tries = 0;   // a second gesture (down, then up) restarts the budget, never a second poll
+                if (!_pending)
+                {
+                    _pending = true;
+                    DsRuntimeShared.TuningPanels.Add(root);
+                }
+                root.AddToClassList(PANEL_TUNER_CLASS);
+
+                if (_item == null) _item = root.schedule.Execute(_tick).Every(0);   // 0 = every frame
+                else _item.Resume();
+            }
+
+            private void Tick()
+            {
+                if (TuneDropdownPopup(_field)) { Finish(); return; }
+                if (++_tries < DROPDOWN_TUNE_MAX_TICKS) return;
+
+                Finish();
+                if (DesignSystemEvents.DropdownDiagnostics) DumpPanelScope(_field);
+            }
+
+            private void Finish()
+            {
+                _item?.Pause();
+                if (!_pending) return;
+                _pending = false;
+                var tuning = DsRuntimeShared.TuningPanels;
+                tuning.Remove(_panelRoot);
+                if (_panelRoot != null && !tuning.Contains(_panelRoot))
+                    _panelRoot.RemoveFromClassList(PANEL_TUNER_CLASS);
+            }
         }
 
         // Where the trail goes cold: the popup never turned up at panel scope. Say what IS parented
@@ -922,15 +1093,25 @@ namespace DesignSystem.Runtime.Behaviour
          * and call RegisterAutoAttach method from there
          * to be able to register the auto attach method.
          * Otherwise, you will need to add your component manually to your GameObjects.
+         *
+         * The component type is ALWAYS registered, so an explicit AttachToAll() keeps working. Only the
+         * scene-load hook is optional: DS_NO_AUTO_ATTACH compiles it out, AutoAttach = false mutes it.
          */
         protected static void RegisterAutoAttach(System.Type runtimeComponentType)
         {
             s_componentTypeMap[typeof(TComponent)] = runtimeComponentType;
+#if !DS_NO_AUTO_ATTACH
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneLoaded += OnSceneLoaded;
+#endif
         }
-        
-        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode) => AttachToAll();
+
+#if !DS_NO_AUTO_ATTACH
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (AutoAttach) AttachToAll();
+        }
+#endif
 
         public static void AttachToAll()
         {
@@ -951,6 +1132,38 @@ namespace DesignSystem.Runtime.Behaviour
                     continue;
                 doc.gameObject.AddComponent(runtimeType);
             }
+        }
+    }
+
+    /// <summary>A live behaviour that SetSpinning can hand a newly started spinner to.</summary>
+    internal interface IDsSpinnerHost
+    {
+        void TrackSpinner(VisualElement el);
+    }
+
+    /// <summary>
+    /// Runtime state shared by BOTH backends. The behaviour base is generic, so a static declared on it
+    /// exists once per closed type (UIDocument and PanelRenderer apart), the same trap
+    /// DesignSystemEvents documents; what one backend starts, the other must be able to see.
+    /// </summary>
+    internal static class DsRuntimeShared
+    {
+        /// <summary>Every enabled behaviour, of either backend.</summary>
+        internal static readonly List<IDsSpinnerHost> SpinnerHosts = new();
+
+        /// <summary>
+        /// One entry per ds-dropdown popup being placed right now: the panel root that carries
+        /// `ds-dropdown-tuner` for it. Several fields on one panel add the root several times, and the
+        /// class comes off only when the last of them is done.
+        /// </summary>
+        internal static readonly List<VisualElement> TuningPanels = new();
+
+        // Enter Play Mode with domain reload disabled keeps statics alive across sessions; start clean.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            SpinnerHosts.Clear();
+            TuningPanels.Clear();
         }
     }
 }

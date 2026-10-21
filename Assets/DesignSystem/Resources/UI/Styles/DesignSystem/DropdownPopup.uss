@@ -32,7 +32,7 @@
    block has to exist AT PANEL SCOPE, because custom properties reach the popup
    by INHERITANCE and the popup's only ancestor is the panel root.
 
-   Hoisting DesignTokens.uss is safe precisely because it is 72 custom-property
+   Hoisting DesignTokens.uss is safe precisely because it is custom-property
    declarations and nothing else: no component rules, no layout. A baked
    ThemeData compiles to the same shape — a pure `{scope} { --token: value }`
    block — which is why a host can add one at panel scope on top of these and
@@ -101,12 +101,19 @@
    because USS is the one thing that applies on the same frame the element is
    born, before the first repaint.
 
-   `ds-dropdown-tuner` is the interlock, and it matters: it is added to the
-   PANEL ROOT by EnsureDropdownMenus, i.e. only where the runtime is actually
-   present and will actually reveal the popup again. Without it — a project that
-   takes this stylesheet but not the behaviour — the hide rule never matches and
-   the popup behaves exactly as Unity intended. Never hide it unconditionally;
-   that trades a flicker for an invisible dropdown.
+   `ds-dropdown-tuner` is the interlock, and it matters: the runtime puts it on
+   the PANEL ROOT from the gesture that opens a `.ds-dropdown` (a trickle-down
+   handler, so it lands before the popup exists) and takes it off again the
+   moment that popup is placed, or when it gives up waiting. So it is present
+   only while the runtime is actually about to reveal a popup. Without the
+   runtime (a project that takes this stylesheet but not the behaviour) the
+   hide rule never matches and the popup behaves exactly as Unity intended.
+   Never hide it unconditionally; that trades a flicker for an invisible dropdown.
+
+   Up to 1.5.4 the class went on the panel root for good as soon as the panel
+   held one `.ds-dropdown`, which is that exact trade for everyone else: every
+   popup on a shared panel that is NOT a ds-dropdown's (a plain DropdownField, an
+   EnumField, nothing ever places them) opened invisible.
 
    Reveal is `ds-popup--tuned`, which TuneDropdownPopup adds LAST: after
    placement, and after the popup-opened event has given the host its chance to

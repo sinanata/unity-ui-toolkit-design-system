@@ -275,6 +275,7 @@
 .ds-icon--dpad           { background-image: resource("Textures/Icons/dpad"); }
 .ds-icon--keyboard       { background-image: resource("Textures/Icons/keyboard"); }
 .ds-icon--mouse          { background-image: resource("Textures/Icons/mouse"); }
+.ds-icon--touch          { background-image: resource("Textures/Icons/touch"); }
 .ds-icon--monitor        { background-image: resource("Textures/Icons/monitor"); }
 .ds-icon--headset        { background-image: resource("Textures/Icons/headset"); }
 .ds-icon--vr-headset     { background-image: resource("Textures/Icons/vr_headset"); }

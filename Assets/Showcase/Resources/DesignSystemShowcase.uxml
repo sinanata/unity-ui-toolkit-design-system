@@ -665,7 +665,7 @@
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 700px;">
                 <ui:Label text="ICONS" class="ds-section__title"/>
-                <ui:Label text="All 120 SVGs in Resources/Textures/Icons. Use class .ds-icon ds-icon--&lt;name&gt;. Tints inherit from parent state, or override with .ds-icon--accent / --danger / --gold." class="ds-body-2" style="margin-bottom: 8px; white-space: normal;"/>
+                <ui:Label text="All 121 SVGs in Resources/Textures/Icons. Use class .ds-icon ds-icon--&lt;name&gt;. Tints inherit from parent state, or override with .ds-icon--accent / --danger / --gold." class="ds-body-2" style="margin-bottom: 8px; white-space: normal;"/>
                 <ui:VisualElement style="flex-direction: row; flex-wrap: wrap;">
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
                         <ui:VisualElement class="ds-icon ds-icon--arrow-up"/>
@@ -884,6 +884,9 @@
                         <ui:VisualElement class="ds-icon ds-icon--mouse"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
+                        <ui:VisualElement class="ds-icon ds-icon--touch"/>
+                    </ui:Button>
+                    <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
                         <ui:VisualElement class="ds-icon ds-icon--monitor"/>
                     </ui:Button>
                     <ui:Button class="ds-btn ds-btn--icon" style="margin: 4px;">
@@ -1061,6 +1064,13 @@
                         <ui:RadioButton value="false" class="ds-radio"/>
                     </ui:VisualElement>
                 </ui:RadioButtonGroup>
+                <ui:Label text="NARROW COLUMN" class="ds-section-label" style="margin-top: 12px; margin-bottom: 4px;"/>
+                <ui:VisualElement style="width: 150px; flex-direction: row; align-items: center; padding: 6px; border-width: 1px; border-color: rgb(54, 65, 82); border-radius: 6px;">
+                    <ui:Label text="Show rank on name tags" class="ds-body-2" style="flex-shrink: 1; white-space: normal; margin-right: 6px;"/>
+                    <ui:Toggle value="true" class="ds-toggle">
+                        <ui:VisualElement class="ds-toggle__knob"/>
+                    </ui:Toggle>
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 280px;">
                 <ui:Label text="SLIDERS" class="ds-section__title"/>
@@ -1554,6 +1564,861 @@
                     <ui:Label text="It composes with the existing slim 8 px scrollbar styling; no extra rules needed beyond the .ds-scroll--auto-hide modifier." class="ds-body-2" style="white-space: normal; margin-bottom: 8px;"/>
                     <ui:Label text="Bottom of the demo list." class="ds-body-2" style="white-space: normal;"/>
                 </ui:ScrollView>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 760px;">
+                <ui:Label text="COMPETITIVE: RANK CRESTS" class="ds-section__title"/>
+                <ui:Label text="Eight tiers, each with its own frame shape so the tier reads without colour, tinted by its --color-tier token. The emblem slot (55% of the crest) is the game's to fill; a paw stands in here. Pips scale with the crest." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:Label text="SM, 32 PX" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--bronze ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--silver ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--gold ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--platinum ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--diamond ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--champion ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--legend ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--unranked ds-rank-crest--sm" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="MD, 48 PX (DEFAULT)" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--bronze" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--silver" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--gold" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--platinum" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--diamond" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--champion" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--legend" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--unranked" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="LG, 64 PX" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--bronze ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Bronze I" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--silver ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Silver II" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--gold ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Gold III" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--platinum ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Platinum I" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--diamond ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Diamond II" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--champion ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Champion III" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--legend ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Legend #12" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--unranked ds-rank-crest--lg" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Unranked" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="XL, 96 PX" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--bronze ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Bronze I" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--silver ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Silver II" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--gold ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Gold III" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--platinum ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Platinum I" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--diamond ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Diamond II" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--champion ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Champion III" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--legend ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Legend #12" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--unranked ds-rank-crest--xl" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Unranked" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="STATES: TRIALS (PLACEMENT) AND LOCKED" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--gold ds-rank-crest--lg is-trials" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--help"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Trials 2 / 5" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--champion ds-rank-crest--lg is-locked" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Champion" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--legend ds-rank-crest--lg is-locked" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Legend" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 760px;">
+                <ui:Label text="COMPETITIVE: HERO CRESTS" class="ds-section__title"/>
+                <ui:Label text="The 160 px crest for a rank-up moment or a profile header." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-bottom: 0;">
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--bronze ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Bronze I" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--silver ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Silver II" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--gold ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Gold III" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--platinum ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Platinum I" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--diamond ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                            <ui:VisualElement class="ds-pips__pip"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Diamond II" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--champion ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-rank-crest__pips ds-pips">
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-filled"/>
+                            <ui:VisualElement class="ds-pips__pip is-current"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Champion III" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--legend ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Legend #12" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-crest ds-rank-crest--unranked ds-rank-crest--hero" style="margin-right: 16px; margin-bottom: 16px;">
+                        <ui:VisualElement class="ds-rank-crest__frame">
+                            <ui:VisualElement class="ds-rank-crest__emblem ds-icon--paw"/>
+                        </ui:VisualElement>
+                        <ui:Label text="Unranked" class="ds-rank-crest__label"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 460px;">
+                <ui:Label text="COMPETITIVE: RANK CHIPS &amp; PIPS" class="ds-section__title"/>
+                <ui:Label text="A rank chip prints the tier letter and wears the tier frame as its shape, so a scoreboard row says the rank three ways. Pips: filled = done, ring = under way, dim = to come." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:Label text="CHIP, MD (DEFAULT)" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--bronze" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="B1" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--silver" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="S2" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--gold" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="G3" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--platinum" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="P1" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--diamond" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="D2" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--champion" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="C3" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--legend" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="L" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--unranked" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="?" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="CHIP, SM" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--bronze ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="B1" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--silver ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="S2" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--gold ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="G3" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--platinum ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="P1" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--diamond ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="D2" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--champion ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="C3" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--legend ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="L" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-rank-chip ds-rank-chip--unranked ds-rank-chip--sm" style="margin-right: 6px; margin-bottom: 6px;">
+                        <ui:VisualElement class="ds-rank-chip__shape"/>
+                        <ui:Label text="?" class="ds-rank-chip__text"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="PIPS, SM" class="ds-section-label"/>
+                <ui:VisualElement class="ds-pips ds-pips--sm" style="align-self: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-pips__pip is-filled"/>
+                    <ui:VisualElement class="ds-pips__pip is-filled"/>
+                    <ui:VisualElement class="ds-pips__pip is-current"/>
+                    <ui:VisualElement class="ds-pips__pip"/>
+                    <ui:VisualElement class="ds-pips__pip"/>
+                </ui:VisualElement>
+                <ui:Label text="PIPS, MD" class="ds-section-label"/>
+                <ui:VisualElement class="ds-pips ds-pips--md" style="align-self: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-pips__pip is-filled"/>
+                    <ui:VisualElement class="ds-pips__pip is-filled"/>
+                    <ui:VisualElement class="ds-pips__pip is-current"/>
+                    <ui:VisualElement class="ds-pips__pip"/>
+                    <ui:VisualElement class="ds-pips__pip"/>
+                </ui:VisualElement>
+                <ui:Label text="PIPS, LG" class="ds-section-label"/>
+                <ui:VisualElement class="ds-pips ds-pips--lg" style="align-self: flex-start; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-pips__pip is-filled"/>
+                    <ui:VisualElement class="ds-pips__pip is-filled"/>
+                    <ui:VisualElement class="ds-pips__pip is-current"/>
+                    <ui:VisualElement class="ds-pips__pip"/>
+                    <ui:VisualElement class="ds-pips__pip"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 560px;">
+                <ui:Label text="COMPETITIVE: PROGRESS RING &amp; COUNTDOWN" class="ds-section__title"/>
+                <ui:Label text="DsProgressRing draws a track and an arc with Painter2D; it repaints only when its value changes. Colours come from --ds-ring-color and --ds-ring-track-color, so a modifier or a state recolours it." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:Label text="VALUES" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px;">
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0" thickness="4" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:Label text="0%" class="ds-caption" style="margin: 0; padding: 0;"/>
+                    </DesignSystem.Runtime.Controls.DsProgressRing>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.25" thickness="4" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:Label text="25%" class="ds-caption" style="margin: 0; padding: 0;"/>
+                    </DesignSystem.Runtime.Controls.DsProgressRing>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.5" thickness="4" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:Label text="50%" class="ds-caption" style="margin: 0; padding: 0;"/>
+                    </DesignSystem.Runtime.Controls.DsProgressRing>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.75" thickness="4" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:Label text="75%" class="ds-caption" style="margin: 0; padding: 0;"/>
+                    </DesignSystem.Runtime.Controls.DsProgressRing>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="1" thickness="4" style="margin-right: 12px; margin-bottom: 8px;">
+                        <ui:Label text="100%" class="ds-caption" style="margin: 0; padding: 0;"/>
+                    </DesignSystem.Runtime.Controls.DsProgressRing>
+                </ui:VisualElement>
+                <ui:Label text="VARIANTS: WARNING, DANGER, ONE PER TIER" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.6" thickness="4" class="ds-progress-ring--warning" style="margin-right: 12px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.3" thickness="4" class="ds-progress-ring--danger" style="margin-right: 12px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.30" thickness="3" class="ds-progress-ring--tier-bronze" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.38" thickness="3" class="ds-progress-ring--tier-silver" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.46" thickness="3" class="ds-progress-ring--tier-gold" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.54" thickness="3" class="ds-progress-ring--tier-platinum" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.62" thickness="3" class="ds-progress-ring--tier-diamond" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.70" thickness="3" class="ds-progress-ring--tier-champion" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.78" thickness="3" class="ds-progress-ring--tier-legend" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                    <DesignSystem.Runtime.Controls.DsProgressRing value="0.86" thickness="3" class="ds-progress-ring--tier-unranked" style="width: 32px; height: 32px; margin-right: 8px; margin-bottom: 8px;"/>
+                </ui:VisualElement>
+                <ui:Label text="COUNTDOWN: NORMAL, URGENT, DONE, SM" class="ds-section-label"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-bottom: 0;">
+                    <ui:VisualElement class="ds-countdown" style="margin-right: 20px; margin-bottom: 8px;">
+                        <DesignSystem.Runtime.Controls.DsProgressRing value="0.7" thickness="6" class="ds-countdown__ring">
+                            <ui:Label text="7" class="ds-countdown__value"/>
+                        </DesignSystem.Runtime.Controls.DsProgressRing>
+                        <ui:Label text="Accept match" class="ds-countdown__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-countdown is-urgent" style="margin-right: 20px; margin-bottom: 8px;">
+                        <DesignSystem.Runtime.Controls.DsProgressRing value="0.2" thickness="6" class="ds-countdown__ring">
+                            <ui:Label text="2" class="ds-countdown__value"/>
+                        </DesignSystem.Runtime.Controls.DsProgressRing>
+                        <ui:Label text="Accept match" class="ds-countdown__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-countdown is-done" style="margin-right: 20px; margin-bottom: 8px;">
+                        <DesignSystem.Runtime.Controls.DsProgressRing value="0" thickness="6" class="ds-countdown__ring">
+                            <ui:Label text="0" class="ds-countdown__value"/>
+                        </DesignSystem.Runtime.Controls.DsProgressRing>
+                        <ui:Label text="Match declined" class="ds-countdown__label"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-countdown ds-countdown--sm" style="margin-right: 20px; margin-bottom: 8px;">
+                        <DesignSystem.Runtime.Controls.DsProgressRing value="0.5" thickness="6" class="ds-countdown__ring">
+                            <ui:Label text="30" class="ds-countdown__value"/>
+                        </DesignSystem.Runtime.Controls.DsProgressRing>
+                        <ui:Label text="Rejoin" class="ds-countdown__label"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 460px;">
+                <ui:Label text="COMPETITIVE: QUEUE PILL &amp; SHEET" class="ds-section__title"/>
+                <ui:Label text="Floats over the menu while the player browses. The host positions it and shows the sheet; the pill only styles its states. On .mobile the cancel grows to a 48 px target." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:Label text="SEARCHING" class="ds-section-label"/>
+                <ui:VisualElement class="ds-queue-pill" style="align-self: flex-start; margin-bottom: 16px;">
+                    <ui:VisualElement class="ds-spinner ds-queue-pill__spinner is-spinning"/>
+                    <ui:Label text="Searching" class="ds-queue-pill__label"/>
+                    <ui:Label text="1:24" class="ds-queue-pill__time"/>
+                    <ui:VisualElement class="ds-queue-pill__chips">
+                            <ui:VisualElement class="ds-chip ds-chip--event">
+                                <ui:Label text="1v1"/>
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ds-chip ds-chip--event">
+                                <ui:Label text="2v2"/>
+                            </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Button class="ds-btn ds-btn--icon ds-queue-pill__cancel">
+                        <ui:VisualElement class="ds-icon ds-icon--close"/>
+                    </ui:Button>
+                </ui:VisualElement>
+                <ui:Label text="MATCH FOUND (IS-FOUND)" class="ds-section-label"/>
+                <ui:VisualElement class="ds-queue-pill is-found" style="align-self: flex-start; margin-bottom: 16px;">
+                    <ui:VisualElement class="ds-icon ds-icon--check ds-icon--accent" style="margin-right: 8px;"/>
+                    <ui:Label text="Match found" class="ds-queue-pill__label"/>
+                    <ui:Label text="1:31" class="ds-queue-pill__time"/>
+                    <ui:VisualElement class="ds-queue-pill__chips">
+                            <ui:VisualElement class="ds-chip ds-chip--event">
+                                <ui:Label text="2v2"/>
+                            </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Button class="ds-btn ds-btn--icon ds-queue-pill__cancel">
+                        <ui:VisualElement class="ds-icon ds-icon--close"/>
+                    </ui:Button>
+                </ui:VisualElement>
+                <ui:Label text="EXPANDED (IS-EXPANDED) WITH ITS SHEET" class="ds-section-label"/>
+                <ui:VisualElement class="ds-queue-pill is-expanded" style="align-self: flex-start; margin-bottom: 8px;">
+                    <ui:VisualElement class="ds-spinner ds-queue-pill__spinner is-spinning"/>
+                    <ui:Label text="Searching" class="ds-queue-pill__label"/>
+                    <ui:Label text="1:24" class="ds-queue-pill__time"/>
+                    <ui:VisualElement class="ds-queue-pill__chips">
+                            <ui:VisualElement class="ds-chip ds-chip--event">
+                                <ui:Label text="1v1"/>
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ds-chip ds-chip--event">
+                                <ui:Label text="2v2"/>
+                            </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Button class="ds-btn ds-btn--icon ds-queue-pill__cancel">
+                        <ui:VisualElement class="ds-icon ds-icon--close"/>
+                    </ui:Button>
+                </ui:VisualElement>
+                <ui:VisualElement class="ds-queue-sheet" style="align-self: flex-start;">
+                    <ui:VisualElement class="ds-queue-sheet__header">
+                        <ui:Label text="Searching for a match" class="ds-h3"/>
+                        <ui:Label text="1:24" class="ds-caption"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-queue-sheet__body">
+                        <ui:VisualElement class="ds-info-row">
+                            <ui:VisualElement class="ds-info-row__left"><ui:Label text="1v1 Duel" class="ds-info-row__label"/></ui:VisualElement>
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--gold">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="G3" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-info-row">
+                            <ui:VisualElement class="ds-info-row__left"><ui:Label text="2v2 Doubles" class="ds-info-row__label"/></ui:VisualElement>
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--platinum">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="P1" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:Label text="Party of 2: both players can queue 2v2." class="ds-caption" style="margin-top: 8px; white-space: normal;"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-queue-sheet__footer">
+                        <ui:Button text="Cancel search" class="ds-btn ds-btn--danger"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 460px;">
+                <ui:Label text="COMPETITIVE: SCOREBOARD" class="ds-section__title"/>
+                <ui:Label text="Team rows carry a blue or orange accent bar (apart under every common colour-vision deficiency). is-self lifts your row, is-ai shows the tag on a leaver's labelled AI, is-disconnected fades a player inside the rejoin window." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:VisualElement class="ds-scoreboard">
+                    <ui:VisualElement class="ds-scoreboard__header">
+                        <ui:Label text="RANK" class="ds-scoreboard__cell ds-scoreboard__rank"/>
+                        <ui:Label text="PLAYER" class="ds-scoreboard__cell ds-scoreboard__name"/>
+                        <ui:Label text="" class="ds-scoreboard__cell ds-scoreboard__platform"/>
+                        <ui:Label text="SCORE" class="ds-scoreboard__cell ds-scoreboard__score"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-scoreboard__row ds-scoreboard__row--team-a is-self">
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__rank">
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--sm ds-rank-chip--gold">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="G3" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__name">
+                            <ui:Label text="You" class="ds-scoreboard__name-text"/>
+                            <ui:Label text="AI" class="ds-scoreboard__ai-tag"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__platform">
+                            <ui:VisualElement class="ds-icon ds-icon--monitor"/>
+                        </ui:VisualElement>
+                        <ui:Label text="1850" class="ds-scoreboard__cell ds-scoreboard__score"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-scoreboard__row ds-scoreboard__row--team-a is-ai">
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__rank">
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--sm ds-rank-chip--platinum">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="P1" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__name">
+                            <ui:Label text="Mika" class="ds-scoreboard__name-text"/>
+                            <ui:Label text="AI" class="ds-scoreboard__ai-tag"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__platform">
+                            <ui:VisualElement class="ds-icon ds-icon--handheld"/>
+                        </ui:VisualElement>
+                        <ui:Label text="1420" class="ds-scoreboard__cell ds-scoreboard__score"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-scoreboard__row ds-scoreboard__row--team-a">
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__rank">
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--sm ds-rank-chip--silver">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="S2" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__name">
+                            <ui:Label text="Wren" class="ds-scoreboard__name-text"/>
+                            <ui:Label text="AI" class="ds-scoreboard__ai-tag"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__platform">
+                            <ui:VisualElement class="ds-icon ds-icon--gamepad"/>
+                        </ui:VisualElement>
+                        <ui:Label text="990" class="ds-scoreboard__cell ds-scoreboard__score"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-scoreboard__row ds-scoreboard__row--team-b">
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__rank">
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--sm ds-rank-chip--diamond">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="D2" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__name">
+                            <ui:Label text="Pip" class="ds-scoreboard__name-text"/>
+                            <ui:Label text="AI" class="ds-scoreboard__ai-tag"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__platform">
+                            <ui:VisualElement class="ds-icon ds-icon--keyboard"/>
+                        </ui:VisualElement>
+                        <ui:Label text="1610" class="ds-scoreboard__cell ds-scoreboard__score"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-scoreboard__row ds-scoreboard__row--team-b is-disconnected">
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__rank">
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--sm ds-rank-chip--bronze">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="B1" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__name">
+                            <ui:Label text="Tumbleweed the Magnificent" class="ds-scoreboard__name-text"/>
+                            <ui:Label text="AI" class="ds-scoreboard__ai-tag"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__platform">
+                            <ui:VisualElement class="ds-icon ds-icon--touch"/>
+                        </ui:VisualElement>
+                        <ui:Label text="1200" class="ds-scoreboard__cell ds-scoreboard__score"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-scoreboard__row ds-scoreboard__row--team-b">
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__rank">
+                            <ui:VisualElement class="ds-rank-chip ds-rank-chip--sm ds-rank-chip--champion">
+                                <ui:VisualElement class="ds-rank-chip__shape"/>
+                                <ui:Label text="C3" class="ds-rank-chip__text"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__name">
+                            <ui:Label text="Zed" class="ds-scoreboard__name-text"/>
+                            <ui:Label text="AI" class="ds-scoreboard__ai-tag"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-scoreboard__cell ds-scoreboard__platform">
+                            <ui:VisualElement class="ds-icon ds-icon--monitor"/>
+                        </ui:VisualElement>
+                        <ui:Label text="760" class="ds-scoreboard__cell ds-scoreboard__score"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 700px;">
+                <ui:Label text="COMPETITIVE: REWARD TRACK" class="ds-section__title"/>
+                <ui:Label text="Claimed, unlocked (earned, waiting for a tap), current (the next to earn) and locked. The fill width is a percentage the game sets from C#; with N nodes, node k sits at k / (N - 1). Long tracks scroll horizontally." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:ScrollView mode="Horizontal" class="ds-scrollbar-demo ds-scroll--auto-hide" style="height: 112px;">
+                    <ui:VisualElement class="ds-reward-track">
+                        <ui:VisualElement class="ds-reward-track__line">
+                            <ui:VisualElement class="ds-reward-track__fill" style="width: 50%;"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-claimed">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--gift"/>
+                            <ui:Label text="Bronze" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-claimed">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--coin"/>
+                            <ui:Label text="Silver" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-claimed">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--gem"/>
+                            <ui:Label text="Gold" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-unlocked">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--crown"/>
+                            <ui:Label text="Platinum" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-locked is-current">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--trophy"/>
+                            <ui:Label text="Diamond" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-locked">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--medal"/>
+                            <ui:Label text="Champion" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-locked">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--star"/>
+                            <ui:Label text="Legend" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-locked">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--nametag"/>
+                            <ui:Label text="Title" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-reward-track__node is-locked">
+                            <ui:VisualElement class="ds-reward-track__node-icon ds-icon--flag"/>
+                            <ui:Label text="Banner" class="ds-reward-track__node-label"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:ScrollView>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 380px;">
+                <ui:Label text="COMPETITIVE: TOAST STACK" class="ds-section__title"/>
+                <ui:Label text="DsToast.Show(host, text, kind, durationMs) builds these at runtime and removes them after the duration. Static here: a stack anchored to the top and one to the bottom." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:Label text="DS-TOAST-STACK--TOP" class="ds-section-label"/>
+                <ui:VisualElement class="ds-scrollbar-demo" style="height: 150px; padding: 0; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-toast-stack ds-toast-stack--top" picking-mode="Ignore">
+                        <ui:VisualElement class="ds-toast ds-toast--success">
+                            <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--check ds-toast__icon"/>
+                            <ui:Label text="Promoted to Gold II" class="ds-toast__message"/>
+                            <ui:Button class="ds-toast__close">
+                                <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--close"/>
+                            </ui:Button>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ds-toast ds-toast--info">
+                            <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--info ds-toast__icon"/>
+                            <ui:Label text="Season 2027-Q1 ends in 3 days" class="ds-toast__message"/>
+                            <ui:Button class="ds-toast__close">
+                                <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--close"/>
+                            </ui:Button>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="DS-TOAST-STACK--BOTTOM" class="ds-section-label"/>
+                <ui:VisualElement class="ds-scrollbar-demo" style="height: 96px; padding: 0; margin-bottom: 12px;">
+                    <ui:VisualElement class="ds-toast-stack ds-toast-stack--bottom" picking-mode="Ignore">
+                        <ui:VisualElement class="ds-toast ds-toast--warning">
+                            <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--warning ds-toast__icon"/>
+                            <ui:Label text="Matchmaking cooldown: 5 minutes" class="ds-toast__message"/>
+                            <ui:Button class="ds-toast__close">
+                                <ui:VisualElement class="ds-icon ds-icon--sm ds-icon--close"/>
+                            </ui:Button>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="ds-section" style="width: 460px;">
+                <ui:Label text="MOTION: REDUCED MOTION" class="ds-section__title"/>
+                <ui:Label text="Flip the toggles and hover the buttons. The right column sits under .ds-reduced-motion: the same controls snap instead of easing, and decorative loops (skeleton shimmer) hide. Spinners keep turning; they carry meaning." class="ds-body-2" style="color: rgb(161, 167, 179); margin-bottom: 12px; white-space: normal;"/>
+                <ui:VisualElement style="flex-direction: row;">
+                    <ui:VisualElement style="flex-grow: 1; flex-basis: 0; margin-right: 12px;">
+                        <ui:Label text="DEFAULT" class="ds-section-label"/>
+                        <ui:VisualElement class="ds-row" style="justify-content: space-between;">
+                            <ui:Label text="Toggle" class="ds-body-1"/>
+                            <ui:Toggle value="true" class="ds-toggle">
+                                <ui:VisualElement class="ds-toggle__knob"/>
+                            </ui:Toggle>
+                        </ui:VisualElement>
+                        <ui:Button text="Hover me" class="ds-btn ds-btn--ghost" style="margin-bottom: 8px;"/>
+                        <ui:VisualElement class="ds-skeleton ds-skeleton--line" style="width: 100%;"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ds-reduced-motion" style="flex-grow: 1; flex-basis: 0; margin-right: 12px;">
+                        <ui:Label text="DS-REDUCED-MOTION" class="ds-section-label"/>
+                        <ui:VisualElement class="ds-row" style="justify-content: space-between;">
+                            <ui:Label text="Toggle" class="ds-body-1"/>
+                            <ui:Toggle value="true" class="ds-toggle">
+                                <ui:VisualElement class="ds-toggle__knob"/>
+                            </ui:Toggle>
+                        </ui:VisualElement>
+                        <ui:Button text="Hover me" class="ds-btn ds-btn--ghost" style="margin-bottom: 8px;"/>
+                        <ui:VisualElement class="ds-skeleton ds-skeleton--line" style="width: 100%;"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="ds-section" style="width: 540px;">
                 <ui:Label text="THEMING" class="ds-section__title"/>

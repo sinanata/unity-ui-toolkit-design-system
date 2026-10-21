@@ -53,6 +53,35 @@
     --color-rarity-epic:      #A855F7;
     --color-rarity-legendary: #F59E0B;
 
+    /* ---------- Ranked tiers (1.6.0) ----------
+       NOT THEMEABLE YET. Like every token added in 1.6.0 there is no ThemeData
+       field behind these (adding one means regenerating Dark.asset in the Unity
+       editor), so a ThemeData sheet leaves them at the values below. That is
+       also the right default: a tier colour is meaning, like rarity, and should
+       not change when the lights do.
+
+       Each tier colour clears 4.5:1 against --color-surface-elev, so a
+       tier-coloured chip label stays readable at 11-12px. Unranked is the
+       disabled grey on purpose (3.2:1); no component sets text in it.
+       Colour is never the only signal: every tier also has its own frame
+       SHAPE (Resources/Textures/Ranks), see Competitive.uss. */
+    --color-tier-bronze:   #D08A4E;   /* warm copper */
+    --color-tier-silver:   #B4C1D3;   /* cool silver */
+    --color-tier-gold:     #F2C94C;
+    --color-tier-platinum: #2DD4BF;   /* teal */
+    --color-tier-diamond:  #5B9BFF;   /* sapphire, lifted so it reads on dark */
+    --color-tier-champion: #B57BFF;   /* royal purple, lifted so it reads on dark */
+    --color-tier-legend:   #FFF6E0;   /* near-white, warm */
+    --color-tier-unranked: #677085;   /* = --color-text-disabled */
+
+    /* ---------- Teams (1.6.0, NOT themeable yet, see above) ----------
+       Blue against orange: the pair that stays apart under protanopia,
+       deuteranopia and tritanopia alike (hue gap above 150 degrees under all
+       three), and both clear 3:1 against every surface for the row accent bar
+       (4.8:1 and 6.2:1 on --color-surface). */
+    --color-team-a: #3B82F6;
+    --color-team-b: #F97316;
+
     /* ---------- Typography ----------
        Sizes live here; the TYPEFACE is a separate token layer.
 
@@ -73,6 +102,11 @@
     --font-size-body-1:    14px;
     --font-size-body-2:    12px;
     --font-size-caption:   11px;
+
+    /* 1.6.0, NOT themeable yet (see the tier colours above). One display size for
+       a number that IS the content: the ready-check countdown. 32px fills an 80px
+       ring with a margin for the ring's own stroke. */
+    --font-size-display:   32px;
 
     /* ---------- Radii ----------
        IMPORTANT: Unity 6 USS clamps `border-radius` PER AXIS to half the
@@ -111,6 +145,7 @@
     --radius-pill-36: 36px;   /* 72px tall (avatar-xl)               */
 
     /* ---------- Spacing ---------- */
+    --space-half: 2px;   /* 1.6.0, NOT themeable yet: half-steps between tiny parts (step pips) */
     --space-1:  4px;
     --space-2:  8px;
     --space-3:  12px;
@@ -122,10 +157,28 @@
     /* ---------- Border widths ---------- */
     --border-thin:    1px;
     --border-regular: 2px;
+    --border-thick:   3px;   /* 1.6.0, NOT themeable yet: an accent bar (team colour on a scoreboard row) */
 
     /* ---------- Motion ---------- */
     --transition-fast:   120ms;
     --transition-medium: 200ms;
+
+    /* 1.6.0, NOT themeable yet: no ThemeData field (that needs the Unity editor to
+       regenerate Dark.asset), so a ThemeData sheet leaves these at the values below.
+       Durations, shortest to longest:
+         fast      hover, press, focus: feedback on the thing under the pointer
+         medium    state changes: a toggle, a tab, a toast arriving
+         slow      a panel or sheet moving in, a progress fill catching up
+         emphasis  one-off attention: a match found, a rank step
+       Easings are USS keywords, used as `transition-timing-function: var(--ease-standard)`.
+       `.ds-reduced-motion` (Motion.uss) zeroes every duration in this block. */
+    --transition-slow:     320ms;
+    --transition-emphasis: 450ms;
+
+    --ease-standard:   ease-out-cubic;   /* arriving or settling: most UI motion */
+    --ease-emphasized: ease-out-back;    /* a small overshoot that draws the eye; rarely */
+    --ease-exit:       ease-in-cubic;    /* leaving: accelerate away */
+    --ease-linear:     linear;           /* progress that must track time exactly */
 }
 
 /* Apply background + base text style at root.

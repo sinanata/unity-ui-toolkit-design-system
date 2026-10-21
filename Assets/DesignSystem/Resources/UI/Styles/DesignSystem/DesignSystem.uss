@@ -17,4 +17,8 @@
 @import url("Controls.uss");
 @import url("Overlays.uss");
 @import url("Feedback.uss");
+@import url("Competitive.uss");
+/* Motion.uss holds the reduced-motion overrides for every family above, so it loads after all of
+   them and before Mobile.uss (which never sets a transition, so the two cannot collide). */
+@import url("Motion.uss");
 @import url("Mobile.uss");

@@ -421,3 +421,83 @@
 .mobile .ds-drawer__body {
     padding: var(--space-3);
 }
+
+/* ── Competitive (1.6.0) ──
+   Queue pill: a thumb-zone control, so its cancel is a full 48px target. The
+   pill grows to 56 so the 48 fits inside its 2px border with a 2px ring to
+   spare (56 - 4 - 48 = 4). The ds-btn padding Mobile.uss gives every button
+   would squeeze the glyph, so it is zeroed for this one. */
+.mobile .ds-queue-pill {
+    height: 56px;
+    padding-left: var(--space-4);
+    padding-right: var(--space-half);
+    border-radius: var(--radius-pill-28);
+}
+.mobile .ds-queue-pill__spinner {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-pill-12);
+}
+.mobile .ds-queue-pill__label,
+.mobile .ds-queue-pill__time {
+    font-size: var(--font-size-body-1);
+}
+.mobile .ds-queue-pill__time {
+    min-width: 40px;   /* "12:34" at body-1 */
+}
+.mobile .ds-queue-pill__cancel {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0;
+    border-radius: var(--radius-pill-24);
+}
+.mobile .ds-queue-sheet {
+    width: 100%;
+    max-width: 420px;
+    padding: var(--space-3);
+}
+
+/* Scoreboard: fits a 3v3 board (header + 6 rows) in the 360px-tall reference
+   with room for a title, and leaves the name column the slack on a half-width
+   (one team per side) board: 44 + 24 + 44 + padding is all the fixed width.
+   44, not less: an sm rank chip ("G3") is 36px wide and the cell pads 4px a side. */
+.mobile .ds-scoreboard {
+    padding: var(--space-1);
+}
+.mobile .ds-scoreboard__row {
+    height: 32px;
+}
+.mobile .ds-scoreboard__rank {
+    width: 44px;
+}
+.mobile .ds-scoreboard__platform {
+    width: 24px;
+}
+.mobile .ds-scoreboard__score {
+    width: 44px;
+}
+
+/* Reward track: a claimable node is a tap target, so the badge grows to 48
+   and the node to 80. The line follows the badge centre: top = 4px padding +
+   24 - 2, and its ends sit half a node in from each side. */
+.mobile .ds-reward-track__node {
+    width: 80px;
+}
+.mobile .ds-reward-track__node-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-pill-24);
+    background-size: 24px 24px;
+}
+.mobile .ds-reward-track__line {
+    top: 26px;
+    left: 40px;
+    right: 40px;
+}
+
+/* Toast stack: narrower gutters on a 640px-wide reference. */
+.mobile .ds-toast-stack {
+    padding: var(--space-2);
+}
