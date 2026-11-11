@@ -553,7 +553,7 @@ is near a hundred. Many entry-level phone GPUs multiply integers at a fraction o
 so on them a few large skinned panels can take a large share of the frame, even when the UI holds no
 more skinned elements than this guide recommends.
 
-`DsFxManager.Lite` switches every material to lite rendering. Each surface keeps its form: shape,
+Since 1.6.1, `DsFxManager.Lite` switches every material to lite rendering. Each surface keeps its form: shape,
 bevel, chrome, edges, state, entrance. Its figure thins. `dsfx_fbm` and `dsfx_fbm2` fall to one
 octave with about the same mean and spread, so thresholds tuned on the full field still cover about
 as much, and `dsfx_sparkle` draws nothing. It is one global shader float (`_DsFxLite`), so switching

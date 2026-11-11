@@ -4,7 +4,9 @@ All notable changes to this project will be documented here.
 
 This project loosely follows [Semantic Versioning](https://semver.org/) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
-## [Unreleased]
+## [1.6.1] - 2026-11-11
+
+Entry-level phone GPUs pay for every pixel of procedural figure a material draws, and most of a material's cost is that figure. This release lets every material drop it on those GPUs and keep its form.
 
 ### Added
 
