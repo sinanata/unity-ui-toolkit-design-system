@@ -4,6 +4,21 @@ All notable changes to this project will be documented here.
 
 This project loosely follows [Semantic Versioning](https://semver.org/) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [Unreleased]
+
+### Added
+
+- **Lite material rendering for entry-level GPUs** (`DsFxManager.Lite`, `dsfx_lite()`). A material's per-pixel cost is mostly its procedural figure, and integer-hashed noise is the expensive part on GPUs that multiply integers slowly: one `dsfx_vnoise` is sixteen 32-bit multiplies, and a surface with two 3-octave fields is nearly a hundred. In lite, surfaces keep their form (shape, bevel, chrome, edges, state, entrance) and thin their figure. `dsfx_fbm` and `dsfx_fbm2` fall to one octave with about the same mean and spread, `dsfx_sparkle` draws nothing, and a family tests `dsfx_lite()` to skip the rest of its own. One global float (`_DsFxLite`) carries it, so a full-quality device pays one comparison and switching needs no re-skin.
+- **`DsFxManager.IsEntryLevelGpu`**, which decides the default. Lite is on for Adreno 3xx to 5xx (except the 530 and 540), Mali-4xx and Mali-T, Mali-G31, G51 and G52, and PowerVR GE7xxx and GE8xxx, and off everywhere else. A host overrides it by assigning `DsFxManager.Lite`.
+- **`?fxlite=1` and `?fxlite=0`** in the showcase force lite or full rendering.
+- `docs/MATERIALS.md` has a section on lite rendering: what it does and how a family honors it.
+
+### Verified
+
+- **Compiles** with zero errors: the runtime, the editor assembly and the showcase on 6000.6.7f1, and a host project's Windows, Android, macOS and Linux server player builds against it.
+- **The material foundation compiles** with fxc, vertex and fragment, every `multi_compile` option, against the built-in includes of 6000.5.2f1 and 6000.6.7f1, together with a host's own glass, metal and wood families that test `dsfx_lite()`.
+- **On screen on 6000.6.7f1**, lite and full rendering side by side in a host project on Android and iOS phone and tablet layouts: surfaces keep their shape, bevels, edges and states, and the noise figure and glints are gone. The frame time on an entry-level GPU is not measured yet.
+
 ## [1.6.0] - 2026-10-22
 
 A ranked game needs pieces a general kit does not have: a rank you can read at 32 px, a ready check, a queue that follows you around the menus, a scoreboard that names a leaver's AI and nobody else. This release is that kit, for 1v1, 2v2 and 3v3 play, built to the same rules as the rest: tokens all the way down, no per-frame work, and colour never the only signal. It went on real screens first, on desktop, an Android target and iOS layouts, before it came here.

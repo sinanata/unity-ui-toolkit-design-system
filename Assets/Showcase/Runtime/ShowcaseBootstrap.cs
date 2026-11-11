@@ -97,6 +97,16 @@ namespace Showcase.Runtime
             if (DsFxManager.Diagnostics)
                 Debug.Log("[ds fx diag] material diagnostics ON");
 
+            // `?fxlite=1` forces lite material rendering on any GPU, `?fxlite=0` forces full
+            // rendering on an entry-level one; without the token the default holds (lite on
+            // entry-level phone GPUs, DsFxManager.Lite).
+            if (url.Contains("fxlite=1"))
+                DsFxManager.Lite = true;
+            else if (url.Contains("fxlite=0"))
+                DsFxManager.Lite = false;
+            if (DsFxManager.Lite || url.Contains("fxlite"))
+                Debug.Log($"[ds fx] lite rendering {(DsFxManager.Lite ? "ON" : "OFF")} (gpu '{SystemInfo.graphicsDeviceName}')");
+
             // `?fxrt=1` forces the corridor's RT-exhibit host outside WebGL (where it is always
             // on) so the fallback can be exercised in the editor and native players too.
             WorldSpaceCorridor.ForceRtExhibits = url.Contains("fxrt");

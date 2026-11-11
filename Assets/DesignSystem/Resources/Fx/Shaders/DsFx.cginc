@@ -26,8 +26,9 @@
 // transitioning element costs ZERO CPU per frame - fire and forget.
 //
 // Mobile/WebGL2 rules kept here: shader model 3.5, no compute, no uniform
-// arrays, integer hash (sin-hash drifts on mediump), fbm capped at 3 octaves,
-// derivatives only where the standard UIE shader already uses them.
+// arrays, integer hash (sin-hash drifts on mediump), fbm capped at 3 octaves
+// (one in lite rendering, see dsfx_lite), derivatives only where the standard
+// UIE shader already uses them.
 // ============================================================================
 
 #include "Internal/UnityUIE.cginc"
@@ -69,6 +70,27 @@ float4 _FxInk;     // painted-lettering ink (rgb) — cream on wood, silver on s
 float _DsFxTime;   // global clock, seconds. Set once per frame by DsFxManager (freezable: DsFxManager.OverrideTime
                    // pins it, which makes every rendered frame a pure function of (uniforms, clock) — the property
                    // the render proof relies on to compare runs byte-for-byte).
+float _DsFxLite;   // 1 = lite rendering, 0 = full. Global like the clock, written by DsFxManager.Lite. See dsfx_lite.
+
+// ---------------------------------------------------------------- lite rendering
+
+// Lite rendering is for entry-level GPUs (DsFxManager.Lite, on by default where
+// DsFxManager.IsEntryLevelGpu says so). A family's per-pixel cost is mostly its
+// procedural figure. One dsfx_vnoise is four integer hashes, sixteen 32-bit
+// multiplies. A 3-octave fbm is 48 of them, and a surface with two noise fields is
+// near a hundred. Many entry-level GPUs multiply integers at a fraction of their
+// float rate, so on them a large skinned panel can take a large share of the frame.
+//
+// In lite, every surface keeps its FORM: shape, bevel, chrome, edges, state and
+// entrance. Its figure thins. dsfx_fbm and dsfx_fbm2 fall to one octave with about
+// the same mean and spread, and dsfx_sparkle draws nothing. A family tests
+// dsfx_lite() to skip more of its own figure, such as a second field, a grain or a
+// flicker. The test is a uniform branch: every pixel of a draw takes the same side,
+// so a full-quality device pays one comparison.
+bool dsfx_lite()
+{
+    return _DsFxLite > 0.5;
+}
 
 // ---------------------------------------------------------------- hashing / noise
 
@@ -111,9 +133,13 @@ float dsfx_vnoise(float2 p)
     return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
 }
 
-// 3-octave fbm - the ceiling for mobile. ~[0,1].
+// 3-octave fbm - the ceiling for mobile. ~[0,1]. Lite: the first octave alone, its
+// spread scaled to the 3-octave sum's (0.65 of one octave's), so a threshold tuned
+// on the full field covers about as much of the surface.
 float dsfx_fbm(float2 p)
 {
+    if (dsfx_lite())
+        return 0.5 + (dsfx_vnoise(p) - 0.5) * 0.65;
     float v = 0.0;
     v += 0.5000 * dsfx_vnoise(p);
     v += 0.2500 * dsfx_vnoise(p * 2.03 + 17.1);
@@ -121,9 +147,12 @@ float dsfx_fbm(float2 p)
     return v * (1.0 / 0.875);
 }
 
-// 2-octave cheap variant for secondary detail.
+// 2-octave cheap variant for secondary detail. Lite: one octave, the 2-octave
+// sum's spread (0.75 of one octave's).
 float dsfx_fbm2(float2 p)
 {
+    if (dsfx_lite())
+        return 0.5 + (dsfx_vnoise(p) - 0.5) * 0.75;
     return (0.6667 * dsfx_vnoise(p) + 0.3333 * dsfx_vnoise(p * 2.13 + 5.7));
 }
 
@@ -269,8 +298,11 @@ float dsfx_spec(float3 n, float power)
 }
 
 // Time-twinkling glints: density in [0,1], cellPt = sparkle cell size in points.
+// Lite: none (decoration: up to three hashes and a sine a pixel).
 float dsfx_sparkle(float2 p, float cellPt, float density, float t)
 {
+    if (dsfx_lite())
+        return 0.0;
     float2 cell = floor(p / cellPt);
     float h = dsfx_hash12(cell);
     if (h > density) return 0.0;

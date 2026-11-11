@@ -259,7 +259,8 @@ that does not fringe), `dsfx_iconStamp`.
 `easeInOutCubic` / `easeOutBack`, `dsfx_springDecay`.
 
 **Noise** — `dsfx_hash11/12/22`, `dsfx_vnoise`, `dsfx_fbm` (3 octaves), `dsfx_fbm2` (2). Integer-hashed,
-because sin-hashes sparkle on GLES3/WebGL2 mediump.
+because sin-hashes sparkle on GLES3/WebGL2 mediump. In [lite rendering](#lite-rendering-for-entry-level-gpus)
+both fbm calls fall to one octave and `dsfx_sparkle` draws nothing; `dsfx_lite()` tells a family it is on.
 
 **Modes** — `dsfx_textCarve()`, `dsfx_textSolid()`, `dsfx_frameOnly()`, `dsfx_textOnly()`,
 `dsfx_disabledFx()`.
@@ -523,7 +524,8 @@ writes trips *"cannot use casts on l-values"*.
 identical twins. `f.tex` is `f.pt` plus the per-element anchor.
 
 **Use the integer hashes.** `dsfx_hash*` are integer-based because sin-hashes sparkle on GLES3/WebGL2
-mediump. Keep fbm at 3 octaves; that is the mobile ceiling.
+mediump. Keep fbm at 3 octaves; that is the mobile ceiling. Then honor lite rendering: put your own
+figure behind `dsfx_lite()` (next section).
 
 **Test in a real build.** The editor hides GLES compile failures that a WebGL build surfaces.
 
@@ -542,6 +544,38 @@ property.
 **Every skinned element is one extra draw call.** Materials are for hero surfaces, not for every
 element on screen. `DsFxTheme.Apply` deliberately skins a whole tree because that is the honest stress
 test — and the thing you should look at before deciding how much of your UI deserves this.
+
+### Lite rendering for entry-level GPUs
+
+The procedural figure is where a material's per-pixel cost goes. One `dsfx_vnoise` is four integer
+hashes, sixteen 32-bit multiplies; a 3-octave `dsfx_fbm` is 48, and a surface with two noise fields
+is near a hundred. Many entry-level phone GPUs multiply integers at a fraction of their float rate,
+so on them a few large skinned panels can take a large share of the frame, even when the UI holds no
+more skinned elements than this guide recommends.
+
+`DsFxManager.Lite` switches every material to lite rendering. Each surface keeps its form: shape,
+bevel, chrome, edges, state, entrance. Its figure thins. `dsfx_fbm` and `dsfx_fbm2` fall to one
+octave with about the same mean and spread, so thresholds tuned on the full field still cover about
+as much, and `dsfx_sparkle` draws nothing. It is one global shader float (`_DsFxLite`), so switching
+needs no re-skin and takes effect on the next frame.
+
+- **The default** is decided at first read: on where `DsFxManager.IsEntryLevelGpu(SystemInfo.graphicsDeviceName)`
+  is true, off everywhere else. That covers Adreno 3xx to 5xx except the 530 and 540, Mali-4xx and
+  Mali-T, Mali-G31, G51 and G52, and PowerVR GE7xxx and GE8xxx. Assigning the property overrides it
+  for the session, for example from your own graphics preset.
+- **In your family**, test `dsfx_lite()` and skip what the foundation cannot thin for you: a second
+  noise field, a grain, a flicker, anything decorative a pixel computes every frame. Keep what tells
+  the user something (state, focus, the entrance, disabled). It is a uniform branch: every pixel of
+  a draw takes the same side, so a full-quality device pays one comparison.
+
+```hlsl
+float figure = 0.0;
+if (!dsfx_lite())
+    figure = dsfx_fbm(f.tex * 0.05) * 0.6 + dsfx_fbm(f.tex * 0.13 + 9.0) * 0.4;
+```
+
+- **In the showcase**, `?fxlite=1` forces lite rendering on any device and `?fxlite=0` forces full
+  rendering on an entry-level one.
 
 Materials compose with token theming rather than replacing it: material colors are shader uniforms,
 not tokens, so your `ThemeData` still restyles everything the material does not paint. A transient

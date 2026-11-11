@@ -24,6 +24,7 @@ namespace DesignSystem.Runtime.Fx
     public static class DsFxManager
     {
         private static readonly int TimeProp = Shader.PropertyToID("_DsFxTime");
+        private static readonly int LiteProp = Shader.PropertyToID("_DsFxLite");
         private static readonly Dictionary<DsFxFamily, Material> Materials = new Dictionary<DsFxFamily, Material>();
         private static DsFxTicker _ticker;
         private static float? _timeOverride;
@@ -88,6 +89,65 @@ namespace DesignSystem.Runtime.Fx
         }
 
         /// <summary>
+        /// Lite rendering, for entry-level GPUs. Every material keeps its form (shape, bevel,
+        /// chrome, edges, state, entrance) and drops most of its procedural figure, the part
+        /// that dominates its per-pixel cost. The foundation's noise falls to one octave, its
+        /// glints draw nothing, and a family tests <c>dsfx_lite()</c> to skip more of its own
+        /// (see the lite rendering section of <c>DsFx.cginc</c>). On a phone with an entry-level
+        /// GPU, a few large skinned panels drawn in full can take a large share of the frame.
+        ///
+        /// The default is decided at first read: on where <see cref="IsEntryLevelGpu"/> says so
+        /// for this device's GPU, off everywhere else. Assigning the property overrides the
+        /// default for the session, for example from a host's own graphics preset. One global
+        /// shader float carries it (<c>_DsFxLite</c>), so switching needs no re-skin and takes
+        /// effect on the next frame.
+        /// </summary>
+        public static bool Lite
+        {
+            get => _lite ??= IsEntryLevelGpu(SystemInfo.graphicsDeviceName);
+            set
+            {
+                _lite = value;
+                ApplyLite();
+            }
+        }
+
+        private static bool? _lite;
+        private static float _liteApplied = -1f;
+
+        /// <summary>
+        /// Entry-level phone and tablet GPUs, read from a renderer string
+        /// (<see cref="SystemInfo.graphicsDeviceName"/>, also the unmasked string a WebGL
+        /// player sees through ANGLE): Adreno 3xx to 5xx except the 530 and 540, Mali-4xx and
+        /// Mali-T (Utgard and Midgard), the small Bifrost Mali-G31, G51 and G52, and PowerVR
+        /// GE7xxx and GE8xxx. Everything else is treated as capable, desktop GPUs included.
+        /// </summary>
+        public static bool IsEntryLevelGpu(string deviceName)
+        {
+            if (string.IsNullOrEmpty(deviceName))
+                return false;
+            string g = deviceName.ToLowerInvariant();
+            var adreno = System.Text.RegularExpressions.Regex.Match(g, @"adreno[^0-9]*([0-9]{3})");
+            if (adreno.Success && int.TryParse(adreno.Groups[1].Value, out int model))
+                return model < 600 && model != 530 && model != 540;
+            if (g.Contains("mali-4") || g.Contains("mali-t"))
+                return true;
+            if (System.Text.RegularExpressions.Regex.IsMatch(g, @"mali-g(31|51|52)\b"))
+                return true;
+            return g.Contains("powervr") && (g.Contains("ge7") || g.Contains("ge8"));
+        }
+
+        private static void ApplyLite()
+        {
+            float value = Lite ? 1f : 0f;
+            if (value == _liteApplied)
+                return;
+            _liteApplied = value;
+            Shader.SetGlobalFloat(LiteProp, value);
+            Diag($"lite rendering {(value > 0f ? "on" : "off")} (gpu '{SystemInfo.graphicsDeviceName}')");
+        }
+
+        /// <summary>
         /// Narrate the material pipeline to the console: skin attachment decisions, material
         /// resolution, deferred-action ticks, theme fan-out. For chasing player-only failures
         /// (the showcase turns it on with <c>?fxdiag=1</c>); each site logs a handful of times,
@@ -142,6 +202,8 @@ namespace DesignSystem.Runtime.Fx
             Diag($"MaterialFor '{family.Name}': shader='{shader.name}' supported={shader.isSupported}");
             mat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave, name = "DsFx-" + family.Name };
             Materials[family] = mat;
+            // The rendering quality is global, like the clock: in place before the first skinned draw.
+            ApplyLite();
             EnsureTicker();
             return mat;
         }
@@ -221,6 +283,7 @@ namespace DesignSystem.Runtime.Fx
         {
             if (!_timeOverride.HasValue)
                 Shader.SetGlobalFloat(TimeProp, Time.unscaledTime);
+            ApplyLite();
             if (DeferredActions.Count == 0)
                 return;
             var now = Time.unscaledTime;
@@ -236,7 +299,7 @@ namespace DesignSystem.Runtime.Fx
         }
     }
 
-    /// <summary>One SetGlobalFloat per frame; that is the entire runtime loop of the FX system.</summary>
+    /// <summary>One SetGlobalFloat per frame (and one more when lite rendering changes); that is the entire runtime loop of the FX system.</summary>
     [DefaultExecutionOrder(-4000)]
     internal sealed class DsFxTicker : MonoBehaviour
     {
